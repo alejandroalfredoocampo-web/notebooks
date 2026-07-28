@@ -17,4 +17,9 @@ if (!url || !anon) {
 
 export const supabase = createClient(url, anon, {
   auth: { persistSession: false },
+  // Evita que el Data Cache de Next sirva filas viejas: siempre lee de la DB.
+  global: {
+    fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+      fetch(input, { ...init, cache: "no-store" }),
+  },
 });

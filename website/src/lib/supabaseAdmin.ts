@@ -19,6 +19,12 @@ export function supabaseAdmin(): SupabaseClient {
       "Falta SUPABASE_SERVICE_ROLE_KEY (o SUPABASE_URL) para el admin. Seteala en el entorno."
     );
   }
-  client = createClient(url, key, { auth: { persistSession: false } });
+  client = createClient(url, key, {
+    auth: { persistSession: false },
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
   return client;
 }

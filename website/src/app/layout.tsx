@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   },
 };
 
+// El Header lee de Supabase (sin cache) → todo el árbol se renderiza en vivo.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
