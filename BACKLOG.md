@@ -90,6 +90,16 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
 - [ ] `0003_store_applications.sql` — tabla de solicitudes de tiendas
 
 ### Próximas
+- [ ] **Búsqueda por voz en la home**: botón de micrófono que dicta a la búsqueda por necesidad
+      (extiende la feature #3 — "para gaming hasta 3 millones" hablado). Implica:
+      - **Reconocimiento de voz**: Web Speech API (`SpeechRecognition`, locale `es-AR`) → transcribe
+        en el navegador y alimenta el buscador existente. Fallback: ocultar el botón si el navegador
+        no lo soporta (Safari/Firefox tienen soporte parcial).
+      - **Permisos de micrófono**: pedir acceso con manejo claro del prompt y del caso "denegado"
+        (mensaje + fallback a escribir). No re-pedir en loop.
+      - **Política de privacidad**: página `/privacidad` + link en el footer, aclarando qué se captura,
+        que el audio puede procesarse en servidores del navegador (ej. Google en Chrome), que no se
+        almacena, y el uso del micrófono. **Requisito previo** a pedir el micrófono (legal + confianza).
 - [ ] **Guías SEO** ("mejor notebook para programar/gaming/estudiar") — reutiliza la recomendación por specs.
 - [ ] Sumar al scraper (`sources.mjs`) las tiendas aprobadas desde el formulario.
 - [ ] **Búsqueda a escala**: relevancia + autocomplete cuando haya cientos de modelos.
