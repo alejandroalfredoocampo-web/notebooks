@@ -1,0 +1,38 @@
+{
+  "name": "notebooks-com-ar",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:preview": "npx wrangler pages dev .vercel/output/static --compatibility-flag=nodejs_compat",
+    "pages:deploy": "npx wrangler pages deploy .vercel/output/static --project-name=notebooks-com-ar",
+    "scrape": "node scrapers/run.mjs",
+    "publish:site": "node scrapers/publish.mjs",
+    "seed:supabase": "node scrapers/seed-supabase.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.9",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.12",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.5.4",
+    "vercel": "^37.14.0",
+    "wrangler": "^3.114.17"
+  }
+}

@@ -1,0 +1,14 @@
+[
+  { "id": "cordobanotebooks", "name": "Córdoba Notebooks", "slug": "cordoba-notebooks", "url": "https://cordobanotebooks.com.ar", "type": "Especialista en notebooks", "physicalStore": true, "city": "Córdoba Capital", "affiliate": { "kind": "utm", "params": { "utm_source": "notebooks.com.ar", "utm_medium": "comparador" } } },
+  { "id": "fullh4rd", "name": "Full H4rd", "slug": "full-h4rd", "url": "https://fullh4rd.com.ar", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "maximus", "name": "Maximus", "slug": "maximus", "url": "https://www.maximus.com.ar", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "gezatek", "name": "Gezatek", "slug": "gezatek", "url": "https://www.gezatek.com.ar", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "venex", "name": "Venex", "slug": "venex", "url": "https://www.venex.com.ar", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "mexx", "name": "Mexx", "slug": "mexx", "url": "https://www.mexx.com.ar", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "fravega", "name": "Frávega", "slug": "fravega", "url": "https://www.fravega.com", "type": "Retail", "physicalStore": true, "city": "Nacional", "affiliate": { "kind": "utm", "params": { "utm_source": "notebooks.com.ar", "utm_medium": "comparador" } } },
+  { "id": "cetrogar", "name": "Cetrogar", "slug": "cetrogar", "url": "https://www.cetrogar.com.ar", "type": "Retail", "physicalStore": true, "city": "Nacional", "affiliate": null },
+  { "id": "musimundo", "name": "Musimundo", "slug": "musimundo", "url": "https://www.musimundo.com", "type": "Retail", "physicalStore": true, "city": "Nacional", "affiliate": null },
+  { "id": "backup", "name": "Backup Computación", "slug": "backup-computacion", "url": "https://backupcomputacion.com", "type": "Tienda de hardware", "physicalStore": true, "city": "CABA", "affiliate": null },
+  { "id": "maxtecno", "name": "Max Tecno", "slug": "max-tecno", "url": "https://maxtecno.com.ar", "type": "Tienda de hardware", "physicalStore": false, "city": "CABA", "affiliate": null },
+  { "id": "naldo", "name": "Naldo", "slug": "naldo", "url": "https://www.naldo.com.ar", "type": "Retail", "physicalStore": true, "city": "Nacional", "affiliate": null }
+]

@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Artefactos de build (se regeneran)
+notebooks-cloudflare-pages.zip
+
+# Dependencias / builds (por si acaso; website/.gitignore cubre el resto)
+node_modules/
+.next/
+.vercel/
+out/
+*.log
+.env
+.env.*
+
+# Config local de Claude Code (por máquina)
+.claude/settings.local.json

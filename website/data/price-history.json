@@ -1,0 +1,64 @@
+{
+  "lenovo-ideapad-slim-3-15irh8-16-512": [
+    { "date": "2026-04-03", "bestPrice": 1355000 }, { "date": "2026-04-10", "bestPrice": 1349000 },
+    { "date": "2026-04-17", "bestPrice": 1362000 }, { "date": "2026-04-24", "bestPrice": 1340000 },
+    { "date": "2026-05-01", "bestPrice": 1329000 }, { "date": "2026-05-08", "bestPrice": 1298000 },
+    { "date": "2026-05-15", "bestPrice": 1310000 }, { "date": "2026-05-22", "bestPrice": 1305000 },
+    { "date": "2026-05-29", "bestPrice": 1289000 }, { "date": "2026-06-05", "bestPrice": 1275000 },
+    { "date": "2026-06-12", "bestPrice": 1262000 }, { "date": "2026-06-19", "bestPrice": 1240000 },
+    { "date": "2026-06-26", "bestPrice": 1215000 }, { "date": "2026-07-02", "bestPrice": 1189999 }
+  ],
+  "asus-vivobook-14-x1404-12-256": [
+    { "date": "2026-04-03", "bestPrice": 1195000 }, { "date": "2026-04-17", "bestPrice": 1189000 },
+    { "date": "2026-05-01", "bestPrice": 1179000 }, { "date": "2026-05-15", "bestPrice": 1165000 },
+    { "date": "2026-05-29", "bestPrice": 1152000 }, { "date": "2026-06-12", "bestPrice": 1138000 },
+    { "date": "2026-06-26", "bestPrice": 1119000 }, { "date": "2026-07-02", "bestPrice": 1107850 }
+  ],
+  "lenovo-legion-5-15irx9-rtx5070": [
+    { "date": "2026-04-03", "bestPrice": 3850000 }, { "date": "2026-04-17", "bestPrice": 3820000 },
+    { "date": "2026-05-01", "bestPrice": 3790000 }, { "date": "2026-05-15", "bestPrice": 3840000 },
+    { "date": "2026-05-29", "bestPrice": 3810000 }, { "date": "2026-06-12", "bestPrice": 3780000 },
+    { "date": "2026-06-26", "bestPrice": 3799999 }, { "date": "2026-07-02", "bestPrice": 3799999 }
+  ],
+  "hp-omen-max-16-rtx5090": [
+    { "date": "2026-05-15", "bestPrice": 7450000 }, { "date": "2026-05-29", "bestPrice": 7390000 },
+    { "date": "2026-06-12", "bestPrice": 7320000 }, { "date": "2026-06-26", "bestPrice": 7280000 },
+    { "date": "2026-07-02", "bestPrice": 7249999 }
+  ],
+  "apple-macbook-air-13-m3-8-256": [
+    { "date": "2026-04-03", "bestPrice": 2090000 }, { "date": "2026-04-17", "bestPrice": 2075000 },
+    { "date": "2026-05-01", "bestPrice": 2049000 }, { "date": "2026-05-15", "bestPrice": 1998000 },
+    { "date": "2026-05-29", "bestPrice": 1975000 }, { "date": "2026-06-12", "bestPrice": 1949000 },
+    { "date": "2026-06-26", "bestPrice": 1920000 }, { "date": "2026-07-02", "bestPrice": 1899000 }
+  ],
+  "acer-aspire-5-a515-r7-16-512": [
+    { "date": "2026-04-03", "bestPrice": 1165000 }, { "date": "2026-04-17", "bestPrice": 1150000 },
+    { "date": "2026-05-01", "bestPrice": 1139000 }, { "date": "2026-05-15", "bestPrice": 1120000 },
+    { "date": "2026-05-29", "bestPrice": 1095000 }, { "date": "2026-06-12", "bestPrice": 1060000 },
+    { "date": "2026-06-26", "bestPrice": 1015000 }, { "date": "2026-07-02", "bestPrice": 989999 }
+  ],
+  "dell-inspiron-15-3530-i7-16-512": [
+    { "date": "2026-04-03", "bestPrice": 1680000 }, { "date": "2026-04-17", "bestPrice": 1672000 },
+    { "date": "2026-05-01", "bestPrice": 1665000 }, { "date": "2026-05-15", "bestPrice": 1658000 },
+    { "date": "2026-05-29", "bestPrice": 1652000 }, { "date": "2026-06-12", "bestPrice": 1649990 },
+    { "date": "2026-06-26", "bestPrice": 1649990 }, { "date": "2026-07-02", "bestPrice": 1649990 }
+  ],
+  "hp-pavilion-15-i3-8-512": [
+    { "date": "2026-04-03", "bestPrice": 895000 }, { "date": "2026-04-17", "bestPrice": 889000 },
+    { "date": "2026-05-01", "bestPrice": 882000 }, { "date": "2026-05-15", "bestPrice": 875000 },
+    { "date": "2026-05-29", "bestPrice": 868000 }, { "date": "2026-06-12", "bestPrice": 855000 },
+    { "date": "2026-06-26", "bestPrice": 839000 }, { "date": "2026-07-02", "bestPrice": 829999 }
+  ],
+  "asus-tuf-a15-r7-16-512-rtx4060": [
+    { "date": "2026-04-03", "bestPrice": 2480000 }, { "date": "2026-04-17", "bestPrice": 2465000 },
+    { "date": "2026-05-01", "bestPrice": 2440000 }, { "date": "2026-05-15", "bestPrice": 2420000 },
+    { "date": "2026-05-29", "bestPrice": 2395000 }, { "date": "2026-06-12", "bestPrice": 2360000 },
+    { "date": "2026-06-26", "bestPrice": 2330000 }, { "date": "2026-07-02", "bestPrice": 2299999 }
+  ],
+  "samsung-galaxy-book4-i5-16-512": [
+    { "date": "2026-04-03", "bestPrice": 1520000 }, { "date": "2026-04-17", "bestPrice": 1505000 },
+    { "date": "2026-05-01", "bestPrice": 1490000 }, { "date": "2026-05-15", "bestPrice": 1475000 },
+    { "date": "2026-05-29", "bestPrice": 1460000 }, { "date": "2026-06-12", "bestPrice": 1435000 },
+    { "date": "2026-06-26", "bestPrice": 1410000 }, { "date": "2026-07-02", "bestPrice": 1399999 }
+  ]
+}

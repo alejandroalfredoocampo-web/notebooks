@@ -1,0 +1,482 @@
+[
+  {
+    "id": "l-001",
+    "storeId": "cordobanotebooks",
+    "modelId": "lenovo-ideapad-slim-3-15irh8-16-512",
+    "url": "https://cordobanotebooks.com.ar/producto/notebook-lenovo-ideapad-slim-3-i5-16gb-512gb/",
+    "titleRaw": "Notebook Lenovo IdeaPad Slim 3 Core i5 16GB 512GB SSD 15.6",
+    "priceList": 1422999,
+    "priceCash": 1189999,
+    "installments": {
+      "count": 12,
+      "amount": 99167
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-002",
+    "storeId": "fullh4rd",
+    "modelId": "lenovo-ideapad-slim-3-15irh8-16-512",
+    "url": "https://fullh4rd.com.ar/p/notebook-lenovo-ideapad-slim-3",
+    "titleRaw": "NOTEBOOK LENOVO IDEAPAD SLIM 3 I5-13420H 16GB 512GB 15.6 FHD",
+    "priceList": 1249999,
+    "priceCash": 1214999,
+    "installments": {
+      "count": 6,
+      "amount": 214900
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-003",
+    "storeId": "fravega",
+    "modelId": "lenovo-ideapad-slim-3-15irh8-16-512",
+    "url": "https://www.fravega.com/p/notebook-lenovo-ideapad-slim-3",
+    "titleRaw": "Notebook Lenovo IdeaPad Slim 3 15.6 i5 16GB 512GB",
+    "priceList": 1399999,
+    "priceCash": 1299999,
+    "installments": {
+      "count": 18,
+      "amount": 88700
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-004",
+    "storeId": "cetrogar",
+    "modelId": "lenovo-ideapad-slim-3-15irh8-16-512",
+    "url": "https://www.cetrogar.com.ar/notebook-lenovo-ideapad-slim-3",
+    "titleRaw": "Notebook Lenovo IdeaPad Slim 3 Intel Core i5 16GB 512GB",
+    "priceList": 1449999,
+    "priceCash": 1349999,
+    "installments": {
+      "count": 12,
+      "amount": 112500
+    },
+    "inStock": false,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-005",
+    "storeId": "backup",
+    "modelId": "asus-vivobook-14-x1404-12-256",
+    "url": "https://backupcomputacion.com/producto/vivobook-14-i5",
+    "titleRaw": "VIVOBOOK INTEL I5-1334U 12GB RAM 256GB SSD 14 FHD",
+    "priceList": 1149999,
+    "priceCash": 1107850,
+    "installments": {
+      "count": 6,
+      "amount": 196000
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-006",
+    "storeId": "gezatek",
+    "modelId": "asus-vivobook-14-x1404-12-256",
+    "url": "https://www.gezatek.com.ar/notebook-asus-vivobook-14",
+    "titleRaw": "Notebook Asus Vivobook 14 i5 1334U 12GB 256GB",
+    "priceList": 1199999,
+    "priceCash": 1145990,
+    "installments": {
+      "count": 12,
+      "amount": 95499
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-007",
+    "storeId": "venex",
+    "modelId": "asus-vivobook-14-x1404-12-256",
+    "url": "https://www.venex.com.ar/notebook-asus-vivobook-14",
+    "titleRaw": "NOTEBOOK ASUS VIVOBOOK 14 I5 12GB 256GB SSD",
+    "priceList": 1219999,
+    "priceCash": 1189999,
+    "installments": {
+      "count": 3,
+      "amount": 412000
+    },
+    "inStock": false,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-008",
+    "storeId": "maxtecno",
+    "modelId": "lenovo-legion-5-15irx9-rtx5070",
+    "url": "https://maxtecno.com.ar/producto/lenovo-legion-5-i9-rtx5070",
+    "titleRaw": "LENOVO LEGION 5 INTEL I9-14900HX 16GB RAM 1TB SSD 15.1 OLED WQXGA 165HZ NVIDIA RTX 5070 8GB",
+    "priceList": 3999999,
+    "priceCash": 3799999,
+    "installments": {
+      "count": 12,
+      "amount": 316667
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-009",
+    "storeId": "maximus",
+    "modelId": "lenovo-legion-5-15irx9-rtx5070",
+    "url": "https://www.maximus.com.ar/notebook-lenovo-legion-5-rtx5070",
+    "titleRaw": "NOTEBOOK GAMER LENOVO LEGION 5 I9 16GB 1TB RTX 5070",
+    "priceList": 3949000,
+    "priceCash": 3899000,
+    "installments": {
+      "count": 6,
+      "amount": 689000
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-010",
+    "storeId": "mexx",
+    "modelId": "lenovo-legion-5-15irx9-rtx5070",
+    "url": "https://www.mexx.com.ar/notebook-lenovo-legion-5",
+    "titleRaw": "Notebook Lenovo Legion 5 i9 14900HX RTX5070 16GB 1TB",
+    "priceList": 4099999,
+    "priceCash": 3999999,
+    "installments": {
+      "count": 12,
+      "amount": 333333
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-011",
+    "storeId": "maxtecno",
+    "modelId": "hp-omen-max-16-rtx5090",
+    "url": "https://maxtecno.com.ar/producto/hp-omen-max-16-rtx5090",
+    "titleRaw": "NOTEBOOK GAMER HP OMEN MAX 16T-AH000 CORE ULTRA 9 275HX 16GB RAM 512GB SSD RTX 5090 16 165HZ",
+    "priceList": 7499999,
+    "priceCash": 7249999,
+    "installments": {
+      "count": 12,
+      "amount": 604167
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-012",
+    "storeId": "fullh4rd",
+    "modelId": "hp-omen-max-16-rtx5090",
+    "url": "https://fullh4rd.com.ar/p/hp-omen-max-16",
+    "titleRaw": "NOTEBOOK HP OMEN MAX 16 ULTRA 9 RTX 5090 16GB 512GB",
+    "priceList": 7399000,
+    "priceCash": 7399000,
+    "installments": {
+      "count": 6,
+      "amount": 1308000
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-013",
+    "storeId": "cordobanotebooks",
+    "modelId": "apple-macbook-air-13-m3-8-256",
+    "url": "https://cordobanotebooks.com.ar/producto/macbook-air-13-m3/",
+    "titleRaw": "Apple MacBook Air 13 M3 8GB 256GB SSD",
+    "priceList": 2099999,
+    "priceCash": 1899000,
+    "installments": {
+      "count": 12,
+      "amount": 158250
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-014",
+    "storeId": "maximus",
+    "modelId": "apple-macbook-air-13-m3-8-256",
+    "url": "https://www.maximus.com.ar/macbook-air-m3",
+    "titleRaw": "APPLE MACBOOK AIR 13.6 M3 8GB 256GB",
+    "priceList": 1999000,
+    "priceCash": 1949999,
+    "installments": {
+      "count": 6,
+      "amount": 344200
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-015",
+    "storeId": "fravega",
+    "modelId": "apple-macbook-air-13-m3-8-256",
+    "url": "https://www.fravega.com/p/macbook-air-13-m3",
+    "titleRaw": "MacBook Air 13.6 Apple M3 8GB 256GB SSD",
+    "priceList": 2149999,
+    "priceCash": 2099999,
+    "installments": {
+      "count": 18,
+      "amount": 143300
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-016",
+    "storeId": "venex",
+    "modelId": "acer-aspire-5-a515-r7-16-512",
+    "url": "https://www.venex.com.ar/notebook-acer-aspire-5-ryzen7",
+    "titleRaw": "NOTEBOOK ACER ASPIRE 5 RYZEN 7 5700U 16GB 512GB 15.6",
+    "priceList": 1099999,
+    "priceCash": 989999,
+    "installments": {
+      "count": 12,
+      "amount": 82500
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-017",
+    "storeId": "fullh4rd",
+    "modelId": "acer-aspire-5-a515-r7-16-512",
+    "url": "https://fullh4rd.com.ar/p/notebook-acer-aspire-5",
+    "titleRaw": "NOTEBOOK ACER ASPIRE 5 R7-5700U 16GB 512GB FHD",
+    "priceList": 1049999,
+    "priceCash": 1024999,
+    "installments": {
+      "count": 6,
+      "amount": 181300
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-018",
+    "storeId": "cetrogar",
+    "modelId": "acer-aspire-5-a515-r7-16-512",
+    "url": "https://www.cetrogar.com.ar/notebook-acer-aspire-5",
+    "titleRaw": "Notebook Acer Aspire 5 Ryzen 7 16GB 512GB",
+    "priceList": 1199999,
+    "priceCash": 1119999,
+    "installments": {
+      "count": 18,
+      "amount": 76400
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-019",
+    "storeId": "cordobanotebooks",
+    "modelId": "acer-aspire-5-a515-r7-16-512",
+    "url": "https://cordobanotebooks.com.ar/producto/notebook-acer-aspire-5-ryzen-7/",
+    "titleRaw": "Notebook Acer Aspire 5 Ryzen 7 16GB 512GB SSD 15.6",
+    "priceList": 1149999,
+    "priceCash": 1039999,
+    "installments": {
+      "count": 12,
+      "amount": 86667
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-020",
+    "storeId": "gezatek",
+    "modelId": "dell-inspiron-15-3530-i7-16-512",
+    "url": "https://www.gezatek.com.ar/notebook-dell-inspiron-15",
+    "titleRaw": "Notebook Dell Inspiron 15 3530 i7 1355U 16GB 512GB 120Hz",
+    "priceList": 1699999,
+    "priceCash": 1649990,
+    "installments": {
+      "count": 12,
+      "amount": 137499
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-021",
+    "storeId": "cordobanotebooks",
+    "modelId": "dell-inspiron-15-3530-i7-16-512",
+    "url": "https://cordobanotebooks.com.ar/producto/notebook-dell-15-core-i7-16gb-512gb/",
+    "titleRaw": "Notebook Dell 15 Core i7 16GB 512GB SSD",
+    "priceList": 1749999,
+    "priceCash": 1689999,
+    "installments": {
+      "count": 12,
+      "amount": 140833
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-022",
+    "storeId": "musimundo",
+    "modelId": "hp-pavilion-15-i3-8-512",
+    "url": "https://www.musimundo.com/notebook-hp-pavilion-15-i3",
+    "titleRaw": "Notebook HP Pavilion 15.6 i3 8GB 512GB",
+    "priceList": 899999,
+    "priceCash": 829999,
+    "installments": {
+      "count": 12,
+      "amount": 69167
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-023",
+    "storeId": "fravega",
+    "modelId": "hp-pavilion-15-i3-8-512",
+    "url": "https://www.fravega.com/p/notebook-hp-pavilion-15",
+    "titleRaw": "Notebook HP Pavilion 15 Intel Core i3 8GB 512GB",
+    "priceList": 879999,
+    "priceCash": 849999,
+    "installments": {
+      "count": 18,
+      "amount": 58000
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-024",
+    "storeId": "backup",
+    "modelId": "hp-pavilion-15-i3-8-512",
+    "url": "https://backupcomputacion.com/producto/hp-pavilion-15-i3",
+    "titleRaw": "NOTEBOOK HP PAVILION I3-1315U 8GB 512GB SSD 15.6 FHD",
+    "priceList": 889000,
+    "priceCash": 869000,
+    "installments": {
+      "count": 6,
+      "amount": 153700
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-025",
+    "storeId": "mexx",
+    "modelId": "asus-tuf-a15-r7-16-512-rtx4060",
+    "url": "https://www.mexx.com.ar/notebook-asus-tuf-a15",
+    "titleRaw": "Notebook Asus TUF Gaming A15 Ryzen 7 RTX4060 16GB 512GB",
+    "priceList": 2499999,
+    "priceCash": 2299999,
+    "installments": {
+      "count": 12,
+      "amount": 191667
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-026",
+    "storeId": "maximus",
+    "modelId": "asus-tuf-a15-r7-16-512-rtx4060",
+    "url": "https://www.maximus.com.ar/notebook-asus-tuf-a15",
+    "titleRaw": "NOTEBOOK GAMER ASUS TUF A15 R7 16GB 512GB RTX 4060",
+    "priceList": 2449000,
+    "priceCash": 2379000,
+    "installments": {
+      "count": 6,
+      "amount": 420200
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-027",
+    "storeId": "fullh4rd",
+    "modelId": "asus-tuf-a15-r7-16-512-rtx4060",
+    "url": "https://fullh4rd.com.ar/p/notebook-asus-tuf-a15",
+    "titleRaw": "NOTEBOOK ASUS TUF GAMING A15 RYZEN 7 RTX 4060 16GB 512GB",
+    "priceList": 2549999,
+    "priceCash": 2449999,
+    "installments": {
+      "count": 12,
+      "amount": 204167
+    },
+    "inStock": false,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-028",
+    "storeId": "fravega",
+    "modelId": "samsung-galaxy-book4-i5-16-512",
+    "url": "https://www.fravega.com/p/notebook-samsung-galaxy-book4",
+    "titleRaw": "Notebook Samsung Galaxy Book4 15.6 Core 5 16GB 512GB",
+    "priceList": 1549999,
+    "priceCash": 1399999,
+    "installments": {
+      "count": 18,
+      "amount": 95500
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-029",
+    "storeId": "musimundo",
+    "modelId": "samsung-galaxy-book4-i5-16-512",
+    "url": "https://www.musimundo.com/notebook-samsung-galaxy-book4",
+    "titleRaw": "Notebook Samsung Galaxy Book4 Core 5 16GB 512GB SSD",
+    "priceList": 1499999,
+    "priceCash": 1449999,
+    "installments": {
+      "count": 12,
+      "amount": 120833
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  },
+  {
+    "id": "l-030",
+    "storeId": "cetrogar",
+    "modelId": "samsung-galaxy-book4-i5-16-512",
+    "url": "https://www.cetrogar.com.ar/notebook-samsung-galaxy-book4",
+    "titleRaw": "Notebook Samsung Galaxy Book4 15 i5 16GB 512GB",
+    "priceList": 1529999,
+    "priceCash": 1479999,
+    "installments": {
+      "count": 18,
+      "amount": 100900
+    },
+    "inStock": true,
+    "condition": "new",
+    "lastSeenAt": "2026-07-02T14:32:00-03:00"
+  }
+]

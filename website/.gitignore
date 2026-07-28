@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+.vercel/
+var/
+*.log
+.env*
+.DS_Store
+
+# Salidas generadas por el pipeline de scrapers (no curadas)
+data/listings.raw.json
+data/listings.matched.json
+data/review-queue.json
+data/price-history.snapshots.json
+data/model-images.json
+# Generados por la consola de admin
+data/match-decisions.json
+data/manual-listings.json
+data/manual-models.json
