@@ -6,11 +6,13 @@ import { fmtARS, fmtDateTime } from "@/lib/format";
 import SpecChips from "@/components/SpecChips";
 import PriceChart from "@/components/PriceChart";
 import PriceAlertForm from "@/components/PriceAlertForm";
+import NotifyAvailabilityForm from "@/components/NotifyAvailabilityForm";
 import UseRecommendation from "@/components/UseRecommendation";
 import ModelImage from "@/components/ModelImage";
 import PriceThermometer from "@/components/PriceThermometer";
 import ShareButton from "@/components/ShareButton";
 import StoreRating from "@/components/StoreRating";
+import FavoriteButton from "@/components/FavoriteButton";
 import { priceInsight } from "@/lib/priceInsight";
 
 interface Params {
@@ -50,10 +52,11 @@ export default async function ModelPage({ params }: { params: Params }) {
   const model = await getModelBySlug(params.brand, params.slug);
   if (!model) notFound();
 
+  const hasOffers = model.listings.length > 0; // modo "próximamente" si no hay ofertas (spec 06)
   const [history, allModels] = await Promise.all([getHistory(model.id), getModels()]);
   const insight = priceInsight(model.bestPrice, history);
   const similar = allModels
-    .filter((m) => m.id !== model.id && m.gpuType === model.gpuType)
+    .filter((m) => m.id !== model.id && m.gpuType === model.gpuType && m.listings.length > 0)
     .slice(0, 3);
 
   // Radar de financiación: costo real en cuotas por oferta + cuál conviene financiada
@@ -77,20 +80,22 @@ export default async function ModelPage({ params }: { params: Params }) {
     return scored[0].id;
   })();
 
-  const jsonLd = {
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: `${model.brand} ${model.name}`,
     brand: { "@type": "Brand", name: model.brand },
     sku: model.partNumber,
-    offers: {
+  };
+  if (hasOffers) {
+    jsonLd.offers = {
       "@type": "AggregateOffer",
       priceCurrency: "ARS",
       lowPrice: model.bestPrice,
       highPrice: Math.max(...model.listings.map((l) => l.priceCash)),
       offerCount: model.listings.length,
-    },
-  };
+    };
+  }
 
   const specs: [string, string][] = [
     ["Procesador", model.cpu],
@@ -171,8 +176,13 @@ export default async function ModelPage({ params }: { params: Params }) {
               title={`${model.brand} ${model.name}`}
               text={`${model.brand} ${model.name} desde ${fmtARS(model.bestPrice)} — comparado en ${model.listings.length} tiendas`}
             />
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500">
+              <FavoriteButton modelId={model.id} size="sm" /> Guardar
+            </span>
           </div>
 
+          {hasOffers ? (
+          <>
           <div className="mb-3.5 rounded-xl border-2 border-brand-green bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-widest text-brand-green">
               Mejor precio hoy
@@ -395,6 +405,22 @@ export default async function ModelPage({ params }: { params: Params }) {
           </p>
 
           <PriceAlertForm modelId={model.id} modelName={`${model.brand} ${model.name}`} />
+          </>
+          ) : (
+            <div className="rounded-xl border-2 border-dashed border-brand-sky bg-blue-50/50 p-6">
+              <div className="text-lg font-extrabold">Todavía sin ofertas</div>
+              <p className="mt-1 text-sm text-slate-600">
+                Ninguna tienda publicó este modelo por ahora. Dejanos tu email y te avisamos
+                apenas aparezca a la venta en alguna de las tiendas que comparamos.
+              </p>
+              <div className="mt-4">
+                <NotifyAvailabilityForm
+                  modelId={model.id}
+                  modelName={`${model.brand} ${model.name}`}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -403,10 +429,12 @@ export default async function ModelPage({ params }: { params: Params }) {
       </div>
 
       <div className="grid gap-6 pb-6 md:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-extrabold">Historial de precios (90 días)</h2>
-          <PriceChart points={history} avg90={model.avg90} />
-        </div>
+        {hasOffers && (
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 font-extrabold">Historial de precios (90 días)</h2>
+            <PriceChart points={history} avg90={model.avg90} />
+          </div>
+        )}
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-extrabold">Modelos similares</h2>
           <div className="flex flex-col gap-2.5">

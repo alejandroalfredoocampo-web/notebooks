@@ -22,7 +22,7 @@ export default async function Home() {
     getBrands(),
   ]);
   const deals = allDeals.slice(0, 4);
-  const popular = allModels.slice(0, 4);
+  const popular = allModels.filter((m) => m.listings.length > 0).slice(0, 4);
   const stats = {
     models: allModels.length,
     stores: stores.length,

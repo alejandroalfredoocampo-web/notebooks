@@ -315,7 +315,9 @@ export interface Filters {
 }
 
 export async function filterModels(f: Filters): Promise<ModelWithOffers[]> {
-  let list = await getModels();
+  // Excluimos modelos sin ofertas (catálogo "próximamente", spec 06): no se
+  // muestran en listado/home para no aparecer a $0. Su ficha sí es accesible.
+  let list = (await getModels()).filter((m) => m.listings.length > 0);
 
   if (f.q) {
     const q = f.q.toLowerCase();

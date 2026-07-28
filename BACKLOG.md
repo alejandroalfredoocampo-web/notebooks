@@ -30,10 +30,20 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
         + `rehype-sanitize` + typography, OG/JSON-LD, "modelos mencionados"), RSS `/blog/rss.xml`, CMS en
         `/admin/blog` (+ editor con preview y selector de modelos), API `/api/admin/post`, sitemap. Migración `0004`.
         Nota: el CMS necesita `service_role` (como todo el admin) → no se prueba en local sin esa key.
-- **Fase 3 — retención y demanda:**
-  - [ ] `specs/06` **Modelos sin publicaciones** (ficha "próximamente" + captura de email; comparte worker de mails). Migración `0007`.
-  - [ ] `specs/07` **Login + favoritos/intereses** (Supabase Auth email+Google, RLS por `auth.uid()`). Migración `0008`.
-        *Confirmado: Supabase Auth.*
+- **Fase 3 — retención y demanda:** ✅ implementada (2026-07-28). ⚠️ **Falta correr** migraciones
+  `0007_model_notify.sql` y `0008_users.sql` en Supabase, + config de Auth (ver abajo).
+  - [x] `specs/06` **Modelos sin publicaciones**: modelos con 0 ofertas excluidos del home/listado
+        (`filterModels`), ficha en modo "próximamente" con `NotifyAvailabilityForm` → `/api/notificar`
+        (insert en `model_notify`, honeypot). Migración `0007`. Pendiente: worker de emails (compartido)
+        y verificación visual (crear un modelo sin ofertas con service_role).
+  - [x] `specs/07` **Login + favoritos/intereses**: Supabase Auth **client-side** (sin tocar middleware).
+        `/ingresar` (email+contraseña+Google), `/favoritos`, `/cuenta` (intereses), botón ♥ en la ficha,
+        `AuthNav` en header/mobile. Migración `0008`. Todo **degrada con gracia** si faltan las envs
+        `NEXT_PUBLIC_*` (verificado: sin config el sitio queda igual que antes, sin errores).
+        **Config del usuario** (en `0008_users.sql`): habilitar Email+Google en Supabase Auth, setear
+        Redirect URLs, y agregar `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Vercel/.env.local.
+        Verificación end-to-end del login: cuando el usuario configure Auth.
+        Nota: SSR de sesión (mostrar usuario en server components) y recomendaciones por mail = próxima iteración.
 - **Fase 4 — nuevo modelo de negocio:**
   - [ ] `specs/08` **Venta corporativa / RFQ** (solicitud de presupuesto Fase A + portal de tiendas Fase B). Migración `0009`.
 

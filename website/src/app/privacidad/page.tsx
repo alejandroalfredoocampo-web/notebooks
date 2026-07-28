@@ -60,6 +60,17 @@ export default function PrivacidadPage() {
         </section>
 
         <section>
+          <h2 className="text-lg font-extrabold text-slate-900">Cuenta y recomendaciones</h2>
+          <p className="mt-2">
+            Si creás una cuenta (con email y contraseña o con Google), guardamos tu email y tus
+            preferencias (usos, marcas y presupuesto) para guardar tus favoritos y, si lo activás,
+            enviarte recomendaciones por mail. Podés desactivar las recomendaciones desde tus
+            preferencias o darte de baja en cualquier momento. La autenticación la maneja Supabase; si
+            entrás con Google, solo recibimos tu email (no tu contraseña).
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-lg font-extrabold text-slate-900">Cookies</h2>
           <p className="mt-2">
             El sitio público funciona sin registro y sin cookies de seguimiento. Solo usamos una cookie

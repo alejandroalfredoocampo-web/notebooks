@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getStores } from "@/lib/data";
 import MobileMenu from "./MobileMenu";
+import AuthNav from "./AuthNav";
 
 export default async function Header() {
   const storeCount = (await getStores()).length;
@@ -60,6 +61,7 @@ export default async function Header() {
             <Link href="/blog" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Blog
             </Link>
+            <AuthNav />
           </nav>
 
           <div className="ml-auto md:hidden">
