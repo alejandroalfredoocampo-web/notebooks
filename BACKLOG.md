@@ -79,8 +79,19 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
 - [~] **Confianza de tiendas**: insignia editorial "Verificada" (falta correr `migrations/0002` en la DB)
       + señal derivada "cuotas sin interés" en `/tiendas` (ya activa).
 
+### Hecho
+- [x] **Formulario "sumá tu tienda"** en `/tiendas` (datos comerciales, contacto, ubicación, redes,
+      reputación Google, catálogo/plataforma) → `store_applications` (migration 0003). Bandeja en
+      `/admin/solicitudes`: aprobar (crea la tienda verificada) / rechazar.
+
+### Migraciones a correr en Supabase (SQL Editor)
+- [x] `0001_init.sql` (ya corrida)
+- [ ] `0002_store_trust.sql` — agrega el flag `verified` (feature #5)
+- [ ] `0003_store_applications.sql` — tabla de solicitudes de tiendas
+
 ### Próximas
 - [ ] **Guías SEO** ("mejor notebook para programar/gaming/estudiar") — reutiliza la recomendación por specs.
+- [ ] Sumar al scraper (`sources.mjs`) las tiendas aprobadas desde el formulario.
 - [ ] **Búsqueda a escala**: relevancia + autocomplete cuando haya cientos de modelos.
 - [x] **Test general en mobile**: filtros colapsables, ofertas como cards (CTA visible), menú
       hamburguesa con buscador, tabla de specs que envuelve, header que entra a 375px.
