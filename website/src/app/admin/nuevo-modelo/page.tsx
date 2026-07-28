@@ -1,4 +1,4 @@
-import { getListingById, prefillFromListing, storeName } from "@/lib/adminData";
+import { getListingById, prefillFromListing } from "@/lib/adminData";
 import NewModelForm from "@/components/admin/NewModelForm";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export default async function NuevoModeloPage({
     ? {
         id: listing.id,
         title: listing.titleRaw,
-        store: storeName(listing.storeId),
+        store: listing.storeName,
         price: listing.priceCash,
       }
     : undefined;

@@ -1,108 +1,196 @@
-import { promises as fs } from "fs";
-import path from "path";
-import storesJson from "../../data/stores.json";
-import modelsJson from "../../data/models.json";
-import type { Store, NotebookModel, Listing } from "./types";
+import { supabaseAdmin } from "./supabaseAdmin";
+import type { Store, NotebookModel } from "./types";
 
 /**
- * Capa de datos del admin. Lee los archivos generados por el pipeline
- * (review-queue.json, listings.raw.json) y persiste las decisiones del operador
- * a disco. Es Node-only (filesystem): la consola de admin corre en el server
- * Node autohospedado, no en el edge público. Cuando migremos a PostgreSQL, esta
- * capa es lo único que cambia.
+ * Capa de datos del admin sobre Supabase (service_role → ve todo, escribe todo).
+ * Reemplaza el flujo file-based + overlays: la revisión de matcheos, las
+ * publicaciones propias y los modelos creados a mano viven en las tablas.
  */
 
-const DATA = path.join(process.cwd(), "data");
-const f = (name: string) => path.join(DATA, name);
+// --- Lectura de catálogo -----------------------------------------------------
 
-async function readJson<T>(name: string, fallback: T): Promise<T> {
-  try {
-    return JSON.parse(await fs.readFile(f(name), "utf8")) as T;
-  } catch {
-    return fallback;
+function mapStore(r: Record<string, unknown>): Store {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    slug: r.slug as string,
+    url: r.url as string,
+    type: r.type as string,
+    physicalStore: Boolean(r.physical_store),
+    city: r.city as string,
+    affiliate: (r.affiliate as Store["affiliate"]) ?? null,
+  };
+}
+
+function mapModel(r: Record<string, unknown>): NotebookModel {
+  return {
+    id: r.id as string,
+    brand: r.brand as string,
+    brandSlug: r.brand_slug as string,
+    name: r.name as string,
+    slug: r.slug as string,
+    partNumber: (r.part_number as string) ?? "",
+    cpu: (r.cpu as string) ?? "",
+    cpuFamily: (r.cpu_family as string) ?? "",
+    ramGb: (r.ram_gb as number) ?? 0,
+    ramType: (r.ram_type as string) ?? "",
+    storageGb: (r.storage_gb as number) ?? 0,
+    storageType: (r.storage_type as string) ?? "",
+    screenSizeIn: Number(r.screen_size_in ?? 0),
+    screenResolution: (r.screen_resolution as string) ?? "",
+    screenPanel: (r.screen_panel as string) ?? "",
+    screenRefreshHz: (r.screen_refresh_hz as number) ?? 0,
+    gpu: (r.gpu as string) ?? "",
+    gpuType: (r.gpu_type as NotebookModel["gpuType"]) ?? "integrada",
+    os: (r.os as string) ?? "",
+    weightKg: Number(r.weight_kg ?? 0),
+    batteryWh: (r.battery_wh as number) ?? 0,
+    releaseYear: (r.release_year as number) ?? 0,
+    useCases: (r.use_cases as string[]) ?? [],
+    imageUrl: (r.image_url as string) ?? undefined,
+  };
+}
+
+export async function getAdminStores(): Promise<Store[]> {
+  const { data, error } = await supabaseAdmin().from("stores").select("*").order("name");
+  if (error) throw new Error(`stores: ${error.message}`);
+  return (data ?? []).map(mapStore);
+}
+
+export async function getAdminModels(): Promise<NotebookModel[]> {
+  const { data, error } = await supabaseAdmin().from("models").select("*");
+  if (error) throw new Error(`models: ${error.message}`);
+  return (data ?? []).map(mapModel).sort((a, b) => `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`));
+}
+
+// --- Publicaciones -----------------------------------------------------------
+
+export type AdminListing = {
+  id: string;
+  storeId: string;
+  storeName: string;
+  modelId: string | null;
+  modelName: string | null;
+  titleRaw: string;
+  priceCash: number;
+  url: string;
+  image: string | null;
+  matchStatus: "pending" | "confirmed" | "rejected";
+  matchConfidence: number;
+  matchCandidate: string | null;
+  source: string;
+};
+
+async function joinListings(rows: Record<string, unknown>[]): Promise<AdminListing[]> {
+  const [stores, models] = await Promise.all([getAdminStores(), getAdminModels()]);
+  const storeName = new Map(stores.map((s) => [s.id, s.name]));
+  const modelName = new Map(models.map((m) => [m.id, `${m.brand} ${m.name}`]));
+  return rows.map((l) => ({
+    id: l.id as string,
+    storeId: l.store_id as string,
+    storeName: storeName.get(l.store_id as string) ?? (l.store_id as string),
+    modelId: (l.model_id as string) ?? null,
+    modelName: l.model_id ? modelName.get(l.model_id as string) ?? null : null,
+    titleRaw: l.title_raw as string,
+    priceCash: l.price_cash as number,
+    url: (l.url as string) ?? "",
+    image: (l.image as string) ?? null,
+    matchStatus: (l.match_status as AdminListing["matchStatus"]) ?? "pending",
+    matchConfidence: (l.match_confidence as number) ?? 0,
+    matchCandidate: (l.match_candidate as string) ?? null,
+    source: (l.source as string) ?? "scraper",
+  }));
+}
+
+export async function getReviewQueue(): Promise<AdminListing[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("listings")
+    .select("*")
+    .eq("match_status", "pending")
+    .order("match_confidence", { ascending: false });
+  if (error) throw new Error(`review-queue: ${error.message}`);
+  return joinListings(data ?? []);
+}
+
+export async function getAllListings(): Promise<AdminListing[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("listings")
+    .select("*")
+    .order("last_seen_at", { ascending: false })
+    .limit(2000);
+  if (error) throw new Error(`listings: ${error.message}`);
+  return joinListings(data ?? []);
+}
+
+export async function getListingById(id: string): Promise<AdminListing | undefined> {
+  const { data, error } = await supabaseAdmin().from("listings").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`listing: ${error.message}`);
+  if (!data) return undefined;
+  return (await joinListings([data]))[0];
+}
+
+// --- Escrituras del admin ----------------------------------------------------
+
+export async function confirmMatch(listingId: string, modelId: string): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("listings")
+    .update({ model_id: modelId, match_status: "confirmed" })
+    .eq("id", listingId);
+  if (error) throw new Error(error.message);
+}
+
+export async function rejectMatch(listingId: string): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("listings")
+    .update({ match_status: "rejected" })
+    .eq("id", listingId);
+  if (error) throw new Error(error.message);
+}
+
+export async function addManualListing(l: {
+  id: string;
+  storeId: string;
+  modelId: string | null;
+  url: string;
+  titleRaw: string;
+  priceList: number;
+  priceCash: number;
+  inStock: boolean;
+  image: string | null;
+}): Promise<void> {
+  const { error } = await supabaseAdmin().from("listings").insert({
+    id: l.id,
+    store_id: l.storeId,
+    model_id: l.modelId,
+    url: l.url,
+    title_raw: l.titleRaw,
+    price_list: l.priceList,
+    price_cash: l.priceCash,
+    in_stock: l.inStock,
+    condition: "new",
+    image: l.image,
+    source: "manual",
+    // si ya viene con modelo, queda visible en el sitio; si no, va a revisión
+    match_status: l.modelId ? "confirmed" : "pending",
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function createModel(
+  model: Record<string, unknown>,
+  fromListingId?: string
+): Promise<void> {
+  const { error } = await supabaseAdmin().from("models").insert(model);
+  if (error) throw new Error(error.message);
+  if (fromListingId) {
+    await confirmMatch(fromListingId, model.id as string);
   }
 }
-async function writeJson(name: string, data: unknown): Promise<void> {
-  await fs.writeFile(f(name), JSON.stringify(data, null, 2));
-}
 
-// Curados (seed) — se importan estáticos porque siempre existen
-export const adminModels = modelsJson as NotebookModel[];
-export const adminStores = storesJson as Store[];
-export const storeName = (id: string) =>
-  adminStores.find((s) => s.id === id)?.name ?? id;
-export const modelName = (id: string | null) => {
-  const m = adminModels.find((x) => x.id === id);
-  return m ? `${m.brand} ${m.name}` : null;
-};
+// --- Helpers puros (parseo / slug) ------------------------------------------
 
-export type ScrapedListing = Listing & {
-  attrs?: Record<string, string>;
-  image?: string | null;
-  matchConfidence?: number;
-  matchReason?: string;
-  matchCandidate?: string | null;
-  source?: string;
-};
-
-export type MatchDecision = {
-  action: "confirmed" | "rejected";
-  modelId: string | null;
-  decidedAt: string;
-  title: string;
-};
-
-export const getReviewQueue = () => readJson<ScrapedListing[]>("review-queue.json", []);
-export const getRawListings = () => readJson<ScrapedListing[]>("listings.raw.json", []);
-export const getManualListings = () => readJson<ScrapedListing[]>("manual-listings.json", []);
-export const getMatchDecisions = () =>
-  readJson<Record<string, MatchDecision>>("match-decisions.json", {});
-
-export async function saveMatchDecision(id: string, decision: MatchDecision): Promise<void> {
-  const all = await getMatchDecisions();
-  all[id] = decision;
-  await writeJson("match-decisions.json", all);
-}
-
-export async function addManualListing(listing: ScrapedListing): Promise<void> {
-  const all = await getManualListings();
-  all.push(listing);
-  await writeJson("manual-listings.json", all);
-}
-
-// --- Modelos canónicos creados por el operador -----------------------------
-
-export const getManualModels = () => readJson<NotebookModel[]>("manual-models.json", []);
-
-export async function addManualModel(model: NotebookModel): Promise<void> {
-  const all = await getManualModels();
-  all.push(model);
-  await writeJson("manual-models.json", all);
-}
-
-/** Todos los modelos conocidos (seed + creados a mano). */
-export async function allModels(): Promise<NotebookModel[]> {
-  const manual = await getManualModels();
-  const byId = new Map<string, NotebookModel>();
-  for (const m of adminModels) byId.set(m.id, m);
-  for (const m of manual) byId.set(m.id, m);
-  return [...byId.values()];
-}
-
-/** Busca una publicación por id entre raw, matched y manuales. */
-export async function getListingById(id: string): Promise<ScrapedListing | undefined> {
-  const [raw, matched, manual] = await Promise.all([
-    getRawListings(),
-    readJson<ScrapedListing[]>("listings.matched.json", []),
-    getManualListings(),
-  ]);
-  return [...raw, ...matched, ...manual].find((l) => l.id === id);
-}
-
-// --- Prefill de specs desde una publicación --------------------------------
-
-const slugify = (s: string) =>
-  s
+export const slugify = (s: string) =>
+  String(s)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -137,12 +225,8 @@ export type ModelPrefill = {
   imageUrl: string;
 };
 
-/** Extrae specs aproximadas de una publicación para prefilltear el form. */
-export function prefillFromListing(l: ScrapedListing): ModelPrefill {
-  const attrs = l.attrs ?? {};
-  const blob = [l.titleRaw, ...Object.values(attrs)].join(" ");
-  const t = blob.toUpperCase();
-
+export function prefillFromListing(l: AdminListing): ModelPrefill {
+  const t = l.titleRaw.toUpperCase();
   const ramGb = Number(t.match(/(\d{1,2})\s*GB(?:\s*(?:RAM|DDR))?/)?.[1]) || "";
   const storageGb =
     t.match(/(\d+)\s*TB/) ? Number(t.match(/(\d+)\s*TB/)![1]) * 1000 :
@@ -150,27 +234,23 @@ export function prefillFromListing(l: ScrapedListing): ModelPrefill {
   const screenSizeIn =
     Number(t.match(/(\d{2}[.,]?\d?)\s*(?:"|”|PULG)/)?.[1]?.replace(",", ".")) || "";
   const cpu =
-    attrs["procesador"] || attrs["modelo procesador"] ||
     t.match(/(?:INTEL\s*)?CORE\s*(?:ULTRA\s*\d|I[3579])[- ]?\w*/)?.[0] ||
     t.match(/RYZEN\s*[3579]\s*\w*/)?.[0] ||
     t.match(/\bM[1-4](?:\s*(?:PRO|MAX))?\b/)?.[0] || "";
   const gpuMatch =
-    blob.match(/(?:NVIDIA\s*)?(?:GeForce\s*)?(?:RTX|GTX)\s*\d{3,4}(?:\s*\w+)?/i)?.[0] ||
-    blob.match(/Radeon\s*RX\s*\d{3,4}/i)?.[0] || "";
-
+    l.titleRaw.match(/(?:NVIDIA\s*)?(?:GeForce\s*)?(?:RTX|GTX)\s*\d{3,4}(?:\s*\w+)?/i)?.[0] ||
+    l.titleRaw.match(/Radeon\s*RX\s*\d{3,4}/i)?.[0] || "";
   return {
-    brand: attrs["marca"] || "",
+    brand: "",
     name: l.titleRaw.replace(/^notebook\s+/i, "").slice(0, 80),
     cpu: String(cpu).trim(),
-    cpuFamily: cpuFamilyFrom(blob),
+    cpuFamily: cpuFamilyFrom(l.titleRaw),
     ramGb,
     storageGb,
     gpu: gpuMatch || "Integrada",
     gpuType: gpuMatch ? "dedicada" : "integrada",
     screenSizeIn,
-    partNumber: attrs["numero de parte"] || attrs["número de parte"] || "",
+    partNumber: "",
     imageUrl: l.image ?? "",
   };
 }
-
-export { slugify };

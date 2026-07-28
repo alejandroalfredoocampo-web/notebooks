@@ -1,13 +1,12 @@
-import { adminStores, adminModels } from "@/lib/adminData";
+import { getAdminStores, getAdminModels } from "@/lib/adminData";
 import NewListingForm from "@/components/admin/NewListingForm";
 
 export const dynamic = "force-dynamic";
 
-export default function NuevaPage() {
-  const stores = adminStores.map((s) => ({ id: s.id, name: s.name }));
-  const models = adminModels
-    .map((m) => ({ id: m.id, label: `${m.brand} ${m.name}` }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+export default async function NuevaPage() {
+  const [allStores, allModels] = await Promise.all([getAdminStores(), getAdminModels()]);
+  const stores = allStores.map((s) => ({ id: s.id, name: s.name }));
+  const models = allModels.map((m) => ({ id: m.id, label: `${m.brand} ${m.name}` }));
 
   return (
     <div>
