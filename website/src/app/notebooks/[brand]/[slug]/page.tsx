@@ -8,6 +8,8 @@ import PriceChart from "@/components/PriceChart";
 import PriceAlertForm from "@/components/PriceAlertForm";
 import UseRecommendation from "@/components/UseRecommendation";
 import ModelImage from "@/components/ModelImage";
+import PriceThermometer from "@/components/PriceThermometer";
+import { priceInsight } from "@/lib/priceInsight";
 
 interface Params {
   brand: string;
@@ -30,9 +32,31 @@ export default async function ModelPage({ params }: { params: Params }) {
   if (!model) notFound();
 
   const [history, allModels] = await Promise.all([getHistory(model.id), getModels()]);
+  const insight = priceInsight(model.bestPrice, history);
   const similar = allModels
     .filter((m) => m.id !== model.id && m.gpuType === model.gpuType)
     .slice(0, 3);
+
+  // Radar de financiación: costo real en cuotas por oferta + cuál conviene financiada
+  const financing = (l: (typeof model.listings)[number]) => {
+    if (!l.installments) return null;
+    const total = l.installments.count * l.installments.amount;
+    return {
+      total,
+      free: total <= l.priceCash * 1.02,
+      surchargePct: Math.max(0, Math.round((total / l.priceCash - 1) * 100)),
+    };
+  };
+  const bestFinancedId = (() => {
+    const withInst = model.listings.filter((l) => l.installments);
+    if (!withInst.length) return null;
+    const scored = withInst.map((l) => {
+      const f = financing(l)!;
+      return { id: l.id, free: f.free, count: l.installments!.count, total: f.total };
+    });
+    scored.sort((a, b) => Number(b.free) - Number(a.free) || (a.free ? b.count - a.count : a.total - b.total));
+    return scored[0].id;
+  })();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -117,6 +141,12 @@ export default async function ModelPage({ params }: { params: Params }) {
           <div className="mb-3 mt-1.5">
             <SpecChips model={model} />
           </div>
+          <Link
+            href={`/comparar?ids=${model.id}`}
+            className="mb-3 inline-block text-[13px] font-semibold text-brand-blue hover:underline"
+          >
+            ⚖️ Comparar con otras notebooks
+          </Link>
 
           <div className="mb-3.5 rounded-xl border-2 border-brand-green bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-widest text-brand-green">
@@ -147,30 +177,34 @@ export default async function ModelPage({ params }: { params: Params }) {
             )}
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold">
-            {model.isRealDeal ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">
-                ✓ {model.dropPct}% abajo del promedio de 90 días
-              </span>
-            ) : (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
-                Precio dentro del promedio de 90 días
-              </span>
-            )}
-            {model.minHistoric && (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
-                Mínimo histórico: {fmtARS(model.minHistoric)}
-              </span>
-            )}
-          </div>
+          {insight ? (
+            <div className="mb-4">
+              <PriceThermometer insight={insight} />
+            </div>
+          ) : (
+            <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold">
+              {model.isRealDeal ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">
+                  ✓ {model.dropPct}% abajo del promedio de 90 días
+                </span>
+              ) : (
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+                  Precio dentro del promedio de 90 días
+                </span>
+              )}
+              {model.minHistoric && (
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
+                  Mínimo histórico: {fmtARS(model.minHistoric)}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Mobile: cards apiladas (el CTA "Ir a la tienda" queda siempre visible) */}
           <div className="flex flex-col gap-3 md:hidden">
             {model.listings.map((l) => {
               const isBest = l.id === model.bestListing?.id;
-              const free =
-                l.installments &&
-                l.installments.count * l.installments.amount <= l.priceCash * 1.02;
+              const f = financing(l);
               return (
                 <div
                   key={l.id}
@@ -180,7 +214,19 @@ export default async function ModelPage({ params }: { params: Params }) {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold">{l.store.name}</div>
+                      <div className="font-bold">
+                        {l.store.name}
+                        {l.store.verified && (
+                          <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            ✓ Verificada
+                          </span>
+                        )}
+                        {l.id === bestFinancedId && (
+                          <span className="ml-2 align-middle rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-brand-blue">
+                            ★ mejor en cuotas
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-slate-400">
                         {l.store.type}
                         {l.store.physicalStore ? " · local físico" : ""}
@@ -198,10 +244,14 @@ export default async function ModelPage({ params }: { params: Params }) {
                     <span className="text-xl font-extrabold tracking-tight">
                       {fmtARS(l.priceCash)}
                     </span>
-                    {l.installments && (
+                    {l.installments && f && (
                       <span className="text-xs text-slate-500">
-                        {l.installments.count}x {fmtARS(l.installments.amount)}
-                        {free ? <b className="text-brand-green"> sin interés</b> : null}
+                        {l.installments.count}x {fmtARS(l.installments.amount)}{" "}
+                        {f.free ? (
+                          <b className="text-brand-green">sin interés</b>
+                        ) : (
+                          <span className="text-slate-400">(total {fmtARS(f.total)} · +{f.surchargePct}%)</span>
+                        )}
                       </span>
                     )}
                   </div>
@@ -243,6 +293,16 @@ export default async function ModelPage({ params }: { params: Params }) {
                     >
                       <td className="px-4 py-3.5 font-bold">
                         {l.store.name}
+                        {l.store.verified && (
+                          <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            ✓ Verificada
+                          </span>
+                        )}
+                        {l.id === bestFinancedId && (
+                          <span className="ml-2 align-middle rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-brand-blue">
+                            ★ mejor en cuotas
+                          </span>
+                        )}
                         <span className="block text-[11px] font-normal text-slate-400">
                           {l.store.type}
                           {l.store.physicalStore ? " · local físico" : ""}
@@ -252,19 +312,22 @@ export default async function ModelPage({ params }: { params: Params }) {
                         {fmtARS(l.priceCash)}
                       </td>
                       <td className="px-4 py-3.5 text-xs text-slate-500">
-                        {l.installments ? (
-                          <>
-                            {l.installments.count}x {fmtARS(l.installments.amount)}
-                            {l.installments.count * l.installments.amount <=
-                            l.priceCash * 1.02 ? (
-                              <span className="mt-0.5 block font-semibold text-brand-green">
-                                sin interés
-                              </span>
-                            ) : null}
-                          </>
-                        ) : (
-                          "—"
-                        )}
+                        {(() => {
+                          const f = financing(l);
+                          if (!l.installments || !f) return "—";
+                          return (
+                            <>
+                              {l.installments.count}x {fmtARS(l.installments.amount)}
+                              {f.free ? (
+                                <span className="mt-0.5 block font-semibold text-brand-green">sin interés</span>
+                              ) : (
+                                <span className="mt-0.5 block text-slate-400">
+                                  total {fmtARS(f.total)} · +{f.surchargePct}%
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`text-xs font-semibold ${l.inStock ? "text-brand-green" : "text-red-600"}`}>

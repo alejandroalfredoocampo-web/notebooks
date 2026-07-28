@@ -48,6 +48,7 @@ async function main() {
   await upsert("stores", stores.map((s) => ({
     id: s.id, name: s.name, slug: s.slug, url: s.url, type: s.type,
     physical_store: s.physicalStore, city: s.city, affiliate: s.affiliate,
+    verified: s.verified ?? false,
   })));
 
   // Modelos (seed + creados a mano)

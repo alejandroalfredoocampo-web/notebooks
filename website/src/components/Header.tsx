@@ -48,6 +48,9 @@ export default async function Header() {
             <Link href="/ofertas" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Ofertas
             </Link>
+            <Link href="/comparar" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
+              Comparar
+            </Link>
             <Link href="/tiendas" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Tiendas
             </Link>

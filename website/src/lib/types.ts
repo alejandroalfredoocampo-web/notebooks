@@ -7,6 +7,7 @@ export interface Store {
   physicalStore: boolean;
   city: string;
   affiliate: { kind: string; params: Record<string, string> } | null;
+  verified?: boolean; // insignia editorial "tienda verificada"
 }
 
 export interface NotebookModel {

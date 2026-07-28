@@ -13,9 +13,13 @@ export default async function TiendasPage() {
   const [stores, models] = await Promise.all([getStores(), getModels()]);
 
   const offersByStore = new Map<string, number>();
+  const interestFreeStores = new Set<string>();
   for (const m of models) {
     for (const l of m.listings) {
       offersByStore.set(l.storeId, (offersByStore.get(l.storeId) ?? 0) + 1);
+      if (l.installments && l.installments.count * l.installments.amount <= l.priceCash * 1.02) {
+        interestFreeStores.add(l.storeId);
+      }
     }
   }
 
@@ -36,14 +40,22 @@ export default async function TiendasPage() {
             key={s.id}
             className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
           >
-            <div className="font-extrabold">{s.name}</div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-extrabold">{s.name}</div>
+              {s.verified && (
+                <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  ✓ Verificada
+                </span>
+              )}
+            </div>
             <div className="text-xs text-slate-500">{s.type}</div>
             <div className="mt-2.5 space-y-1 text-[11px] text-slate-400">
               <div>📍 {s.city}</div>
               {s.physicalStore && <div>🏬 Local físico</div>}
-              <div>
-                💻 {offersByStore.get(s.id) ?? 0} ofertas activas
-              </div>
+              <div>💻 {offersByStore.get(s.id) ?? 0} ofertas activas</div>
+              {interestFreeStores.has(s.id) && (
+                <div className="font-semibold text-brand-green">💳 Cuotas sin interés</div>
+              )}
             </div>
           </div>
         ))}

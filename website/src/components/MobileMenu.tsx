@@ -46,6 +46,9 @@ export default function MobileMenu() {
             <Link href="/ofertas" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
               Ofertas
             </Link>
+            <Link href="/comparar" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
+              Comparar
+            </Link>
             <Link href="/tiendas" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
               Tiendas
             </Link>

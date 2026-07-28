@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { filterModels } from "@/lib/data";
+import { parseQuery } from "@/lib/parseQuery";
 import ModelCard from "@/components/ModelCard";
 import Filters from "@/components/Filters";
 import SortSelect from "@/components/SortSelect";
@@ -22,15 +24,20 @@ function arr(v: string | string[] | undefined): string[] {
 }
 
 export default async function NotebooksPage({ searchParams }: { searchParams: SP }) {
+  const q = typeof searchParams.q === "string" ? searchParams.q : undefined;
+  // Búsqueda por necesidad: interpreta presupuesto/uso/marca en lenguaje natural
+  const parsed = q ? parseQuery(q) : null;
+  const understood = parsed?.understood ?? false;
+
   const models = await filterModels({
-    q: typeof searchParams.q === "string" ? searchParams.q : undefined,
-    brands: arr(searchParams.brand),
+    q: understood ? undefined : q, // si entendimos la necesidad, usamos filtros derivados
+    brands: parsed?.brand ? [parsed.brand] : arr(searchParams.brand),
     cpus: arr(searchParams.cpu),
     rams: arr(searchParams.ram),
     gpu: arr(searchParams.gpu),
-    price: arr(searchParams.price),
+    price: parsed?.priceMax ? [`0-${parsed.priceMax}`] : arr(searchParams.price),
     fin: typeof searchParams.fin === "string" ? searchParams.fin : undefined,
-    use: typeof searchParams.use === "string" ? searchParams.use : undefined,
+    use: parsed?.use ?? (typeof searchParams.use === "string" ? searchParams.use : undefined),
     sort: typeof searchParams.sort === "string" ? searchParams.sort : undefined,
   });
 
@@ -42,6 +49,15 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
         <Filters />
       </Suspense>
       <div>
+        {understood && parsed && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-[13px]">
+            <span className="font-semibold text-brand-blue">🔎 Entendí tu búsqueda:</span>
+            <span className="text-slate-600">{parsed.summary}</span>
+            <Link href="/notebooks" className="ml-auto text-slate-400 hover:text-brand-blue">
+              limpiar
+            </Link>
+          </div>
+        )}
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm text-slate-500">
             <b className="text-slate-900">{models.length}</b> modelos encontrados{" "}

@@ -69,10 +69,19 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
       Sin esto no se sabe qué funciona ni se le prueba valor a los afiliados. (Amplitude/Pendo/GA
       requieren conectar credenciales.)
 
+### 5 features de valor (hechas)
+- [x] **Termómetro de precio** en la ficha: veredicto desde el historial ("mínimo histórico" /
+      "buen momento" / "caro") + barra mín·prom·máx. `priceInsight.ts` + `PriceThermometer`.
+- [x] **Comparador lado a lado** (`/comparar`): hasta 3 modelos, resalta la más barata.
+- [x] **Búsqueda por necesidad**: interpreta presupuesto/uso/marca en lenguaje natural (`parseQuery.ts`)
+      y muestra "qué entendió".
+- [x] **Radar de financiación**: costo real en cuotas por oferta (total + recargo %) + "★ mejor en cuotas".
+- [~] **Confianza de tiendas**: insignia editorial "Verificada" (falta correr `migrations/0002` en la DB)
+      + señal derivada "cuotas sin interés" en `/tiendas` (ya activa).
+
 ### Próximas
-- [ ] **Comparador lado a lado** de 2–3 modelos.
 - [ ] **Guías SEO** ("mejor notebook para programar/gaming/estudiar") — reutiliza la recomendación por specs.
-- [ ] **Búsqueda a escala**: relevancia + autocomplete cuando haya cientos de modelos (con 10 no se nota).
+- [ ] **Búsqueda a escala**: relevancia + autocomplete cuando haya cientos de modelos.
 - [x] **Test general en mobile**: filtros colapsables, ofertas como cards (CTA visible), menú
       hamburguesa con buscador, tabla de specs que envuelve, header que entra a 375px.
 - [ ] Cachear imágenes a **R2 / Cloudflare Images** (hoy se hotlinkea el CDN de la tienda).

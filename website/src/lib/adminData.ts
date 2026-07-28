@@ -19,6 +19,7 @@ function mapStore(r: Record<string, unknown>): Store {
     physicalStore: Boolean(r.physical_store),
     city: r.city as string,
     affiliate: (r.affiliate as Store["affiliate"]) ?? null,
+    verified: Boolean(r.verified),
   };
 }
 

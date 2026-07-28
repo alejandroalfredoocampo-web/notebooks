@@ -27,6 +27,7 @@ function mapStore(r: Row): Store {
     physicalStore: Boolean(r.physical_store),
     city: r.city as string,
     affiliate: (r.affiliate as Store["affiliate"]) ?? null,
+    verified: Boolean(r.verified),
   };
 }
 
