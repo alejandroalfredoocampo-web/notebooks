@@ -84,9 +84,14 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
       seed cargado + **sitio público leyendo de Supabase** (data.ts async, verificado) + click-outs y
       captura de alertas persistiendo. Falta: crear el Web Service en Render (cuenta del usuario) y
       **migrar el admin a Supabase** (hoy file-based → efímero en Render).
-- [ ] **Admin → Supabase**: `adminData.ts` y las rutas `/api/admin/*` a la DB (con `service_role`),
-      para que revisión/matcheos/publicaciones/modelos persistan. Reemplaza el flujo de overlays
-      `generated-*.json` + `publish` (quedan obsoletos con la DB en vivo).
+- [x] **Admin → Supabase**: `adminData.ts` + `/api/admin/*` escriben en la DB (`service_role`).
+      Revisión/matcheos/publicaciones/modelos persisten. `publish` + overlays `generated-*.json`
+      eliminados/obsoletos. Admin ahora stateless.
+- [ ] **Scraper → Supabase**: `scrapers/run.mjs` todavía escribe JSON. Para que la cola de revisión
+      del admin tenga contenido, el scraper debe hacer upsert de las publicaciones en `listings`
+      (pending / confirmed según matching). Es la última pieza para el pipeline 100% en la DB.
+- [ ] Limpieza: quitar cruft de Cloudflare (`wrangler.toml`, `next-on-pages`, scripts `pages:*`,
+      `DEPLOY-CLOUDFLARE.md`) y el `publish.mjs`/`generated-*.json` obsoletos si vamos con Vercel.
 - [ ] Deploy alternativo a **Cloudflare Pages** (parte pública, edge): subir zip + flag
       `nodejs_compat` (ver `website/DEPLOY-CLOUDFLARE.md`). Secundario a Render.
 - [x] Persistir **click-outs** de `/salir` en DB (tabla `click_outs` en Supabase).
