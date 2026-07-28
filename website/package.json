@@ -12,7 +12,8 @@
     "lint": "next lint",
     "scrape": "node scrapers/run.mjs",
     "seed:supabase": "node scrapers/seed-supabase.mjs",
-    "clean:seed": "node scrapers/clean-seed.mjs"
+    "clean:seed": "node scrapers/clean-seed.mjs",
+    "review:bulk": "node scrapers/bulk-review.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",
