@@ -188,6 +188,116 @@ export async function createModel(
   }
 }
 
+// --- Solicitudes de tiendas (formulario público) ---------------------------
+
+export type StoreApplication = {
+  id: number;
+  status: "pending" | "approved" | "rejected";
+  commercialName: string;
+  legalName: string | null;
+  cuit: string | null;
+  website: string;
+  contactName: string | null;
+  contactEmail: string;
+  contactPhone: string | null;
+  province: string | null;
+  city: string | null;
+  hasPhysicalStore: boolean;
+  physicalAddress: string | null;
+  shipsNationwide: boolean;
+  paymentMethods: string | null;
+  interestFreeInstallments: boolean;
+  instagram: string | null;
+  facebook: string | null;
+  tiktok: string | null;
+  youtube: string | null;
+  linkedin: string | null;
+  mercadolibre: string | null;
+  googleRating: number | null;
+  googleReviewsCount: number | null;
+  googleMapsUrl: string | null;
+  catalogUrl: string | null;
+  platform: string | null;
+  message: string | null;
+  createdAt: string;
+};
+
+function mapApplication(r: Record<string, unknown>): StoreApplication {
+  return {
+    id: r.id as number,
+    status: (r.status as StoreApplication["status"]) ?? "pending",
+    commercialName: r.commercial_name as string,
+    legalName: (r.legal_name as string) ?? null,
+    cuit: (r.cuit as string) ?? null,
+    website: (r.website as string) ?? "",
+    contactName: (r.contact_name as string) ?? null,
+    contactEmail: (r.contact_email as string) ?? "",
+    contactPhone: (r.contact_phone as string) ?? null,
+    province: (r.province as string) ?? null,
+    city: (r.city as string) ?? null,
+    hasPhysicalStore: Boolean(r.has_physical_store),
+    physicalAddress: (r.physical_address as string) ?? null,
+    shipsNationwide: Boolean(r.ships_nationwide),
+    paymentMethods: (r.payment_methods as string) ?? null,
+    interestFreeInstallments: Boolean(r.interest_free_installments),
+    instagram: (r.instagram as string) ?? null,
+    facebook: (r.facebook as string) ?? null,
+    tiktok: (r.tiktok as string) ?? null,
+    youtube: (r.youtube as string) ?? null,
+    linkedin: (r.linkedin as string) ?? null,
+    mercadolibre: (r.mercadolibre as string) ?? null,
+    googleRating: (r.google_rating as number) ?? null,
+    googleReviewsCount: (r.google_reviews_count as number) ?? null,
+    googleMapsUrl: (r.google_maps_url as string) ?? null,
+    catalogUrl: (r.catalog_url as string) ?? null,
+    platform: (r.platform as string) ?? null,
+    message: (r.message as string) ?? null,
+    createdAt: r.created_at as string,
+  };
+}
+
+export async function getStoreApplications(): Promise<StoreApplication[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("store_applications")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`solicitudes: ${error.message}`);
+  return (data ?? []).map(mapApplication);
+}
+
+/** Aprueba (crea/actualiza la tienda + verified) o rechaza una solicitud. */
+export async function reviewApplication(id: number, action: "approved" | "rejected"): Promise<void> {
+  const db = supabaseAdmin();
+
+  if (action === "approved") {
+    const { data: app, error } = await db.from("store_applications").select("*").eq("id", id).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!app) throw new Error("Solicitud no encontrada");
+    const slug = slugify(app.commercial_name as string);
+    const { error: sErr } = await db.from("stores").upsert(
+      {
+        id: slug,
+        name: app.commercial_name,
+        slug,
+        url: app.website,
+        type: app.has_physical_store ? "Tienda" : "Tienda online",
+        physical_store: Boolean(app.has_physical_store),
+        city: (app.city as string) || "—",
+        affiliate: null,
+        verified: true,
+      },
+      { onConflict: "id" }
+    );
+    if (sErr) throw new Error(`crear tienda: ${sErr.message}`);
+  }
+
+  const { error: uErr } = await db
+    .from("store_applications")
+    .update({ status: action, reviewed_at: new Date().toISOString() })
+    .eq("id", id);
+  if (uErr) throw new Error(uErr.message);
+}
+
 // --- Helpers puros (parseo / slug) ------------------------------------------
 
 export const slugify = (s: string) =>

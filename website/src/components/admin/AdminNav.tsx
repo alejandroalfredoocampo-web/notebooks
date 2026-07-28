@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin", label: "Panel" },
   { href: "/admin/revision", label: "Revisión" },
   { href: "/admin/publicaciones", label: "Publicaciones" },
+  { href: "/admin/solicitudes", label: "Solicitudes" },
   { href: "/admin/nueva", label: "Nueva publicación" },
   { href: "/admin/nuevo-modelo", label: "Nuevo modelo" },
 ];

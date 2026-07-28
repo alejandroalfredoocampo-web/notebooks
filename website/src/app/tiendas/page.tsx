@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getStores, getModels } from "@/lib/data";
+import StoreApplicationForm from "@/components/StoreApplicationForm";
 
 export const metadata: Metadata = {
   title: "Tiendas indexadas",
@@ -61,18 +62,8 @@ export default async function TiendasPage() {
         ))}
       </div>
 
-      <div className="mt-10 rounded-xl border border-brand-sky bg-blue-50 p-6">
-        <h2 className="font-extrabold text-brand-darker">
-          ¿Tenés una tienda? Sumate gratis
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-slate-600">
-          Indexamos tiendas online establecidas con precios en pesos y stock
-          actualizado. No cobramos por listar: el índice completo es nuestro
-          producto. Escribinos a{" "}
-          <a href="mailto:tiendas@notebooks.com.ar" className="font-bold text-brand-blue">
-            tiendas@notebooks.com.ar
-          </a>
-        </p>
+      <div id="sumate" className="mt-10 max-w-3xl scroll-mt-24">
+        <StoreApplicationForm />
       </div>
     </div>
   );

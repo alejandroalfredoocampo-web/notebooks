@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllListings, getReviewQueue, getAdminModels, getAdminStores } from "@/lib/adminData";
+import { getAllListings, getReviewQueue, getAdminModels, getAdminStores, getStoreApplications } from "@/lib/adminData";
 import { usingDefaultCreds } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
@@ -15,13 +15,15 @@ function Stat({ label, value, hint }: { label: string; value: number | string; h
 }
 
 export default async function AdminDashboard() {
-  const [listings, queue, models, stores] = await Promise.all([
+  const [listings, queue, models, stores, applications] = await Promise.all([
     getAllListings(),
     getReviewQueue(),
     getAdminModels(),
     getAdminStores(),
+    getStoreApplications(),
   ]);
 
+  const pendingApps = applications.filter((a) => a.status === "pending").length;
   const pending = queue.length;
   const confirmed = listings.filter((l) => l.matchStatus === "confirmed").length;
   const rejected = listings.filter((l) => l.matchStatus === "rejected").length;
@@ -49,6 +51,7 @@ export default async function AdminDashboard() {
       <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Stat label="Modelos canónicos" value={models.length} />
         <Stat label="Tiendas" value={stores.length} />
+        <Stat label="Solicitudes pendientes" value={pendingApps} hint="tiendas por revisar" />
       </div>
 
       {empty ? (
