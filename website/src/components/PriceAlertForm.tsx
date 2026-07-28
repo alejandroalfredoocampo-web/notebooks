@@ -2,9 +2,35 @@
 
 import { useState } from "react";
 
-export default function PriceAlertForm({ modelName }: { modelName: string }) {
+export default function PriceAlertForm({
+  modelId,
+  modelName,
+}: {
+  modelId: string;
+  modelName: string;
+}) {
   const [sent, setSent] = useState(false);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.includes("@")) return;
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/alertas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, modelId }),
+    });
+    setLoading(false);
+    if (res.ok) setSent(true);
+    else {
+      const j = await res.json().catch(() => ({}));
+      setError(j.error || "No se pudo crear la alerta. Probá de nuevo.");
+    }
+  }
 
   if (sent) {
     return (
@@ -16,10 +42,7 @@ export default function PriceAlertForm({ modelName }: { modelName: string }) {
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (email.includes("@")) setSent(true);
-      }}
+      onSubmit={submit}
       className="flex flex-wrap items-center gap-2.5 rounded-xl border border-brand-sky bg-blue-50 p-4"
     >
       <div className="w-full text-sm font-bold text-brand-darker">
@@ -35,10 +58,12 @@ export default function PriceAlertForm({ modelName }: { modelName: string }) {
       />
       <button
         type="submit"
-        className="rounded-lg bg-brand-blue px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-darker"
+        disabled={loading}
+        className="rounded-lg bg-brand-blue px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-darker disabled:opacity-60"
       >
-        Crear alerta
+        {loading ? "Creando…" : "Crear alerta"}
       </button>
+      {error && <p className="w-full text-[13px] font-semibold text-red-600">{error}</p>}
     </form>
   );
 }

@@ -8,8 +8,10 @@ export const metadata: Metadata = {
     "Notebooks que bajaron de precio de verdad, verificadas contra el historial de los últimos 90 días. Sin ofertas infladas.",
 };
 
-export default function OfertasPage() {
-  const deals = getDeals();
+export const dynamic = "force-dynamic";
+
+export default async function OfertasPage() {
+  const deals = await getDeals();
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">

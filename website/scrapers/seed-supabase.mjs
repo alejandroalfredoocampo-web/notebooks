@@ -24,6 +24,9 @@ const read = async (f, fb) => {
   try { return JSON.parse(await readFile(path.join(DATA, f), "utf8")); } catch { return fb; }
 };
 
+// Entero seguro para columnas int (redondea decimales, respeta null)
+const intv = (x) => (x === null || x === undefined || x === "" ? null : Math.round(Number(x)));
+
 async function upsert(table, rows) {
   if (!rows.length) return;
   const { error } = await db.from(table).upsert(rows, { onConflict: "id" });
@@ -52,11 +55,11 @@ async function main() {
   await upsert("models", models.map((m) => ({
     id: m.id, brand: m.brand, brand_slug: m.brandSlug, name: m.name, slug: m.slug,
     part_number: m.partNumber, cpu: m.cpu, cpu_family: m.cpuFamily,
-    ram_gb: m.ramGb, ram_type: m.ramType, storage_gb: m.storageGb, storage_type: m.storageType,
+    ram_gb: intv(m.ramGb), ram_type: m.ramType, storage_gb: intv(m.storageGb), storage_type: m.storageType,
     screen_size_in: m.screenSizeIn, screen_resolution: m.screenResolution,
-    screen_panel: m.screenPanel, screen_refresh_hz: m.screenRefreshHz,
-    gpu: m.gpu, gpu_type: m.gpuType, os: m.os, weight_kg: m.weightKg, battery_wh: m.batteryWh,
-    release_year: m.releaseYear, use_cases: m.useCases ?? [], image_url: m.imageUrl ?? null,
+    screen_panel: m.screenPanel, screen_refresh_hz: intv(m.screenRefreshHz),
+    gpu: m.gpu, gpu_type: m.gpuType, os: m.os, weight_kg: m.weightKg, battery_wh: intv(m.batteryWh),
+    release_year: intv(m.releaseYear), use_cases: m.useCases ?? [], image_url: m.imageUrl ?? null,
     source: m.source ?? "seed",
   })));
 
@@ -64,7 +67,7 @@ async function main() {
   const listings = [...seedListings, ...genListings];
   await upsert("listings", listings.map((l) => ({
     id: l.id, store_id: l.storeId, model_id: l.modelId ?? null, url: l.url,
-    title_raw: l.titleRaw, price_list: l.priceList, price_cash: l.priceCash,
+    title_raw: l.titleRaw, price_list: intv(l.priceList), price_cash: intv(l.priceCash),
     installments: l.installments ?? null, in_stock: l.inStock, condition: l.condition,
     image: l.image ?? null, source: l.source ?? "scraper",
     match_status: l.modelId ? "confirmed" : "pending",
@@ -75,7 +78,7 @@ async function main() {
   const historyRows = [];
   for (const [modelId, series] of Object.entries(history)) {
     for (const p of series) {
-      historyRows.push({ model_id: modelId, captured_on: p.date, best_price: p.bestPrice });
+      historyRows.push({ model_id: modelId, captured_on: p.date, best_price: intv(p.bestPrice) });
     }
   }
   if (historyRows.length) {

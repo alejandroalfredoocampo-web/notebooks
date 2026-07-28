@@ -11,8 +11,8 @@ export const metadata: Metadata = {
     "Todas las notebooks a la venta en Argentina con el mejor precio de cada tienda. Filtrá por marca, procesador, RAM, placa de video y precio.",
 };
 
-// Filtra por querystring en el servidor → runtime edge para Cloudflare Pages.
-export const runtime = "edge";
+// Filtra por querystring en el servidor, leyendo de Supabase en cada request.
+export const dynamic = "force-dynamic";
 
 type SP = Record<string, string | string[] | undefined>;
 
@@ -21,8 +21,8 @@ function arr(v: string | string[] | undefined): string[] {
   return Array.isArray(v) ? v : [v];
 }
 
-export default function NotebooksPage({ searchParams }: { searchParams: SP }) {
-  const models = filterModels({
+export default async function NotebooksPage({ searchParams }: { searchParams: SP }) {
+  const models = await filterModels({
     q: typeof searchParams.q === "string" ? searchParams.q : undefined,
     brands: arr(searchParams.brand),
     cpus: arr(searchParams.cpu),

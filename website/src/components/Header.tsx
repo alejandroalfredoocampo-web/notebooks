@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getStores } from "@/lib/data";
 import MobileMenu from "./MobileMenu";
 
-export default function Header() {
-  const storeCount = getStores().length;
+export default async function Header() {
+  const storeCount = (await getStores()).length;
   return (
     <>
       {/* Barra de anuncio, estilo Córdoba Notebooks */}

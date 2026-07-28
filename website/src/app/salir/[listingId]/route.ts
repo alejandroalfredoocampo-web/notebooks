@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListing, getStore } from "@/lib/data";
+import { supabase } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
-// Redirect saliente en runtime edge (Cloudflare Pages). El filesystem es de
-// sólo lectura en producción, así que el clic se emite por consola (visible en
-// los logs del proyecto); el paso a base de datos (tabla ClickOut) está en el roadmap.
-export const runtime = "edge";
 
 /**
  * Redirect saliente con tracking de clic (ClickOut).
- * - Registra el clic en var/clicks.jsonl (en producción: tabla ClickOut).
+ * - Registra el clic en la tabla `click_outs` de Supabase (inventario a monetizar).
  * - Agrega parámetros de afiliado/UTM si la tienda los soporta.
  * - Devuelve 302 hacia la publicación de la tienda.
  */
@@ -17,25 +14,26 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { listingId: string } }
 ) {
-  const listing = getListing(params.listingId);
+  const listing = await getListing(params.listingId);
   if (!listing) {
     return NextResponse.redirect(new URL("/notebooks", req.url), 302);
   }
 
-  const store = getStore(listing.storeId);
+  const store = await getStore(listing.storeId);
 
-  // 1. Registrar el clic (inventario a monetizar: CPA hoy, CPC mañana).
-  //    En edge no hay filesystem: se emite por consola (Cloudflare → logs).
-  const click = {
-    listingId: listing.id,
-    storeId: listing.storeId,
-    modelId: listing.modelId,
-    priceAtClick: listing.priceCash,
-    referrer: req.headers.get("referer") ?? null,
-    userAgent: req.headers.get("user-agent") ?? null,
-    ts: new Date().toISOString(),
-  };
-  console.log("clickout " + JSON.stringify(click));
+  // 1. Registrar el clic (nunca debe romper el redirect)
+  try {
+    await supabase.from("click_outs").insert({
+      listing_id: listing.id,
+      store_id: listing.storeId,
+      model_id: listing.modelId,
+      price_at_click: listing.priceCash,
+      referrer: req.headers.get("referer") ?? null,
+      user_agent: req.headers.get("user-agent") ?? null,
+    });
+  } catch (e) {
+    console.error("clickout: no se pudo registrar", e);
+  }
 
   // 2. Construir URL destino con tag de afiliado si existe
   const target = new URL(listing.url);

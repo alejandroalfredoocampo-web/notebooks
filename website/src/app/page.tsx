@@ -10,13 +10,22 @@ const USE_CASES = [
   { slug: "programar", icon: "👩‍💻", title: "Programar", desc: "RAM y multitarea" },
 ];
 
-export default function Home() {
-  const deals = getDeals().slice(0, 4);
-  const popular = getModels().slice(0, 4);
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [allDeals, allModels, stores, listingsCount, brands] = await Promise.all([
+    getDeals(),
+    getModels(),
+    getStores(),
+    countListings(),
+    getBrands(),
+  ]);
+  const deals = allDeals.slice(0, 4);
+  const popular = allModels.slice(0, 4);
   const stats = {
-    models: getModels().length,
-    stores: getStores().length,
-    listings: countListings(),
+    models: allModels.length,
+    stores: stores.length,
+    listings: listingsCount,
   };
 
   return (
@@ -99,7 +108,7 @@ export default function Home() {
             {
               n: "1",
               t: "Indexamos todas las tiendas",
-              d: `Relevamos los catálogos de ${getStores().length} tiendas argentinas varias veces por día y agrupamos las publicaciones del mismo modelo en una sola ficha.`,
+              d: `Relevamos los catálogos de ${stores.length} tiendas argentinas varias veces por día y agrupamos las publicaciones del mismo modelo en una sola ficha.`,
             },
             {
               n: "2",
@@ -139,7 +148,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-8 flex flex-wrap gap-2">
-          {getBrands().map((b) => (
+          {brands.map((b) => (
             <Link
               key={b.slug}
               href={`/notebooks?brand=${b.slug}`}

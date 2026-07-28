@@ -53,9 +53,8 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
       badge de financiación en card y ficha (detección de sin interés = total en cuotas ≤ contado).
 
 ### Secuenciado con el deploy real (Supabase + Render)
-- [ ] **Alertas de precio con email real** (hoy el form es solo UI). *Depende del backend*: necesita
-      DB para las suscripciones + worker que compare precios + servicio de email. Es EL loop de
-      retención del comparador.
+- [~] **Alertas de precio**: la **captura** ya persiste en `price_alerts` (form → `/api/alertas`).
+      Falta el **worker** (cron) que compare precios y **envíe** el email. Es EL loop de retención.
 - [ ] **Integrar Mercado Libre**: revierte la decisión de fase 1 (ML estaba afuera). Es la mayor
       brecha de cobertura del país. Ojo: la API de ML hoy suele exigir OAuth; evaluar token de
       aplicación + programa de afiliados de ML. Encaja al levantar el backend real.
@@ -81,13 +80,16 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
 
 ## 🟢 Infra / monetización
 
-- [ ] **Deploy a URL de prueba (Render + Supabase)** — ver `website/SUPABASE.md`. Esquema
-      (`supabase/migrations/0001_init.sql`) y seed (`npm run seed:supabase`) listos. Falta: crear
-      proyecto Supabase + servicio Render (requiere las cuentas del usuario), y refactorizar la capa
-      de datos para leer de Supabase. **Render (Node) evita el problema del admin en edge.**
+- [ ] **Deploy a URL de prueba (Render + Supabase)** — ver `website/SUPABASE.md`. Hecho: esquema +
+      seed cargado + **sitio público leyendo de Supabase** (data.ts async, verificado) + click-outs y
+      captura de alertas persistiendo. Falta: crear el Web Service en Render (cuenta del usuario) y
+      **migrar el admin a Supabase** (hoy file-based → efímero en Render).
+- [ ] **Admin → Supabase**: `adminData.ts` y las rutas `/api/admin/*` a la DB (con `service_role`),
+      para que revisión/matcheos/publicaciones/modelos persistan. Reemplaza el flujo de overlays
+      `generated-*.json` + `publish` (quedan obsoletos con la DB en vivo).
 - [ ] Deploy alternativo a **Cloudflare Pages** (parte pública, edge): subir zip + flag
       `nodejs_compat` (ver `website/DEPLOY-CLOUDFLARE.md`). Secundario a Render.
-- [ ] Persistir **click-outs** de `/salir` en DB (hoy van a `console.log`).
+- [x] Persistir **click-outs** de `/salir` en DB (tabla `click_outs` en Supabase).
 - [ ] Cerrar **programas de afiliados** reales (hoy solo UTMs en Córdoba Notebooks y Frávega).
 - [ ] Resolver los `[DECISIÓN PENDIENTE]` en `04-prompt-de-desarrollo.md`.
 

@@ -49,13 +49,23 @@ Carga tiendas, modelos, publicaciones (el seed queda `confirmed`) e historial.
 Un **Cron Job** en Render (o GitHub Actions) que corra `npm run scrape` una vez
 por día y escriba en Supabase. Así el historial real empieza a acumularse.
 
-## Qué falta del lado del código (lo hago cuando el proyecto exista)
+## Estado del código
 
-El sitio hoy lee de JSON estáticos. El **próximo paso de código** es cambiar la
-capa de datos (`src/lib/data.ts` y `adminData.ts`) para leer/escribir en Supabase
-en vez de los archivos. Lo dejo para cuando esté el proyecto creado, así lo pruebo
-contra la DB real (el esquema y el seed ya están listos). Se hace detrás del mismo
-`getModels()/getStores()/...`, así que las páginas no cambian.
+**Sitio público → Supabase: ✅ hecho y verificado.**
+- `src/lib/data.ts` lee todo de Supabase (`getModels/getStores/getDeals/filterModels/...`,
+  ahora async). Páginas dinámicas (server-rendered en cada request → datos en vivo).
+- `/salir` registra el click-out en la tabla `click_outs`.
+- El form de alertas guarda en `price_alerts` vía `/api/alertas`.
+
+**Admin → Supabase: pendiente (próximo paso).** La consola de admin (`adminData.ts`)
+todavía lee/escribe archivos JSON. En Render eso funciona para *ver* datos, pero las
+escrituras del admin **no persisten entre redeploys** (filesystem efímero). Por eso el
+siguiente paso es migrar `adminData.ts` a Supabase (con la `service_role`). Para el
+primer deploy de prueba con usuarios no bloquea: los usuarios usan el sitio público,
+no el admin.
+
+> El worker que compara precios y **envía** los emails de alerta queda para el cron
+> (hoy sólo se **capturan** las suscripciones).
 
 ## Qué necesito de vos
 

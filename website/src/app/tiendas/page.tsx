@@ -7,9 +7,10 @@ export const metadata: Metadata = {
     "Las tiendas argentinas que monitoreamos para comparar precios de notebooks. Indexación gratuita para tiendas online establecidas.",
 };
 
-export default function TiendasPage() {
-  const stores = getStores();
-  const models = getModels();
+export const dynamic = "force-dynamic";
+
+export default async function TiendasPage() {
+  const [stores, models] = await Promise.all([getStores(), getModels()]);
 
   const offersByStore = new Map<string, number>();
   for (const m of models) {

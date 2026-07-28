@@ -14,12 +14,10 @@ interface Params {
   slug: string;
 }
 
-export function generateStaticParams(): Params[] {
-  return getModels().map((m) => ({ brand: m.brandSlug, slug: m.slug }));
-}
+export const dynamic = "force-dynamic";
 
-export function generateMetadata({ params }: { params: Params }): Metadata {
-  const model = getModelBySlug(params.brand, params.slug);
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const model = await getModelBySlug(params.brand, params.slug);
   if (!model) return {};
   return {
     title: `${model.brand} ${model.name} — precio en ${model.listings.length} tiendas`,
@@ -27,12 +25,12 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
   };
 }
 
-export default function ModelPage({ params }: { params: Params }) {
-  const model = getModelBySlug(params.brand, params.slug);
+export default async function ModelPage({ params }: { params: Params }) {
+  const model = await getModelBySlug(params.brand, params.slug);
   if (!model) notFound();
 
-  const history = getHistory(model.id);
-  const similar = getModels()
+  const [history, allModels] = await Promise.all([getHistory(model.id), getModels()]);
+  const similar = allModels
     .filter((m) => m.id !== model.id && m.gpuType === model.gpuType)
     .slice(0, 3);
 
@@ -298,7 +296,7 @@ export default function ModelPage({ params }: { params: Params }) {
             Pueden variar en la tienda
           </p>
 
-          <PriceAlertForm modelName={`${model.brand} ${model.name}`} />
+          <PriceAlertForm modelId={model.id} modelName={`${model.brand} ${model.name}`} />
         </div>
       </div>
 
