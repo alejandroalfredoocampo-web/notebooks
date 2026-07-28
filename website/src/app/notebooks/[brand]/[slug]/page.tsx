@@ -9,6 +9,8 @@ import PriceAlertForm from "@/components/PriceAlertForm";
 import UseRecommendation from "@/components/UseRecommendation";
 import ModelImage from "@/components/ModelImage";
 import PriceThermometer from "@/components/PriceThermometer";
+import ShareButton from "@/components/ShareButton";
+import StoreRating from "@/components/StoreRating";
 import { priceInsight } from "@/lib/priceInsight";
 
 interface Params {
@@ -21,9 +23,26 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const model = await getModelBySlug(params.brand, params.slug);
   if (!model) return {};
+  const title = `${model.brand} ${model.name} — precio en ${model.listings.length} tiendas`;
+  const description = `Mejor precio del ${model.brand} ${model.name} (${model.cpu}, ${model.ramGb} GB RAM, ${model.storageGb} GB SSD): ${fmtARS(model.bestPrice)}. Compará ${model.listings.length} ofertas con historial de precios.`;
+  const canonical = `/notebooks/${model.brandSlug}/${model.slug}`;
   return {
-    title: `${model.brand} ${model.name} — precio en ${model.listings.length} tiendas`,
-    description: `Mejor precio del ${model.brand} ${model.name} (${model.cpu}, ${model.ramGb} GB RAM, ${model.storageGb} GB SSD): ${fmtARS(model.bestPrice)}. Compará ${model.listings.length} ofertas con historial de precios.`,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: "website",
+      images: model.imageUrl ? [{ url: model.imageUrl }] : undefined,
+    },
+    twitter: {
+      card: model.imageUrl ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: model.imageUrl ? [model.imageUrl] : undefined,
+    },
   };
 }
 
@@ -96,7 +115,7 @@ export default async function ModelPage({ params }: { params: Params }) {
         {" / "}
         <Link href="/notebooks" className="hover:text-brand-blue">Notebooks</Link>
         {" / "}
-        <Link href={`/notebooks?brand=${model.brandSlug}`} className="hover:text-brand-blue">
+        <Link href={`/marcas/${model.brandSlug}`} className="hover:text-brand-blue">
           {model.brand}
         </Link>
         {" / "}
@@ -139,14 +158,20 @@ export default async function ModelPage({ params }: { params: Params }) {
             {model.name}
           </h1>
           <div className="mb-3 mt-1.5">
-            <SpecChips model={model} />
+            <SpecChips model={model} linkify />
           </div>
-          <Link
-            href={`/comparar?ids=${model.id}`}
-            className="mb-3 inline-block text-[13px] font-semibold text-brand-blue hover:underline"
-          >
-            ⚖️ Comparar con otras notebooks
-          </Link>
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link
+              href={`/comparar?ids=${model.id}`}
+              className="text-[13px] font-semibold text-brand-blue hover:underline"
+            >
+              ⚖️ Comparar con otras notebooks
+            </Link>
+            <ShareButton
+              title={`${model.brand} ${model.name}`}
+              text={`${model.brand} ${model.name} desde ${fmtARS(model.bestPrice)} — comparado en ${model.listings.length} tiendas`}
+            />
+          </div>
 
           <div className="mb-3.5 rounded-xl border-2 border-brand-green bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-widest text-brand-green">
@@ -215,7 +240,9 @@ export default async function ModelPage({ params }: { params: Params }) {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="font-bold">
-                        {l.store.name}
+                        <Link href={`/tiendas/${l.store.slug}`} className="hover:text-brand-blue hover:underline">
+                          {l.store.name}
+                        </Link>
                         {l.store.verified && (
                           <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                             ✓ Verificada
@@ -230,6 +257,9 @@ export default async function ModelPage({ params }: { params: Params }) {
                       <div className="text-[11px] text-slate-400">
                         {l.store.type}
                         {l.store.physicalStore ? " · local físico" : ""}
+                      </div>
+                      <div className="mt-0.5">
+                        <StoreRating store={l.store} />
                       </div>
                     </div>
                     <span
@@ -292,7 +322,9 @@ export default async function ModelPage({ params }: { params: Params }) {
                       className={`border-b border-slate-100 last:border-0 ${isBest ? "bg-emerald-50/60" : ""}`}
                     >
                       <td className="px-4 py-3.5 font-bold">
-                        {l.store.name}
+                        <Link href={`/tiendas/${l.store.slug}`} className="hover:text-brand-blue hover:underline">
+                          {l.store.name}
+                        </Link>
                         {l.store.verified && (
                           <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                             ✓ Verificada
@@ -306,6 +338,9 @@ export default async function ModelPage({ params }: { params: Params }) {
                         <span className="block text-[11px] font-normal text-slate-400">
                           {l.store.type}
                           {l.store.physicalStore ? " · local físico" : ""}
+                        </span>
+                        <span className="mt-0.5 block">
+                          <StoreRating store={l.store} />
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-base font-extrabold tracking-tight">

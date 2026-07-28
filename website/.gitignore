@@ -6,6 +6,7 @@ var/
 *.log
 .env*
 .DS_Store
+tsconfig.tsbuildinfo
 
 # Salidas generadas por el pipeline de scrapers (no curadas)
 data/listings.raw.json

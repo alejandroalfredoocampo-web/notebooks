@@ -7,6 +7,11 @@ export function fmtDate(iso: string): string {
   return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
+export function fmtDateLong(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+}
+
 export function fmtDateTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("es-AR", {

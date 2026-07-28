@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { supabase } from "./supabaseServer";
+import { ramBucket, storageBucket, screenBucket } from "./specFilters";
 import type {
   Store,
   NotebookModel,
@@ -28,6 +29,17 @@ function mapStore(r: Row): Store {
     city: r.city as string,
     affiliate: (r.affiliate as Store["affiliate"]) ?? null,
     verified: Boolean(r.verified),
+    // Perfil + reputación (columnas de la migración 0006; ausentes → undefined)
+    logoUrl: (r.logo_url as string) ?? undefined,
+    description: (r.description as string) ?? undefined,
+    googleRating: (r.google_rating as number) ?? null,
+    googleReviewsCount: (r.google_reviews_count as number) ?? null,
+    googleMapsUrl: (r.google_maps_url as string) ?? null,
+    ratingUpdatedAt: (r.rating_updated_at as string) ?? null,
+    socials: (r.socials as Record<string, string>) ?? null,
+    paymentMethods: (r.payment_methods as string) ?? null,
+    shipsNationwide: r.ships_nationwide == null ? undefined : Boolean(r.ships_nationwide),
+    physicalAddress: (r.physical_address as string) ?? null,
   };
 }
 
@@ -224,10 +236,57 @@ export async function getModelBySlug(
   return m ? enrich(m, data) : undefined;
 }
 
+/** Ofertas de una tienda: cada modelo que vende + su precio en esa tienda (spec 04). */
+export async function getStoreListings(
+  storeId: string
+): Promise<{ model: ModelWithOffers; listing: Listing & { store: Store } }[]> {
+  const models = await getModels();
+  const out: { model: ModelWithOffers; listing: Listing & { store: Store } }[] = [];
+  for (const m of models) {
+    const l = m.listings.find((x) => x.storeId === storeId);
+    if (l) out.push({ model: m, listing: l });
+  }
+  return out.sort((a, b) => a.listing.priceCash - b.listing.priceCash);
+}
+
 export async function getDeals(): Promise<ModelWithOffers[]> {
   return (await getModels())
     .filter((m) => m.isRealDeal)
     .sort((a, b) => b.dropPct - a.dropPct);
+}
+
+export interface BrandInfo {
+  slug: string;
+  name: string;
+  logoUrl?: string;
+  introMd?: string;
+  heroImage?: string;
+  seoTitle?: string;
+  seoDesc?: string;
+}
+
+/**
+ * Contenido editorial de una marca (tabla `brands`, migración 0005 opcional).
+ * Resiliente: si la tabla no existe todavía o no hay fila, devuelve null y la
+ * landing usa copy de fallback.
+ */
+export async function getBrandInfo(slug: string): Promise<BrandInfo | null> {
+  try {
+    const { data, error } = await supabase.from("brands").select("*").eq("slug", slug).maybeSingle();
+    if (error || !data) return null;
+    const r = data as Row;
+    return {
+      slug: r.slug as string,
+      name: r.name as string,
+      logoUrl: (r.logo_url as string) ?? undefined,
+      introMd: (r.intro_md as string) ?? undefined,
+      heroImage: (r.hero_image as string) ?? undefined,
+      seoTitle: (r.seo_title as string) ?? undefined,
+      seoDesc: (r.seo_desc as string) ?? undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getBrands(): Promise<{ name: string; slug: string; count: number }[]> {
@@ -246,6 +305,8 @@ export interface Filters {
   brands?: string[];
   cpus?: string[];
   rams?: string[];
+  storage?: string[];
+  screen?: string[];
   gpu?: string[];
   price?: string[];
   fin?: string;
@@ -273,15 +334,11 @@ export async function filterModels(f: Filters): Promise<ModelWithOffers[]> {
   }
   if (f.brands?.length) list = list.filter((m) => f.brands!.includes(m.brandSlug));
   if (f.cpus?.length) list = list.filter((m) => f.cpus!.includes(m.cpuFamily));
-  if (f.rams?.length) {
-    list = list.filter((m) =>
-      f.rams!.some((r) => {
-        if (r === "8") return m.ramGb >= 8 && m.ramGb < 16;
-        if (r === "16") return m.ramGb >= 16 && m.ramGb < 32;
-        return m.ramGb >= 32;
-      })
-    );
-  }
+  if (f.rams?.length) list = list.filter((m) => f.rams!.includes(ramBucket(m.ramGb)));
+  if (f.storage?.length)
+    list = list.filter((m) => f.storage!.includes(storageBucket(m.storageGb)));
+  if (f.screen?.length)
+    list = list.filter((m) => f.screen!.includes(screenBucket(m.screenSizeIn)));
   if (f.gpu?.length) list = list.filter((m) => f.gpu!.includes(m.gpuType));
   if (f.price?.length) {
     list = list.filter((m) =>

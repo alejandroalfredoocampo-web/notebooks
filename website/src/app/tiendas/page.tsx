@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getStores, getModels } from "@/lib/data";
 import StoreApplicationForm from "@/components/StoreApplicationForm";
+import StoreRating from "@/components/StoreRating";
 
 export const metadata: Metadata = {
   title: "Tiendas indexadas",
@@ -37,12 +39,13 @@ export default async function TiendasPage() {
 
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {stores.map((s) => (
-          <div
+          <Link
             key={s.id}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            href={`/tiendas/${s.slug}`}
+            className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-blue hover:shadow-lg"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="font-extrabold">{s.name}</div>
+              <div className="font-extrabold group-hover:text-brand-blue">{s.name}</div>
               {s.verified && (
                 <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                   ✓ Verificada
@@ -50,6 +53,9 @@ export default async function TiendasPage() {
               )}
             </div>
             <div className="text-xs text-slate-500">{s.type}</div>
+            <div className="mt-1">
+              <StoreRating store={s} />
+            </div>
             <div className="mt-2.5 space-y-1 text-[11px] text-slate-400">
               <div>📍 {s.city}</div>
               {s.physicalStore && <div>🏬 Local físico</div>}
@@ -58,7 +64,7 @@ export default async function TiendasPage() {
                 <div className="font-semibold text-brand-green">💳 Cuotas sin interés</div>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

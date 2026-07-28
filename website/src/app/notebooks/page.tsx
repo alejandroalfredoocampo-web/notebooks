@@ -34,6 +34,8 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
     brands: parsed?.brand ? [parsed.brand] : arr(searchParams.brand),
     cpus: arr(searchParams.cpu),
     rams: arr(searchParams.ram),
+    storage: arr(searchParams.storage),
+    screen: arr(searchParams.screen),
     gpu: arr(searchParams.gpu),
     price: parsed?.priceMax ? [`0-${parsed.priceMax}`] : arr(searchParams.price),
     fin: typeof searchParams.fin === "string" ? searchParams.fin : undefined,

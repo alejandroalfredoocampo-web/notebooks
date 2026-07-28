@@ -32,6 +32,7 @@ const GROUPS: {
       { value: "ultra9", label: "Intel Core Ultra" },
       { value: "ryzen7", label: "AMD Ryzen 7" },
       { value: "apple-m", label: "Apple M" },
+      { value: "intel-n", label: "Intel N" },
     ],
   },
   {
@@ -39,8 +40,27 @@ const GROUPS: {
     title: "Memoria RAM",
     options: [
       { value: "8", label: "8 a 12 GB" },
-      { value: "16", label: "16 GB" },
+      { value: "16", label: "16 a 28 GB" },
       { value: "32", label: "32 GB o más" },
+    ],
+  },
+  {
+    param: "storage",
+    title: "Almacenamiento",
+    options: [
+      { value: "256", label: "Hasta 256 GB" },
+      { value: "512", label: "512 GB" },
+      { value: "1000", label: "1 TB o más" },
+    ],
+  },
+  {
+    param: "screen",
+    title: "Pantalla",
+    options: [
+      { value: "13", label: 'Hasta 13,9"' },
+      { value: "14", label: '14"' },
+      { value: "15", label: '15"' },
+      { value: "16", label: '16" o más' },
     ],
   },
   {

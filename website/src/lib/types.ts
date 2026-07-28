@@ -8,6 +8,17 @@ export interface Store {
   city: string;
   affiliate: { kind: string; params: Record<string, string> } | null;
   verified?: boolean; // insignia editorial "tienda verificada"
+  // Perfil + reputación (spec 04). Opcionales: pueden faltar hasta correr la migración 0006.
+  logoUrl?: string;
+  description?: string;
+  googleRating?: number | null;
+  googleReviewsCount?: number | null;
+  googleMapsUrl?: string | null;
+  ratingUpdatedAt?: string | null;
+  socials?: Record<string, string> | null;
+  paymentMethods?: string | null;
+  shipsNationwide?: boolean;
+  physicalAddress?: string | null;
 }
 
 export interface NotebookModel {

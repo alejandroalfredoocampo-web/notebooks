@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDeals, getModels, getStores, countListings, getBrands } from "@/lib/data";
 import ModelCard from "@/components/ModelCard";
+import HeroSearch from "@/components/HeroSearch";
 
 const USE_CASES = [
   { slug: "estudiar", icon: "📚", title: "Estudiar", desc: "Liviana y con batería" },
@@ -42,21 +43,7 @@ export default async function Home() {
             Comparamos el mismo modelo en {stats.stores} tiendas y te mostramos
             si la oferta es real, con historial de precios.
           </p>
-          <form action="/notebooks" className="relative mx-auto mt-8 max-w-xl">
-            <input
-              type="text"
-              name="q"
-              placeholder="¿Qué notebook estás buscando?"
-              className="h-13 w-full rounded-full border-0 py-4 pl-6 pr-14 text-base text-slate-900 shadow-xl outline-none ring-2 ring-transparent focus:ring-brand-cyan"
-            />
-            <button
-              type="submit"
-              aria-label="Buscar"
-              className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full bg-brand-blue text-lg text-white transition hover:bg-brand-darker"
-            >
-              →
-            </button>
-          </form>
+          <HeroSearch />
           <div className="mt-7 flex flex-wrap justify-center gap-x-7 gap-y-2 text-[13px] text-slate-300">
             <span><b className="text-white">{stats.models}</b> modelos indexados</span>
             <span><b className="text-white">{stats.stores}</b> tiendas monitoreadas</span>
@@ -151,7 +138,7 @@ export default async function Home() {
           {brands.map((b) => (
             <Link
               key={b.slug}
-              href={`/notebooks?brand=${b.slug}`}
+              href={`/marcas/${b.slug}`}
               className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:border-brand-blue hover:text-brand-blue"
             >
               {b.name}

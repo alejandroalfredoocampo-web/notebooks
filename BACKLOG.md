@@ -2,6 +2,43 @@
 
 Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 2026-07-28.
 
+## 🧭 Nuevas secciones propuestas (especificadas en `specs/`)
+
+Nueve funcionalidades nuevas con spec buildable cada una (modelo de datos, rutas, RLS, SEO y criterios
+de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). Migraciones sugeridas
+`0004`…`0010`. Priorización en fases:
+
+- **Fase 1 — quick wins de front (sin DB):** ✅ implementada (2026-07-28)
+  - [x] `specs/03` Búsqueda por **voz** en la home (Web Speech API `es-AR` + página `/privacidad`).
+        `HeroSearch.tsx` + `app/privacidad/page.tsx` + link en el footer. Fallback a escribir si no hay soporte.
+  - [x] `specs/05` **Chips de specs como filtros** (chip → `/notebooks?cpu=...`). `specFilters.ts`
+        (buckets únicos), ejes nuevos `storage` y `screen` en `filterModels`/`Filters.tsx` (+ opción Intel N),
+        chips linkificados en la ficha (`SpecChips linkify`; en cards quedan texto para no anidar links).
+  - [x] `specs/09` **Compartir en redes** (`ShareButton.tsx`: Web Share API nativa + fallback
+        WhatsApp/Telegram/X/Facebook/copiar) + Open Graph/Twitter Card en la ficha.
+        Pendiente futuro: OG en blog/marcas (specs 01/02) y OG dinámica con precio.
+- **Fase 2 — confianza y SEO:** ✅ implementada (2026-07-28). ⚠️ **Falta correr en Supabase** las
+  migraciones `0004_blog.sql`, `0005_brands.sql` y `0006_store_profile.sql` (SQL Editor, con service_role).
+  - [x] `specs/04` **Reputación + perfil de tiendas**: `StoreRating.tsx`, estrellas en la ficha (mobile+desktop),
+        perfil `/tiendas/[slug]` (`EntityHero`), nombres de tienda linkeados, `reviewApplication` copia
+        `google_*`/redes/pagos a `stores` al aprobar. Migración `0006`. (Las estrellas aparecen al correr 0006 +
+        cargar rating; las tiendas del seed no tienen aún.)
+  - [x] `specs/02` **Landings por marca**: `/marcas` + `/marcas/[brand]` (`EntityHero` + `ModelCard`),
+        `getBrandInfo` con fallback si no existe la tabla `brands`, chips de home/breadcrumb → `/marcas`,
+        nav (Header/MobileMenu/Footer) + sitemap. Migración `0005` (opcional; hay fallback).
+  - [x] `specs/01` **Blog + CMS básico**: `/blog` + `/blog/[slug]` (Markdown sanitizado con `react-markdown`
+        + `rehype-sanitize` + typography, OG/JSON-LD, "modelos mencionados"), RSS `/blog/rss.xml`, CMS en
+        `/admin/blog` (+ editor con preview y selector de modelos), API `/api/admin/post`, sitemap. Migración `0004`.
+        Nota: el CMS necesita `service_role` (como todo el admin) → no se prueba en local sin esa key.
+- **Fase 3 — retención y demanda:**
+  - [ ] `specs/06` **Modelos sin publicaciones** (ficha "próximamente" + captura de email; comparte worker de mails). Migración `0007`.
+  - [ ] `specs/07` **Login + favoritos/intereses** (Supabase Auth email+Google, RLS por `auth.uid()`). Migración `0008`.
+        *Confirmado: Supabase Auth.*
+- **Fase 4 — nuevo modelo de negocio:**
+  - [ ] `specs/08` **Venta corporativa / RFQ** (solicitud de presupuesto Fase A + portal de tiendas Fase B). Migración `0009`.
+
+> Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
+
 ## ✅ Hecho
 
 - Sitio Next.js 14 (home, listado con filtros SSR, ficha, ofertas, tiendas, `/salir`).

@@ -274,6 +274,11 @@ export async function reviewApplication(id: number, action: "approved" | "reject
     if (error) throw new Error(error.message);
     if (!app) throw new Error("Solicitud no encontrada");
     const slug = slugify(app.commercial_name as string);
+    // Redes sociales de la solicitud → jsonb `socials` (solo las cargadas)
+    const socials: Record<string, string> = {};
+    for (const k of ["instagram", "facebook", "tiktok", "youtube", "linkedin", "mercadolibre"] as const) {
+      if (app[k]) socials[k] = app[k] as string;
+    }
     const { error: sErr } = await db.from("stores").upsert(
       {
         id: slug,
@@ -285,6 +290,15 @@ export async function reviewApplication(id: number, action: "approved" | "reject
         city: (app.city as string) || "—",
         affiliate: null,
         verified: true,
+        // Reputación + perfil copiados de la solicitud (spec 04 / migración 0006)
+        google_rating: (app.google_rating as number) ?? null,
+        google_reviews_count: (app.google_reviews_count as number) ?? null,
+        google_maps_url: (app.google_maps_url as string) ?? null,
+        rating_updated_at: app.google_rating ? new Date().toISOString() : null,
+        payment_methods: (app.payment_methods as string) ?? null,
+        ships_nationwide: Boolean(app.ships_nationwide),
+        physical_address: (app.physical_address as string) ?? null,
+        socials: Object.keys(socials).length ? socials : null,
       },
       { onConflict: "id" }
     );
