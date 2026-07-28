@@ -87,11 +87,12 @@ Estado del MVP y pendientes, ordenado por prioridad. Última actualización: 202
 - [x] **Admin → Supabase**: `adminData.ts` + `/api/admin/*` escriben en la DB (`service_role`).
       Revisión/matcheos/publicaciones/modelos persisten. `publish` + overlays `generated-*.json`
       eliminados/obsoletos. Admin ahora stateless.
-- [ ] **Scraper → Supabase**: `scrapers/run.mjs` todavía escribe JSON. Para que la cola de revisión
-      del admin tenga contenido, el scraper debe hacer upsert de las publicaciones en `listings`
-      (pending / confirmed según matching). Es la última pieza para el pipeline 100% en la DB.
-- [ ] Limpieza: quitar cruft de Cloudflare (`wrangler.toml`, `next-on-pages`, scripts `pages:*`,
-      `DEPLOY-CLOUDFLARE.md`) y el `publish.mjs`/`generated-*.json` obsoletos si vamos con Vercel.
+- [x] **Scraper → Supabase**: `run.mjs` hace upsert en `listings` (pending/confirmed) preservando
+      decisiones del operador, y acumula `price_history`. Pipeline 100% en la DB.
+- [x] Limpieza: quitado el cruft de Cloudflare + `publish.mjs`/`generated-*.json` obsoletos.
+- [ ] **Cron diario** del scraper (GitHub Actions o Render Cron) con la `service_role`.
+- [ ] Freshness: marcar out-of-stock las publicaciones que dejaron de aparecer en un scrape.
+- [ ] Limpiar el seed demo (listings l-001..l-030 ficticios) cuando entren datos reales.
 - [ ] Deploy alternativo a **Cloudflare Pages** (parte pública, edge): subir zip + flag
       `nodejs_compat` (ver `website/DEPLOY-CLOUDFLARE.md`). Secundario a Render.
 - [x] Persistir **click-outs** de `/salir` en DB (tabla `click_outs` en Supabase).
