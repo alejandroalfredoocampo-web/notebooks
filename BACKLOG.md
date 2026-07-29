@@ -44,8 +44,16 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
         Redirect URLs, y agregar `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Vercel/.env.local.
         Verificación end-to-end del login: cuando el usuario configure Auth.
         Nota: SSR de sesión (mostrar usuario en server components) y recomendaciones por mail = próxima iteración.
-- **Fase 4 — nuevo modelo de negocio:**
-  - [ ] `specs/08` **Venta corporativa / RFQ** (solicitud de presupuesto Fase A + portal de tiendas Fase B). Migración `0009`.
+- **Fase 4 — nuevo modelo de negocio:** ✅ Fase A implementada (2026-07-29). ⚠️ **Falta correr**
+  `0009_bulk.sql` en Supabase.
+  - [x] `specs/08` **Venta corporativa / RFQ (Fase A)**: landing `/corporativo` (hero + casos +
+        estimador de compra por volumen + `BulkRequestForm`) → `/api/corporativo` (insert público en
+        `bulk_requests`, honeypot). Bandeja `/admin/corporativo` (lista + cambio de estado). Migración `0009`.
+        Verificado: landing + estimador ($/u × cantidad) + build. Submit y bandeja necesitan correr 0009.
+  - [ ] `specs/08` **Fase B — portal de tiendas** (auth de tiendas + `bulk_quotes` + comparar cotizaciones):
+        pendiente. Requiere decidir la auth de tiendas (Supabase Auth + `store_members` recomendado).
+  - [ ] **Worker de emails** (compartido): al crear RFQ avisar al admin; en Fase B a las tiendas. Sigue pendiente
+        junto con alertas de precio y avisos de disponibilidad.
 
 > Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
 

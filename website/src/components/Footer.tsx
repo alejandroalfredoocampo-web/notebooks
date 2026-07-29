@@ -31,6 +31,7 @@ export default function Footer() {
             <li><Link className="hover:text-white" href="/tiendas">Tiendas indexadas</Link></li>
             <li><Link className="hover:text-white" href="/marcas">Marcas</Link></li>
             <li><Link className="hover:text-white" href="/blog">Blog</Link></li>
+            <li><Link className="hover:text-white" href="/corporativo">Venta corporativa</Link></li>
             <li><Link className="hover:text-white" href="/privacidad">Política de privacidad</Link></li>
           </ul>
         </div>

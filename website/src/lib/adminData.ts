@@ -312,6 +312,61 @@ export async function reviewApplication(id: number, action: "approved" | "reject
   if (uErr) throw new Error(uErr.message);
 }
 
+// --- Solicitudes corporativas (RFQ, spec 08 Fase A) -------------------------
+
+export type BulkRequest = {
+  id: string;
+  status: "open" | "quoting" | "closed" | "cancelled";
+  modelId: string | null;
+  specsNote: string | null;
+  quantity: number;
+  neededBy: string | null;
+  companyName: string;
+  cuit: string | null;
+  contactName: string | null;
+  contactEmail: string;
+  contactPhone: string | null;
+  province: string | null;
+  message: string | null;
+  createdAt: string;
+};
+
+function mapBulkRequest(r: Record<string, unknown>): BulkRequest {
+  return {
+    id: r.id as string,
+    status: (r.status as BulkRequest["status"]) ?? "open",
+    modelId: (r.model_id as string) ?? null,
+    specsNote: (r.specs_note as string) ?? null,
+    quantity: (r.quantity as number) ?? 0,
+    neededBy: (r.needed_by as string) ?? null,
+    companyName: r.company_name as string,
+    cuit: (r.cuit as string) ?? null,
+    contactName: (r.contact_name as string) ?? null,
+    contactEmail: r.contact_email as string,
+    contactPhone: (r.contact_phone as string) ?? null,
+    province: (r.province as string) ?? null,
+    message: (r.message as string) ?? null,
+    createdAt: r.created_at as string,
+  };
+}
+
+export async function getBulkRequests(): Promise<BulkRequest[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("bulk_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`bulk_requests: ${error.message}`);
+  return (data ?? []).map(mapBulkRequest);
+}
+
+export async function setBulkRequestStatus(
+  id: string,
+  status: BulkRequest["status"]
+): Promise<void> {
+  const { error } = await supabaseAdmin().from("bulk_requests").update({ status }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 // --- Helpers puros (parseo / slug) ------------------------------------------
 
 export const slugify = (s: string) =>

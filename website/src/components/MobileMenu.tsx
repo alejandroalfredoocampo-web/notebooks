@@ -59,6 +59,9 @@ export default function MobileMenu() {
             <Link href="/blog" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
               Blog
             </Link>
+            <Link href="/corporativo" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
+              Empresas
+            </Link>
             <div className="my-1 h-px bg-slate-100" />
             <AuthNav variant="mobile" />
           </nav>
