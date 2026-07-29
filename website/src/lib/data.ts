@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { supabase } from "./supabaseServer";
 import { ramBucket, storageBucket, screenBucket } from "./specFilters";
+import { cleanModelName } from "./format";
 import type {
   Store,
   NotebookModel,
@@ -48,7 +49,7 @@ function mapModel(r: Row): NotebookModel {
     id: r.id as string,
     brand: r.brand as string,
     brandSlug: r.brand_slug as string,
-    name: r.name as string,
+    name: cleanModelName(r.brand as string, r.name as string),
     slug: r.slug as string,
     partNumber: (r.part_number as string) ?? "",
     cpu: (r.cpu as string) ?? "",

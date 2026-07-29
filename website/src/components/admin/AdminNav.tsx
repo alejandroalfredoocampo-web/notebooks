@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/admin/publicaciones", label: "Publicaciones" },
   { href: "/admin/solicitudes", label: "Solicitudes" },
   { href: "/admin/corporativo", label: "Corporativo" },
+  { href: "/admin/portal", label: "Portal tiendas" },
   { href: "/admin/blog", label: "Blog" },
   { href: "/admin/nueva", label: "Nueva publicación" },
   { href: "/admin/nuevo-modelo", label: "Nuevo modelo" },

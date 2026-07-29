@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabaseAdmin";
 import type { Store, NotebookModel } from "./types";
+import { cleanModelName } from "./format";
 
 /**
  * Capa de datos del admin sobre Supabase (service_role → ve todo, escribe todo).
@@ -28,7 +29,7 @@ function mapModel(r: Record<string, unknown>): NotebookModel {
     id: r.id as string,
     brand: r.brand as string,
     brandSlug: r.brand_slug as string,
-    name: r.name as string,
+    name: cleanModelName(r.brand as string, r.name as string),
     slug: r.slug as string,
     partNumber: (r.part_number as string) ?? "",
     cpu: (r.cpu as string) ?? "",
@@ -364,6 +365,51 @@ export async function setBulkRequestStatus(
   status: BulkRequest["status"]
 ): Promise<void> {
   const { error } = await supabaseAdmin().from("bulk_requests").update({ status }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+// --- Portal de tiendas: vínculos usuario ↔ tienda (spec 08 Fase B) ----------
+
+export type StoreMember = { userId: string; email: string; storeId: string; storeName: string };
+
+/** Busca un usuario de Auth por email (admin API). Devuelve su id o null. */
+async function findUserIdByEmail(email: string): Promise<string | null> {
+  const db = supabaseAdmin();
+  // listUsers pagina; para un MVP con pocos usuarios alcanza la primera página grande.
+  const { data, error } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) throw new Error(error.message);
+  const u = data.users.find((x) => (x.email ?? "").toLowerCase() === email.toLowerCase());
+  return u?.id ?? null;
+}
+
+export async function getStoreMembers(): Promise<StoreMember[]> {
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("store_members").select("user_id, store_id, stores(name)");
+  if (error) throw new Error(`store_members: ${error.message}`);
+  const rows = (data ?? []) as { user_id: string; store_id: string; stores?: { name?: string } }[];
+  // Resolver emails desde Auth
+  const { data: usersData } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  const emailById = new Map((usersData?.users ?? []).map((u) => [u.id, u.email ?? ""]));
+  return rows.map((r) => ({
+    userId: r.user_id,
+    email: emailById.get(r.user_id) ?? "(desconocido)",
+    storeId: r.store_id,
+    storeName: r.stores?.name ?? r.store_id,
+  }));
+}
+
+/** Vincula un usuario (por email) a una tienda. El usuario debe existir en Auth. */
+export async function addStoreMember(email: string, storeId: string): Promise<void> {
+  const userId = await findUserIdByEmail(email);
+  if (!userId) throw new Error(`No hay un usuario registrado con el email ${email}. Primero debe crear su cuenta en /ingresar.`);
+  const { error } = await supabaseAdmin()
+    .from("store_members")
+    .upsert({ user_id: userId, store_id: storeId }, { onConflict: "user_id,store_id" });
+  if (error) throw new Error(error.message);
+}
+
+export async function removeStoreMember(userId: string, storeId: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("store_members").delete().eq("user_id", userId).eq("store_id", storeId);
   if (error) throw new Error(error.message);
 }
 

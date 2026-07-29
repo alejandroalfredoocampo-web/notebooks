@@ -39,7 +39,7 @@ export default function Footer() {
           <h4 className="mb-3 font-bold text-white">Tiendas</h4>
           <ul className="space-y-1.5">
             <li><Link className="hover:text-white" href="/tiendas">Sumá tu tienda (gratis)</Link></li>
-            <li><span className="text-slate-500">Portal para tiendas (próximamente)</span></li>
+            <li><Link className="hover:text-white" href="/portal">Portal para tiendas</Link></li>
           </ul>
         </div>
       </div>

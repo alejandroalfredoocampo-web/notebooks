@@ -50,10 +50,20 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
         estimador de compra por volumen + `BulkRequestForm`) → `/api/corporativo` (insert público en
         `bulk_requests`, honeypot). Bandeja `/admin/corporativo` (lista + cambio de estado). Migración `0009`.
         Verificado: landing + estimador ($/u × cantidad) + build. Submit y bandeja necesitan correr 0009.
-  - [ ] `specs/08` **Fase B — portal de tiendas** (auth de tiendas + `bulk_quotes` + comparar cotizaciones):
-        pendiente. Requiere decidir la auth de tiendas (Supabase Auth + `store_members` recomendado).
-  - [ ] **Worker de emails** (compartido): al crear RFQ avisar al admin; en Fase B a las tiendas. Sigue pendiente
-        junto con alertas de precio y avisos de disponibilidad.
+  - [x] `specs/08` **Fase B — portal de tiendas** (2026-07-29): auth de tiendas = Supabase Auth +
+        `store_members` (migración `0010`). Portal `/portal` (login → ver RFQ abiertas → cotizar en
+        `bulk_quotes`), admin `/admin/portal` para vincular tienda↔usuario (busca el user por email vía
+        Auth admin API). RLS: miembros leen RFQ open/quoting y escriben/leen sus propias cotizaciones.
+        Degrada con gracia sin envs `NEXT_PUBLIC_*`. Verificación end-to-end: cuando el usuario configure Auth + corra 0010.
+        Pendiente/refinamientos: **lado solicitante** (que la empresa compare cotizaciones y acepte una — hoy
+        lo hace el admin), y ofuscar el contacto del solicitante a las tiendas (vista con columnas enmascaradas).
+  - [ ] **Worker de emails** (compartido): al crear RFQ avisar al admin; en Fase B a las tiendas / al solicitante.
+        Sigue pendiente junto con alertas de precio y avisos de disponibilidad.
+
+## 🧹 Data / naming
+- [x] Nombres de modelos con la marca repetida ("Acer Acer Al15…"): arreglado **a nivel display** con
+      `cleanModelName` en los mappers (`data.ts`/`adminData.ts`). No toca la DB. Si se quiere limpiar en
+      origen, un `UPDATE`/`bulk-review` sobre `models.name` (con service_role).
 
 > Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
 
