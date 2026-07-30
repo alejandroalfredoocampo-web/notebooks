@@ -65,6 +65,54 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
       `cleanModelName` en los mappers (`data.ts`/`adminData.ts`). No toca la DB. Si se quiere limpiar en
       origen, un `UPDATE`/`bulk-review` sobre `models.name` (con service_role).
 
+## 🔬 Investigación: monetización de las dos puntas (comprador + tienda)
+
+- [ ] **Investigación completa de monetización** — cómo cobrarle valor a **las dos puntas** del
+      marketplace: el **comprador** (usuario final) y el **vendedor** (tiendas que quieren publicar/aparecer).
+      Hoy el único modelo es afiliación por click-out (CPC/CPA); esto explora qué más se puede sumar sin
+      romper la confianza ("orden siempre por precio"). Entregable: un doc con benchmark + recomendación
+      priorizada (qué probar primero, con qué métrica de éxito).
+
+  **Preguntas a responder**
+  - ¿Qué monetiza cada punta y cuánto aporta cada palanca (mix de ingresos)?
+  - ¿Qué se puede cobrar **sin** sesgar el ranking ni perder la percepción de neutralidad?
+  - ¿Qué requiere volumen/tráfico previo (ads, afiliación) vs. qué se puede vender ya (destacados a tiendas)?
+
+  **Palancas a evaluar (comprador)**
+  - Afiliación / CPC / CPA (lo actual) — profundizar: redes (Awin, Impact), programas directos.
+  - **Suscripción premium del comprador**: alertas ilimitadas, historial completo, avisos anticipados,
+    sin ads. ¿Hay disposición a pagar? (probablemente bajo en AR — validar).
+  - **Ads / display** (Google AdSense, native ads) y **contenido patrocinado** en el blog.
+  - Datos agregados / insights de precios (informes) — cuidando privacidad.
+
+  **Palancas a evaluar (tiendas / vendedores)**
+  - **Listing pago / tiers de tienda**: gratis (indexación básica) vs. **destacado/"Verificada+"**,
+    prioridad de ubicación *marcada como patrocinada*, badge, perfil enriquecido, analytics de su catálogo.
+  - **Suscripción SaaS para tiendas**: dashboard de competencia (dónde están caras/baratas vs. el mercado),
+    leads corporativos (RFQ del portal), alertas de precio de la competencia.
+  - **CPL / comisión por RFQ corporativo** cerrado (encaja con `specs/08`).
+  - **Onboarding/setup pago** o fee por integración del catálogo.
+
+  **Benchmark — portales a estudiar (cómo monetizan cada uno)**
+  - Comparadores de precios globales: **Google Shopping, Idealo (DE), PriceRunner, Kelkoo, Shopzilla,
+    PriceGrabber, Trivago (modelo CPC de hoteles como analogía de subasta de posiciones)**.
+  - Regionales / LATAM: **Buscapé, Zoom (BR), Mercado Libre (ads + tiers de vendedor), Precialo,
+    Preciolandia**.
+  - Verticales tech: **PCPartPicker (afiliación + posible premium), Versus, Camelcamelcamel (histórico
+    de precios, afiliación Amazon)**.
+  - Marketplaces bilaterales con tiers: **Idealo Business, Trustpilot (SaaS para comercios),
+    Capterra/G2 (leads pagos)** como referencia del lado vendedor.
+
+  **Ejes de comparación del benchmark**
+  - Modelo(s) de ingreso, quién paga, gratis-vs-pago, cómo señalan lo patrocinado, estructura de tiers,
+    pricing aproximado, y qué tan dependiente es del volumen de tráfico.
+
+  **Notas de contexto AR**
+  - Baja propensión a suscripciones pagas del consumidor → probablemente el peso caiga en la punta tienda.
+  - Prioridad: no comprometer la neutralidad del ranking (diferencial del producto).
+  - Cruzar con lo ya construido: reputación/perfil de tiendas (`specs/04`), RFQ corporativo (`specs/08`),
+    y la señal de demanda de `model_notify` (`specs/06`) como posible producto de datos para tiendas.
+
 > Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
 
 ## ✅ Hecho
