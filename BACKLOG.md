@@ -67,8 +67,11 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
 
 ## 🔬 Investigación: monetización de las dos puntas (comprador + tienda)
 
-- [ ] **Investigación completa de monetización** — cómo cobrarle valor a **las dos puntas** del
-      marketplace: el **comprador** (usuario final) y el **vendedor** (tiendas que quieren publicar/aparecer).
+- [x] **Investigación completa de monetización** (2026-07-30) → **[05-monetizacion-dos-puntas.md](05-monetizacion-dos-puntas.md)**
+      (benchmark de ~13 portales del mundo + recomendación priorizada por fases). Resumen: paga la tienda,
+      no el comprador; base afiliación/CPC → destacados pagos rotulados → SaaS de precios + leads RFQ →
+      retail media con volumen; regla de oro: ranking siempre por precio, lo pago en slot "Patrocinado" aparte.
+      El brief original (preguntas, palancas y portales a estudiar) queda abajo como referencia de alcance.
       Hoy el único modelo es afiliación por click-out (CPC/CPA); esto explora qué más se puede sumar sin
       romper la confianza ("orden siempre por precio"). Entregable: un doc con benchmark + recomendación
       priorizada (qué probar primero, con qué métrica de éxito).
