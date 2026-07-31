@@ -41,14 +41,8 @@ export default function MobileMenu() {
             </button>
           </form>
           <nav className="flex flex-col text-sm font-semibold text-slate-700">
-            <Link href="/notebooks" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
-              Notebooks
-            </Link>
             <Link href="/marcas" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
               Marcas
-            </Link>
-            <Link href="/ofertas" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
-              Ofertas
             </Link>
             <Link href="/comparar" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
               Comparar
@@ -60,7 +54,7 @@ export default function MobileMenu() {
               Blog
             </Link>
             <Link href="/corporativo" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2.5 hover:bg-slate-100">
-              Empresas
+              Venta Corporativa
             </Link>
             <div className="my-1 h-px bg-slate-100" />
             <AuthNav variant="mobile" />
