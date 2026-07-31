@@ -26,6 +26,7 @@ type InsightRow = {
   totalStores: number; gapToBestPct: number; isCheapest: boolean;
 };
 type Insights = { kpis: { modelsSold: number; wins: number; avgGapPct: number }; rows: InsightRow[] };
+type Traffic = { total: number; last30: number; top: { modelId: string; count: number }[] };
 
 function genId() {
   return "q_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -40,6 +41,7 @@ export default function PortalPage() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
+  const [traffic, setTraffic] = useState<Traffic | null>(null);
 
   useEffect(() => {
     const sb = getSupabaseBrowser();
@@ -62,6 +64,31 @@ export default function PortalPage() {
         .then((r) => r.json())
         .then((d) => setInsights(d?.rows ? d : null))
         .catch(() => {});
+
+      // Panel de tráfico: click-outs que le mandamos a la tienda (RLS: solo los suyos).
+      (async () => {
+        const { data: clicks } = await sb.from("click_outs").select("model_id, created_at").eq("store_id", storeId).limit(100000);
+        const cl = (clicks ?? []) as { model_id: string | null; created_at: string }[];
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const byModel = new Map<string, number>();
+        let last30 = 0;
+        for (const c of cl) {
+          if (new Date(c.created_at).getTime() >= cutoff) last30++;
+          if (c.model_id) byModel.set(c.model_id, (byModel.get(c.model_id) ?? 0) + 1);
+        }
+        const top = [...byModel.entries()].map(([modelId, count]) => ({ modelId, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+        setTraffic({ total: cl.length, last30, top });
+        const need = top.map((t) => t.modelId);
+        if (need.length) {
+          const res = await fetch(`/api/models/summary?ids=${need.join(",")}`);
+          const data = await res.json();
+          setModelNames((prev) => {
+            const next = { ...prev };
+            for (const mm of data.models ?? []) next[mm.id] = `${mm.brand} ${mm.name}`;
+            return next;
+          });
+        }
+      })();
 
       const { data: reqs } = await sb
         .from("bulk_requests")
@@ -206,6 +233,37 @@ export default function PortalPage() {
           <p className="mt-2 text-[12px] text-slate-400">
             Ordenado por oportunidad (mayor gap primero): dónde bajar el precio te haría ganar posición.
           </p>
+        </section>
+      )}
+
+      {/* Panel de tráfico */}
+      {traffic && traffic.total > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xl font-extrabold tracking-tight">Tu tráfico</h2>
+          <p className="mt-1 text-sm text-slate-500">Visitas que te enviamos desde el comparador (click-outs).</p>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-2xl font-extrabold tracking-tight">{traffic.total}</div>
+              <div className="text-[12px] font-semibold text-slate-500">clics totales</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-2xl font-extrabold tracking-tight">{traffic.last30}</div>
+              <div className="text-[12px] font-semibold text-slate-500">últimos 30 días</div>
+            </div>
+          </div>
+          {traffic.top.length > 0 && (
+            <div className="mt-3">
+              <div className="mb-1 text-[12px] font-bold text-slate-500">Modelos con más clics</div>
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white text-[13px]">
+                {traffic.top.map((t) => (
+                  <li key={t.modelId} className="flex items-center justify-between px-3 py-2">
+                    <span className="truncate">{modelNames[t.modelId] ?? t.modelId}</span>
+                    <span className="shrink-0 font-bold tabular-nums">{t.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       )}
 

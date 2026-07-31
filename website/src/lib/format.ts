@@ -22,6 +22,14 @@ export function fmtDate(iso: string): string {
   return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
+/** Días transcurridos desde una fecha ISO (para freshness de ofertas). */
+export function daysAgo(iso: string): number {
+  if (!iso) return Infinity;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return Infinity;
+  return Math.floor((Date.now() - t) / (24 * 60 * 60 * 1000));
+}
+
 export function fmtDateLong(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });

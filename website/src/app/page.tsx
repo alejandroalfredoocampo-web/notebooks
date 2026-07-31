@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDeals, getModels, getStores, countListings, getBrands } from "@/lib/data";
 import ModelCard from "@/components/ModelCard";
 import HeroSearch from "@/components/HeroSearch";
+import RecentlyViewed from "@/components/RecentlyViewed";
 
 const USE_CASES = [
   { slug: "estudiar", icon: "📚", title: "Estudiar", desc: "Liviana y con batería" },
@@ -67,6 +68,9 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Vistos recientemente (client, solo si hay historial) */}
+      <RecentlyViewed />
 
       {/* Por tipo de uso */}
       <section className="mx-auto max-w-6xl px-4 py-6">

@@ -3,6 +3,7 @@ import type { ModelWithOffers } from "@/lib/types";
 import { fmtARS } from "@/lib/format";
 import SpecChips from "./SpecChips";
 import ModelImage from "./ModelImage";
+import UsdHint from "./UsdHint";
 
 export default function ModelCard({ model }: { model: ModelWithOffers }) {
   const href = `/notebooks/${model.brandSlug}/${model.slug}`;
@@ -56,6 +57,7 @@ export default function ModelCard({ model }: { model: ModelWithOffers }) {
             </span>
           )}
         </div>
+        {model.bestPrice > 0 && <UsdHint ars={model.bestPrice} className="text-[11px] text-slate-400" />}
         {model.bestInstallment && (
           <div className="mt-0.5 text-[11px]">
             {model.bestInstallment.interestFree ? (

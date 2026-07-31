@@ -388,6 +388,10 @@ export interface Filters {
   storage?: string[];
   screen?: string[];
   gpu?: string[];
+  os?: string[];
+  cond?: string[];
+  stock?: string[];
+  peso?: string[];
   price?: string[];
   fin?: string;
   use?: string;
@@ -422,6 +426,12 @@ export async function filterModels(f: Filters): Promise<ModelWithOffers[]> {
   if (f.screen?.length)
     list = list.filter((m) => f.screen!.includes(screenBucket(m.screenSizeIn)));
   if (f.gpu?.length) list = list.filter((m) => f.gpu!.includes(m.gpuType));
+  if (f.os?.length)
+    list = list.filter((m) => f.os!.includes(/mac/i.test(m.os) ? "macos" : "windows"));
+  if (f.cond?.length)
+    list = list.filter((m) => m.listings.some((l) => f.cond!.includes(l.condition)));
+  if (f.stock?.length) list = list.filter((m) => m.listings.some((l) => l.inStock));
+  if (f.peso?.length) list = list.filter((m) => m.weightKg > 0 && m.weightKg <= 1.5);
   if (f.price?.length) {
     list = list.filter((m) =>
       f.price!.some((p) => {

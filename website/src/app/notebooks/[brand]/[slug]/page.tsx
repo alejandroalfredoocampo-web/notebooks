@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getModelBySlug, getModels, getHistory } from "@/lib/data";
-import { fmtARS, fmtDateTime } from "@/lib/format";
+import { fmtARS, fmtDateTime, daysAgo } from "@/lib/format";
 import SpecChips from "@/components/SpecChips";
 import PriceChart from "@/components/PriceChart";
 import PriceAlertForm from "@/components/PriceAlertForm";
@@ -14,6 +14,8 @@ import ShareButton from "@/components/ShareButton";
 import StoreRating from "@/components/StoreRating";
 import StoreTierBadge from "@/components/StoreTierBadge";
 import FavoriteButton from "@/components/FavoriteButton";
+import UsdHint from "@/components/UsdHint";
+import TrackView from "@/components/TrackView";
 import { priceInsight } from "@/lib/priceInsight";
 
 interface Params {
@@ -112,6 +114,7 @@ export default async function ModelPage({ params }: { params: Params }) {
 
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <TrackView modelId={model.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -191,6 +194,7 @@ export default async function ModelPage({ params }: { params: Params }) {
             <div className="text-3xl font-extrabold tracking-tight">
               {fmtARS(model.bestPrice)}
             </div>
+            <UsdHint ars={model.bestPrice} className="text-[13px] text-slate-500" />
             {model.bestListing && (
               <div className="text-[13px] text-slate-500">
                 en <b className="text-slate-800">{model.bestListing.store.name}</b> ·{" "}
@@ -292,6 +296,11 @@ export default async function ModelPage({ params }: { params: Params }) {
                       </span>
                     )}
                   </div>
+                  {daysAgo(l.lastSeenAt) > 7 && (
+                    <div className="mt-2 text-[11px] font-semibold text-amber-600">
+                      ⚠ Precio desactualizado (hace {daysAgo(l.lastSeenAt)} días)
+                    </div>
+                  )}
                   <a
                     href={`/salir/${l.id}`}
                     rel="nofollow sponsored"
@@ -348,6 +357,14 @@ export default async function ModelPage({ params }: { params: Params }) {
                       </td>
                       <td className="px-4 py-3.5 text-base font-extrabold tracking-tight">
                         {fmtARS(l.priceCash)}
+                        {daysAgo(l.lastSeenAt) > 7 && (
+                          <span
+                            className="ml-1 align-middle text-[10px] font-semibold text-amber-600"
+                            title={`Actualizado hace ${daysAgo(l.lastSeenAt)} días`}
+                          >
+                            ⚠
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-xs text-slate-500">
                         {(() => {

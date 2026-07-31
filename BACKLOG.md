@@ -118,6 +118,25 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
 
 > Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
 
+## 🧩 Completitud de producto (combo 2026-07-31, sin backend)
+
+⚠️ **Falta correr** `0012_store_clicks_read.sql` (solo para el panel de tráfico de tienda).
+- [x] **Precio en USD (dólar blue)**: `UsdHint` + `/api/usd` (dolarapi, cache 1h, fallback graceful) en
+      cards y ficha. Verificado (blue ~$1560 → "≈ US$…").
+- [x] **Buscador con autocomplete**: `/api/search/suggest` + dropdown en `HeroSearch` (marca + modelos con
+      precio). Verificado.
+- [x] **Filtros nuevos**: sistema operativo, condición, "solo con stock", portabilidad (≤1,5 kg) en
+      `filterModels`/`Filters.tsx`. Verificado (`os=macos` → 2).
+- [x] **Vistos recientemente**: `TrackView` (localStorage en la ficha) + `RecentlyViewed` (strip en home). Verificado.
+- [x] **Panel de tráfico de la tienda**: sección en `/portal` con clics recibidos (total, 30d, top modelos),
+      leyendo `click_outs` con RLS por `store_members` (migración `0012`). Verificar logueado en prod.
+- [x] **Freshness/stock**: chip "precio desactualizado (hace N días)" en ofertas (>7d) + helper `daysAgo`.
+      Verificado (el seed marca todo como viejo; en prod lo mantiene fresco el scraper diario).
+- [ ] Pendientes de la lista que quedaron para más adelante (necesitan datos/UGC/backend): reseñas de
+      usuarios, "mis alertas" gestionables (requiere atar alertas al usuario), reportar dato incorrecto,
+      galería de imágenes, agrupar variantes/configuraciones, asistente de recomendación, autogestión de
+      perfil/claim self-serve de tiendas.
+
 ## 💰 Monetización
 
 - [x] **Fase 1 — destacados + tier de tienda + CPC** (2026-07-31, `specs/10`). ⚠️ **Falta correr**

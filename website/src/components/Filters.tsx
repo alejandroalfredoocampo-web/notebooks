@@ -72,6 +72,33 @@ const GROUPS: {
     ],
   },
   {
+    param: "os",
+    title: "Sistema operativo",
+    options: [
+      { value: "windows", label: "Windows" },
+      { value: "macos", label: "macOS" },
+    ],
+  },
+  {
+    param: "cond",
+    title: "Condición",
+    options: [
+      { value: "new", label: "Nuevo" },
+      { value: "refurb", label: "Reacondicionado" },
+      { value: "outlet", label: "Outlet" },
+    ],
+  },
+  {
+    param: "stock",
+    title: "Disponibilidad",
+    options: [{ value: "1", label: "Solo con stock" }],
+  },
+  {
+    param: "peso",
+    title: "Portabilidad",
+    options: [{ value: "liviana", label: "Liviana (≤ 1,5 kg)" }],
+  },
+  {
     param: "price",
     title: "Precio",
     options: [
