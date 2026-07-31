@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "scrape": "node scrapers/run.mjs",
+    "emails": "node scrapers/notify.mjs",
     "seed:supabase": "node scrapers/seed-supabase.mjs",
     "clean:seed": "node scrapers/clean-seed.mjs",
     "review:bulk": "node scrapers/bulk-review.mjs"

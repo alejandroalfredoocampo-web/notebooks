@@ -1,0 +1,32 @@
+name: Worker de emails
+
+# Envía alertas de precio y avisos de disponibilidad (scrapers/notify.mjs).
+# Corre después del scraper diario (que actualiza precios), y a mano si hace falta.
+# Sin RESEND_API_KEY corre en dry-run (no envía, no marca notificado).
+on:
+  schedule:
+    - cron: "30 11 * * *" # 11:30 UTC = 08:30 ART (después del scrape de las 11:00)
+  workflow_dispatch: {}
+
+jobs:
+  emails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # supabase-js necesita WebSocket nativo (Node 22+)
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - name: Enviar emails
+        run: node scrapers/notify.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}

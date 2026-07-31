@@ -137,6 +137,25 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
       galería de imágenes, agrupar variantes/configuraciones, asistente de recomendación, autogestión de
       perfil/claim self-serve de tiendas.
 
+## ✉️ Worker de emails (2026-07-31) — ¡hecho!
+
+- [x] **Worker de emails** (`website/scrapers/notify.mjs`, corre con `service_role` como el scraper):
+  - **Alertas de precio** (`price_alerts`): avisa cuando el mejor precio baja del target (o de la última
+    baja avisada); dedupe con `last_notified_price`; baseline en la 1ª corrida para "cualquier baja".
+  - **Avisos de disponibilidad** (`model_notify`): avisa cuando un modelo sin ofertas consigue la primera.
+  - **Envío** vía Resend (`scrapers/email.mjs`). **Sin `RESEND_API_KEY` corre en DRY-RUN**: loguea y NO
+    marca notificado (no se pierde nada hasta configurar el envío).
+  - **Baja de alertas**: `/baja` + `/api/baja` con token HMAC (firmado con la service_role); pie de mail con link.
+  - **Cron**: `.github/workflows/emails.yml` (11:30 UTC = 08:30 ART, después del scrape). `npm run emails` a mano.
+  - Verificado: build + `node --check` + `/baja` renderiza. **Falta** correrlo con `service_role` (lo hace el usuario).
+  - ⚙️ **Setup del usuario**: crear cuenta en Resend + dominio verificado, y cargar en los **secrets del repo**
+    (GitHub → Settings → Secrets) `RESEND_API_KEY` y `EMAIL_FROM` (ej. `Notebooks.com.ar <avisos@tudominio>`).
+    `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` ya están para el scraper.
+- [ ] **Recomendaciones por email** al comprador (`user_interests.email_recos`): próxima iteración del worker
+  (necesita leer emails de Auth vía admin API + lógica de reco con `filterModels` + frecuencia/opt-out).
+- [ ] **Alertas de competencia** a la tienda (precio de rivales) por email: extiende el dashboard de precios (spec 11).
+- [ ] Notificar RFQ nuevas al admin/tiendas por email (hoy se ve en `/admin/corporativo` y `/portal`).
+
 ## 💰 Monetización
 
 - [x] **Fase 1 — destacados + tier de tienda + CPC** (2026-07-31, `specs/10`). ⚠️ **Falta correr**
