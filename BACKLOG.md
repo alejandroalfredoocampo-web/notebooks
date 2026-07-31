@@ -129,7 +129,14 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
       `cpc_ars` no se expone al público. Verificado en local: degrada bien sin migración (badges por fallback,
       módulo oculto sin destacadas, sin errores). Falta verificar el path "featured" en prod (0011 + marcar una tienda).
       **[DECISIÓN de negocio pendiente]**: valor del CPC y precio del destacado.
-- [ ] **Fase 2** (moat): SaaS de inteligencia de precios para tiendas + leads RFQ pagos. Ver `05-monetizacion-dos-puntas.md`.
+- [x] **Fase 2** (moat, 2026-07-31, `specs/11`): **SaaS de inteligencia de precios** en el portal de
+      tiendas — para cada modelo que vende, su precio vs. mejor/promedio del mercado, rank y gap %, con
+      KPIs (modelos, wins, gap promedio). Cálculo `getStoreInsights` sobre datos públicos → `/api/portal/insights`
+      → sección en `/portal`. **Verificado**: la API devuelve el reporte correcto (ej. Córdoba Notebooks:
+      5 modelos, gana en 3, gap 1%). Sin migración (data derivada). **Parte B (leads RFQ)**: medición de
+      cotizaciones por tienda en `/admin/monetizacion` (para facturar offline). Pendiente/decisión: **gating
+      del lead por tier** y precio del lead; verificación del dashboard logueado en prod (Auth + membership);
+      refinamiento de seguridad: validar el token del miembro en `/api/portal/insights` (hoy abierto sobre data pública).
 - [ ] **Fase 3/4**: suscripción "pro" del comprador (tipo Keepa) y retail media/ads — dependientes de escala.
 
 ## ✅ Hecho

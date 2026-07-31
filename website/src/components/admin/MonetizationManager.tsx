@@ -11,6 +11,7 @@ type Row = {
   featuredUntil: string | null;
   cpcArs: number | null;
   clicks: number;
+  leads: number;
 };
 
 function fmtARS(n: number) {
@@ -93,6 +94,7 @@ export default function MonetizationManager({
               <th className="px-3 py-2.5">CPC (override)</th>
               <th className="px-3 py-2.5">Clicks {rangeLabel}</th>
               <th className="px-3 py-2.5">A facturar</th>
+              <th className="px-3 py-2.5">Leads RFQ</th>
               <th className="px-3 py-2.5" />
             </tr>
           </thead>
@@ -121,6 +123,7 @@ export default function MonetizationManager({
                   </td>
                   <td className="px-3 py-2.5 tabular-nums">{r.clicks}</td>
                   <td className="px-3 py-2.5 font-bold tabular-nums">{amount ? fmtARS(amount) : "—"}</td>
+                  <td className="px-3 py-2.5 tabular-nums">{r.leads || "—"}</td>
                   <td className="px-3 py-2.5 text-right">
                     <button onClick={() => saveRow(r)} disabled={savingId === r.id} className="rounded-lg border border-slate-200 px-2.5 py-1 text-[12px] font-semibold text-brand-blue hover:bg-blue-50 disabled:opacity-60">
                       {savingId === r.id ? "…" : "Guardar"}

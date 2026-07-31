@@ -362,6 +362,18 @@ export async function getClickCounts(sinceIso: string): Promise<Map<string, numb
   return map;
 }
 
+/** Cotizaciones (leads RFQ) por tienda — para facturar leads (spec 11 Parte B). */
+export async function getQuoteCounts(): Promise<Map<string, number>> {
+  const { data, error } = await supabaseAdmin().from("bulk_quotes").select("store_id").limit(100000);
+  if (error) throw new Error(`bulk_quotes: ${error.message}`);
+  const map = new Map<string, number>();
+  for (const r of data ?? []) {
+    const sid = r.store_id as string;
+    if (sid) map.set(sid, (map.get(sid) ?? 0) + 1);
+  }
+  return map;
+}
+
 // --- Solicitudes corporativas (RFQ, spec 08 Fase A) -------------------------
 
 export type BulkRequest = {

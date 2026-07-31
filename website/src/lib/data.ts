@@ -271,6 +271,64 @@ export async function getStoreListings(
   return out.sort((a, b) => a.listing.priceCash - b.listing.priceCash);
 }
 
+// ---------------------------------------------------------------------------
+// Inteligencia de precios por tienda (spec 11). Todo derivado de datos públicos.
+// ---------------------------------------------------------------------------
+export interface StoreInsightRow {
+  modelId: string;
+  brand: string;
+  name: string;
+  brandSlug: string;
+  slug: string;
+  storePrice: number;
+  bestPrice: number;
+  marketAvg: number;
+  rank: number;
+  totalStores: number;
+  gapToBestPct: number; // % por encima del más barato (0 si es la más barata)
+  isCheapest: boolean;
+}
+export interface StoreInsights {
+  kpis: { modelsSold: number; wins: number; avgGapPct: number };
+  rows: StoreInsightRow[];
+}
+
+export async function getStoreInsights(storeId: string): Promise<StoreInsights> {
+  const models = await getModels();
+  const rows: StoreInsightRow[] = [];
+  for (const m of models) {
+    const own = m.listings.find((l) => l.storeId === storeId);
+    if (!own) continue;
+    const prices = m.listings.map((l) => l.priceCash).filter((p) => p > 0);
+    if (!prices.length) continue;
+    const bestPrice = Math.min(...prices);
+    const marketAvg = Math.round(prices.reduce((s, p) => s + p, 0) / prices.length);
+    const storePrice = own.priceCash;
+    const rank = 1 + prices.filter((p) => p < storePrice).length;
+    const gapToBestPct = bestPrice > 0 ? Math.round(((storePrice - bestPrice) / bestPrice) * 100) : 0;
+    rows.push({
+      modelId: m.id,
+      brand: m.brand,
+      name: m.name,
+      brandSlug: m.brandSlug,
+      slug: m.slug,
+      storePrice,
+      bestPrice,
+      marketAvg,
+      rank,
+      totalStores: m.listings.length,
+      gapToBestPct: Math.max(0, gapToBestPct),
+      isCheapest: rank === 1,
+    });
+  }
+  rows.sort((a, b) => b.gapToBestPct - a.gapToBestPct);
+  const wins = rows.filter((r) => r.isCheapest).length;
+  const avgGapPct = rows.length
+    ? Math.round(rows.reduce((s, r) => s + r.gapToBestPct, 0) / rows.length)
+    : 0;
+  return { kpis: { modelsSold: rows.length, wins, avgGapPct }, rows };
+}
+
 export async function getDeals(): Promise<ModelWithOffers[]> {
   return (await getModels())
     .filter((m) => m.isRealDeal)

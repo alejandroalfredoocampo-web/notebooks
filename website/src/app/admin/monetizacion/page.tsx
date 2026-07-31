@@ -1,4 +1,4 @@
-import { getAdminStores, getSetting, getClickCounts } from "@/lib/adminData";
+import { getAdminStores, getSetting, getClickCounts, getQuoteCounts } from "@/lib/adminData";
 import MonetizationManager from "@/components/admin/MonetizationManager";
 
 export const dynamic = "force-dynamic";
@@ -6,12 +6,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminMonetizacionPage() {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  let stores, defaultCpc, clicks;
+  let stores, defaultCpc, clicks, leads;
   try {
-    [stores, defaultCpc, clicks] = await Promise.all([
+    [stores, defaultCpc, clicks, leads] = await Promise.all([
       getAdminStores(),
       getSetting("default_cpc_ars"),
       getClickCounts(since),
+      getQuoteCounts(),
     ]);
   } catch (e) {
     return (
@@ -30,6 +31,7 @@ export default async function AdminMonetizacionPage() {
     featuredUntil: s.featuredUntil ?? null,
     cpcArs: s.cpcArs ?? null,
     clicks: clicks.get(s.id) ?? 0,
+    leads: leads.get(s.id) ?? 0,
   }));
   // Orden: más clicks primero (donde hay más a facturar)
   rows.sort((a, b) => b.clicks - a.clicks);

@@ -20,6 +20,12 @@ type Request = {
   created_at: string;
 };
 type Quote = { request_id: string; unit_price: number; total_price: number | null; status: string };
+type InsightRow = {
+  modelId: string; brand: string; name: string; brandSlug: string; slug: string;
+  storePrice: number; bestPrice: number; marketAvg: number; rank: number;
+  totalStores: number; gapToBestPct: number; isCheapest: boolean;
+};
+type Insights = { kpis: { modelsSold: number; wins: number; avgGapPct: number }; rows: InsightRow[] };
 
 function genId() {
   return "q_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -33,6 +39,7 @@ export default function PortalPage() {
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [insights, setInsights] = useState<Insights | null>(null);
 
   useEffect(() => {
     const sb = getSupabaseBrowser();
@@ -47,7 +54,14 @@ export default function PortalPage() {
         return;
       }
       const storeName = (m as { stores?: { name?: string } }).stores?.name ?? (m.store_id as string);
-      setMembership({ storeId: m.store_id as string, storeName });
+      const storeId = m.store_id as string;
+      setMembership({ storeId, storeName });
+
+      // Inteligencia de precios (spec 11): posición competitiva de la tienda.
+      fetch(`/api/portal/insights?storeId=${encodeURIComponent(storeId)}`)
+        .then((r) => r.json())
+        .then((d) => setInsights(d?.rows ? d : null))
+        .catch(() => {});
 
       const { data: reqs } = await sb
         .from("bulk_requests")
@@ -128,7 +142,74 @@ export default function PortalPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="text-[11px] font-bold uppercase tracking-widest text-brand-blue">Portal · {membership.storeName}</div>
-      <h1 className="text-2xl font-extrabold tracking-tight">Solicitudes de compra por volumen</h1>
+
+      {/* Inteligencia de precios (spec 11) */}
+      {insights && insights.rows.length > 0 && (
+        <section className="mt-2">
+          <h1 className="text-2xl font-extrabold tracking-tight">Inteligencia de precios</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Cómo estás vs. el resto del mercado en los modelos que vendés. Datos en vivo.
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-2xl font-extrabold tracking-tight">{insights.kpis.modelsSold}</div>
+              <div className="text-[12px] font-semibold text-slate-500">modelos que vendés</div>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm">
+              <div className="text-2xl font-extrabold tracking-tight text-brand-green">{insights.kpis.wins}</div>
+              <div className="text-[12px] font-semibold text-slate-500">donde sos la más barata</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-2xl font-extrabold tracking-tight">{insights.kpis.avgGapPct}%</div>
+              <div className="text-[12px] font-semibold text-slate-500">gap promedio al mejor precio</div>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full min-w-[640px] text-[13px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-400">
+                  <th className="px-3 py-2.5">Modelo</th>
+                  <th className="px-3 py-2.5">Tu precio</th>
+                  <th className="px-3 py-2.5">Mejor</th>
+                  <th className="px-3 py-2.5">Promedio</th>
+                  <th className="px-3 py-2.5">Tu puesto</th>
+                  <th className="px-3 py-2.5">Gap</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.rows.map((r) => (
+                  <tr key={r.modelId} className="border-b border-slate-100 last:border-0">
+                    <td className="px-3 py-2.5 font-semibold">
+                      <a href={`/notebooks/${r.brandSlug}/${r.slug}`} className="hover:text-brand-blue hover:underline">
+                        {r.brand} {r.name}
+                      </a>
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums font-bold">{fmtARS(r.storePrice)}</td>
+                    <td className="px-3 py-2.5 tabular-nums text-slate-500">{fmtARS(r.bestPrice)}</td>
+                    <td className="px-3 py-2.5 tabular-nums text-slate-500">{fmtARS(r.marketAvg)}</td>
+                    <td className="px-3 py-2.5">
+                      {r.isCheapest ? (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-brand-green">★ #1</span>
+                      ) : (
+                        <span className="text-slate-500">{r.rank}º de {r.totalStores}</span>
+                      )}
+                    </td>
+                    <td className={`px-3 py-2.5 tabular-nums font-semibold ${r.gapToBestPct > 0 ? "text-red-600" : "text-brand-green"}`}>
+                      {r.gapToBestPct > 0 ? `+${r.gapToBestPct}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[12px] text-slate-400">
+            Ordenado por oportunidad (mayor gap primero): dónde bajar el precio te haría ganar posición.
+          </p>
+        </section>
+      )}
+
+      <h2 className="mt-8 text-xl font-extrabold tracking-tight">Solicitudes de compra por volumen</h2>
       <p className="mt-1 text-sm text-slate-500">
         Cotizá las solicitudes abiertas. La empresa compara las propuestas y te contacta si elige la tuya.
       </p>
