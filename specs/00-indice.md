@@ -35,6 +35,7 @@ TypeScript + Tailwind, datos en Supabase/Postgres con RLS). Ver [[project-overvi
 | 07 | [Login de usuarios + favoritos/intereses](07-login-favoritos-intereses.md) | sí | `0008` | Alta |
 | 08 | [Venta corporativa / mayorista (RFQ)](08-venta-corporativa.md) | sí | `0009` | Alta |
 | 09 | [Compartir en redes sociales](09-compartir-en-redes.md) | opcional | `0010` | Baja |
+| 10 | [Monetización Fase 1: destacados + tier de tienda](10-monetizacion-fase1-destacados.md) | sí | `0011` | Baja-media |
 
 ## Dependencias entre specs
 
