@@ -21,6 +21,10 @@ function mapStore(r: Record<string, unknown>): Store {
     city: r.city as string,
     affiliate: (r.affiliate as Store["affiliate"]) ?? null,
     verified: Boolean(r.verified),
+    tier: (r.tier as Store["tier"]) ?? "free",
+    featured: Boolean(r.featured),
+    featuredUntil: (r.featured_until as string) ?? null,
+    cpcArs: (r.cpc_ars as number) ?? null,
   };
 }
 
@@ -311,6 +315,51 @@ export async function reviewApplication(id: number, action: "approved" | "reject
     .update({ status: action, reviewed_at: new Date().toISOString() })
     .eq("id", id);
   if (uErr) throw new Error(uErr.message);
+}
+
+// --- Monetización: tiers / destacados / CPC (spec 10) -----------------------
+
+export async function setStoreMonetization(
+  id: string,
+  fields: { tier?: string; featured?: boolean; featuredUntil?: string | null; cpcArs?: number | null }
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (fields.tier !== undefined) {
+    patch.tier = fields.tier;
+    patch.verified = fields.tier !== "free"; // mantener el flag legacy en sync
+  }
+  if (fields.featured !== undefined) patch.featured = fields.featured;
+  if (fields.featuredUntil !== undefined) patch.featured_until = fields.featuredUntil || null;
+  if (fields.cpcArs !== undefined) patch.cpc_ars = fields.cpcArs;
+  const { error } = await supabaseAdmin().from("stores").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function getSetting(key: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin().from("app_settings").select("value").eq("key", key).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.value as string) ?? null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("app_settings").upsert({ key, value }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
+/** Click-outs por tienda desde una fecha (ISO). Cuenta en JS (volumen modesto). */
+export async function getClickCounts(sinceIso: string): Promise<Map<string, number>> {
+  const { data, error } = await supabaseAdmin()
+    .from("click_outs")
+    .select("store_id")
+    .gte("created_at", sinceIso)
+    .limit(100000);
+  if (error) throw new Error(`click_outs: ${error.message}`);
+  const map = new Map<string, number>();
+  for (const r of data ?? []) {
+    const sid = r.store_id as string;
+    if (sid) map.set(sid, (map.get(sid) ?? 0) + 1);
+  }
+  return map;
 }
 
 // --- Solicitudes corporativas (RFQ, spec 08 Fase A) -------------------------

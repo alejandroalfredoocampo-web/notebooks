@@ -12,6 +12,7 @@ import ModelImage from "@/components/ModelImage";
 import PriceThermometer from "@/components/PriceThermometer";
 import ShareButton from "@/components/ShareButton";
 import StoreRating from "@/components/StoreRating";
+import StoreTierBadge from "@/components/StoreTierBadge";
 import FavoriteButton from "@/components/FavoriteButton";
 import { priceInsight } from "@/lib/priceInsight";
 
@@ -253,11 +254,7 @@ export default async function ModelPage({ params }: { params: Params }) {
                         <Link href={`/tiendas/${l.store.slug}`} className="hover:text-brand-blue hover:underline">
                           {l.store.name}
                         </Link>
-                        {l.store.verified && (
-                          <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            ✓ Verificada
-                          </span>
-                        )}
+                        <StoreTierBadge store={l.store} className="ml-2 align-middle" />
                         {l.id === bestFinancedId && (
                           <span className="ml-2 align-middle rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-brand-blue">
                             ★ mejor en cuotas
@@ -335,11 +332,7 @@ export default async function ModelPage({ params }: { params: Params }) {
                         <Link href={`/tiendas/${l.store.slug}`} className="hover:text-brand-blue hover:underline">
                           {l.store.name}
                         </Link>
-                        {l.store.verified && (
-                          <span className="ml-2 align-middle rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            ✓ Verificada
-                          </span>
-                        )}
+                        <StoreTierBadge store={l.store} className="ml-2 align-middle" />
                         {l.id === bestFinancedId && (
                           <span className="ml-2 align-middle rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-brand-blue">
                             ★ mejor en cuotas

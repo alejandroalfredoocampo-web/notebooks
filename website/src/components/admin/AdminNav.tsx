@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/admin/solicitudes", label: "Solicitudes" },
   { href: "/admin/corporativo", label: "Corporativo" },
   { href: "/admin/portal", label: "Portal tiendas" },
+  { href: "/admin/monetizacion", label: "Monetización" },
   { href: "/admin/blog", label: "Blog" },
   { href: "/admin/nueva", label: "Nueva publicación" },
   { href: "/admin/nuevo-modelo", label: "Nuevo modelo" },

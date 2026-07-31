@@ -41,6 +41,10 @@ function mapStore(r: Row): Store {
     paymentMethods: (r.payment_methods as string) ?? null,
     shipsNationwide: r.ships_nationwide == null ? undefined : Boolean(r.ships_nationwide),
     physicalAddress: (r.physical_address as string) ?? null,
+    // Monetización (spec 10). El público NO recibe cpc_ars (info comercial).
+    tier: (r.tier as Store["tier"]) ?? "free",
+    featured: Boolean(r.featured),
+    featuredUntil: (r.featured_until as string) ?? null,
   };
 }
 
@@ -95,6 +99,10 @@ function mapListing(r: Row): Listing {
 // ---------------------------------------------------------------------------
 const loadAll = cache(async () => {
   const [storesR, modelsR, listingsR, historyR] = await Promise.all([
+    // select('*') es resiliente (solo trae columnas existentes → no rompe si una
+    // migración no corrió). `cpc_ars` (info comercial) NO se mapea al Store público
+    // — ver mapStore — y como las páginas públicas son server components, nunca llega
+    // al navegador.
     supabase.from("stores").select("*"),
     supabase.from("models").select("*"),
     supabase.from("listings").select("*"),
@@ -205,6 +213,19 @@ function enrich(model: NotebookModel, data: Loaded): ModelWithOffers {
 // ---------------------------------------------------------------------------
 export async function getStores(): Promise<Store[]> {
   return (await loadAll()).stores;
+}
+
+/** ¿La tienda tiene el slot "Patrocinado" activo hoy? (featured + vigencia) */
+export function isStoreFeatured(s: Store): boolean {
+  if (!s.featured) return false;
+  if (!s.featuredUntil) return true;
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return s.featuredUntil >= today;
+}
+
+/** Tiendas con destacado activo (para el módulo "Patrocinado"). */
+export async function getFeaturedStores(): Promise<Store[]> {
+  return (await loadAll()).stores.filter(isStoreFeatured);
 }
 
 export async function getStore(id: string): Promise<Store | undefined> {

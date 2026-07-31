@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getStores, getModels } from "@/lib/data";
 import StoreApplicationForm from "@/components/StoreApplicationForm";
 import StoreRating from "@/components/StoreRating";
+import StoreTierBadge from "@/components/StoreTierBadge";
+import SponsoredStores from "@/components/SponsoredStores";
 
 export const metadata: Metadata = {
   title: "Tiendas indexadas",
@@ -37,6 +39,10 @@ export default async function TiendasPage() {
         actualizados, escribinos y la sumamos.
       </p>
 
+      <div className="mt-6">
+        <SponsoredStores />
+      </div>
+
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {stores.map((s) => (
           <Link
@@ -46,11 +52,7 @@ export default async function TiendasPage() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-extrabold group-hover:text-brand-blue">{s.name}</div>
-              {s.verified && (
-                <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                  ✓ Verificada
-                </span>
-              )}
+              <StoreTierBadge store={s} className="shrink-0" />
             </div>
             <div className="text-xs text-slate-500">{s.type}</div>
             <div className="mt-1">

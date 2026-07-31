@@ -6,6 +6,7 @@ import { parseQuery } from "@/lib/parseQuery";
 import ModelCard from "@/components/ModelCard";
 import Filters from "@/components/Filters";
 import SortSelect from "@/components/SortSelect";
+import SponsoredStores from "@/components/SponsoredStores";
 
 export const metadata: Metadata = {
   title: "Notebooks en Argentina — compará precios de todas las tiendas",
@@ -51,6 +52,9 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
         <Filters />
       </Suspense>
       <div>
+        <div className="mb-4">
+          <SponsoredStores compact />
+        </div>
         {understood && parsed && (
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-[13px]">
             <span className="font-semibold text-brand-blue">🔎 Entendí tu búsqueda:</span>

@@ -19,6 +19,11 @@ export interface Store {
   paymentMethods?: string | null;
   shipsNationwide?: boolean;
   physicalAddress?: string | null;
+  // Monetización Fase 1 (spec 10)
+  tier?: "free" | "verified" | "featured";
+  featured?: boolean;
+  featuredUntil?: string | null;
+  cpcArs?: number | null; // solo admin; el público no lo recibe
 }
 
 export interface NotebookModel {

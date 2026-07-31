@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getStoreBySlug, getStoreListings } from "@/lib/data";
 import { fmtARS } from "@/lib/format";
 import StoreRating from "@/components/StoreRating";
+import StoreTierBadge from "@/components/StoreTierBadge";
 import EntityHero from "@/components/EntityHero";
 import ModelImage from "@/components/ModelImage";
 
@@ -73,11 +74,7 @@ export default async function StoreProfilePage({ params }: { params: Params }) {
         }
         badges={
           <>
-            {store.verified && (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                ✓ Verificada
-              </span>
-            )}
+            <StoreTierBadge store={store} />
             <StoreRating store={store} size="md" />
           </>
         }

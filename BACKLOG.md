@@ -118,6 +118,20 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
 
 > Nota: el **worker de emails** pendiente (alertas de precio) queda compartido por specs 06/07/08.
 
+## 💰 Monetización
+
+- [x] **Fase 1 — destacados + tier de tienda + CPC** (2026-07-31, `specs/10`). ⚠️ **Falta correr**
+      `0011_store_tiers.sql`. Migración: `tier`/`featured`/`featured_until`/`cpc_ars` en `stores`
+      (+ backfill de `verified`→`tier`) y `app_settings` (CPC global). UI: `StoreTierBadge` (free/Verificada/
+      Verificada+), módulo **"Tiendas destacadas · Patrocinado"** (`SponsoredStores`) en `/tiendas` y slot
+      en `/notebooks` — **separado y rotulado, sin tocar el orden por precio**. Admin `/admin/monetizacion`:
+      editar tier/featured/CPC por tienda + CPC global + reporte de facturación (click-outs × CPC, 30d, offline).
+      `cpc_ars` no se expone al público. Verificado en local: degrada bien sin migración (badges por fallback,
+      módulo oculto sin destacadas, sin errores). Falta verificar el path "featured" en prod (0011 + marcar una tienda).
+      **[DECISIÓN de negocio pendiente]**: valor del CPC y precio del destacado.
+- [ ] **Fase 2** (moat): SaaS de inteligencia de precios para tiendas + leads RFQ pagos. Ver `05-monetizacion-dos-puntas.md`.
+- [ ] **Fase 3/4**: suscripción "pro" del comprador (tipo Keepa) y retail media/ads — dependientes de escala.
+
 ## ✅ Hecho
 
 - Sitio Next.js 14 (home, listado con filtros SSR, ficha, ofertas, tiendas, `/salir`).
