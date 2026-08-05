@@ -17,11 +17,17 @@ const norm = (s) =>
 // Familia de CPU a partir de texto libre (título o atributo)
 function cpuFamily(text) {
   const t = String(text).toLowerCase();
+  // Intel Core Ultra (Meteor Lake+)
   if (/ultra\s*9/.test(t)) return "ultra9";
-  if (/\bi9\b|core\s*i9/.test(t)) return "i9";
-  if (/\bi7\b|core\s*i7/.test(t)) return "i7";
-  if (/\bi5\b|core\s*i5|core\s*5\b/.test(t)) return "i5";
-  if (/\bi3\b|core\s*i3/.test(t)) return "i3";
+  if (/ultra\s*7/.test(t)) return "ultra7";
+  if (/ultra\s*5/.test(t)) return "ultra5";
+  // Core clásico (i3/i5/i7/i9) y la nomenclatura nueva sin "i" (Core 3/5/7/9,
+  // ej. "Intel Core 7 150U"). Sin esto, "Core 7" no se detectaba y un Core 7
+  // podía auto-matchear contra un modelo Core 5.
+  if (/\bi9\b|core\s*i?9\b/.test(t)) return "i9";
+  if (/\bi7\b|core\s*i?7\b/.test(t)) return "i7";
+  if (/\bi5\b|core\s*i?5\b/.test(t)) return "i5";
+  if (/\bi3\b|core\s*i?3\b/.test(t)) return "i3";
   if (/ryzen\s*9/.test(t)) return "ryzen9";
   if (/ryzen\s*7/.test(t)) return "ryzen7";
   if (/ryzen\s*5/.test(t)) return "ryzen5";
@@ -102,6 +108,12 @@ export function matchListings(rawListings, models) {
       let bestScore = 0;
       for (const m of models) {
         if (norm(m.brand) && !normBlob.includes(norm(m.brand))) continue; // marca requerida
+
+        // CONTRADICCIÓN de CPU → descartar el candidato, no solo "no sumar".
+        // Un "Ryzen 7" no es un "Core i7": sin esto, marca + línea + RAM + storage
+        // alcanzaban 0.80 (el umbral) y se auto-confirmaba un modelo equivocado,
+        // mezclando ofertas de equipos distintos en la misma ficha.
+        if (fp.cpu && m.cpuFamily && fp.cpu !== m.cpuFamily) continue;
 
         // Coincidencia de la línea del modelo por nombre (peso alto): evita
         // confundir modelos distintos de la misma marca con specs parecidas.
