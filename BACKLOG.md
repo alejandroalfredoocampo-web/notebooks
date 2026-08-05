@@ -204,7 +204,37 @@ de aceptación) en `specs/` — ver [`specs/00-indice.md`](specs/00-indice.md). 
 - Setear `ADMIN_PASSWORD` y `ADMIN_SESSION_TOKEN` en el entorno (hoy usa defaults de dev).
 - Regenerar el zip (`npm run pages:build`): el actual no incluye imágenes ni pipeline nuevo.
 
+## 📋 Setup pendiente → ver [DEPLOY-CHECKLIST.md](DEPLOY-CHECKLIST.md)
+
+Estado verificado contra producción **2026-08-05**: migraciones `0004/0005/0006/0008/0009/0010` ✅ corridas;
+**faltan `0007` y `0011`** (+ verificar `0012`). **Auth NO configurado** (`/ingresar` = "no disponible") →
+login/favoritos/cuenta/portal/insights/tráfico apagados. Resend sin configurar → worker en dry-run.
+5 posts publicados ✅. 0 tiendas con rating, 0 featured. **Rotar la `service_role`** (quedó expuesta).
+
 ## 🔴 Datos / pipeline (corazón del producto — hoy el sitio corre sobre seed demo)
+
+### Diagnóstico 2026-08-05 (verificado)
+- **30 publicaciones ficticias** del seed (`l-001`…`l-030`) siguen visibles → `npm run clean:seed`.
+- **Solo 5 de 12 tiendas se scrapean** (`cordobanotebooks`, `maxtecno`, `fravega`, `cetrogar`, `naldo`).
+- **10 de 22 modelos** tienen `part_number` (mejora el auto-match).
+- `price_history` va de 2026-04-03 a hoy, pero **mezcla seed inventado con datos reales**.
+
+### Segunda ola de tiendas — sondeo de plataformas (2026-08-05)
+Ninguna de las 7 faltantes expone WooCommerce Store API ni VTEX Catalog API (los adaptadores que ya
+tenemos). Plataformas detectadas y estado de `robots.txt` (todas permiten el catálogo; los `Disallow`
+son de carrito/cuenta/admin):
+- `gezatek` → plataforma **Qloud** (AR). robots: Allow /.
+- `maximus` → framework propio **Maximus-Sistemas** + Vue 2 (productos client-side → probable JSON).
+- `venex` → propia. robots: solo Disallow /admin.
+- `mexx` → propia. **sin robots.txt** (404).
+- `backup` → propia. robots: Allow / pero **Disallow `/Home/*` y `/Home/Detalle/*`** → si las fichas
+  viven ahí, **no se pueden crawlear** (verificar estructura de URLs antes de sumarla).
+- `musimundo` → robots.txt vacío; HTML de la home es un shell (SPA).
+- `fullh4rd` → **bloqueado por Cloudflare (403 a nuestro bot)**. Aunque robots.txt lo permita, es un
+  bloqueo activo: **no se evade**. Vía correcta = acuerdo/feed con la tienda.
+- [ ] Sumar al scraper las tiendas viables (requiere **adaptador nuevo** por plataforma: HTML/JSON-LD).
+- [ ] **Política de tiendas bloqueadas por WAF** (fullh4rd, y las ya anotadas Compragamer/Garbarino/
+      Megatone/Invid): contacto comercial + feed, nunca evasión.
 
 - [ ] Cargar **part numbers reales** en los modelos canónicos → dispara auto-match de alta confianza.
 - [ ] **Updates en vivo sin rebuild**: hoy publicar regenera el overlay pero el edge necesita
