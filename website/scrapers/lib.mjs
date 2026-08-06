@@ -46,7 +46,10 @@ export function requireServiceRole() {
 `);
     process.exit(1);
   }
-  return { url, key };
+  // Devuelve las claves con el MISMO nombre que usan los scripts, para que
+  // `const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole()`
+  // funcione sin renombrar nada.
+  return { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key, url, key };
 }
 
 /** Normaliza un precio argentino ("$1.234.567,89" | 1234567) a entero ARS. */
