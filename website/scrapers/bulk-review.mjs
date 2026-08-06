@@ -14,12 +14,9 @@
  * parseables (el resto queda pending). Idempotente.
  */
 import { createClient } from "@supabase/supabase-js";
+import { requireServiceRole } from "./lib.mjs";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const APPLY = process.argv.includes("--apply");
 const RESET = process.argv.includes("--reset");
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });

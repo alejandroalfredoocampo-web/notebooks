@@ -11,12 +11,9 @@
  * muestra el bloque "Modelos mencionados" de cada ficha).
  */
 import { createClient } from "@supabase/supabase-js";
+import { requireServiceRole } from "./lib.mjs";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const now = () => new Date().toISOString();
 

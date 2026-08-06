@@ -20,6 +20,35 @@ export async function politeFetch(url, options = {}) {
   return res;
 }
 
+/**
+ * Valida que las credenciales del entorno sirvan para ESCRIBIR en Supabase.
+ * Aborta con un mensaje claro si falta la key o si pasaron la anon/publishable
+ * (que respeta RLS → los INSERT fallan y los DELETE borran 0 filas EN SILENCIO).
+ * Llamarla al inicio de todo script que escriba.
+ */
+export function requireServiceRole() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error("\n❌ Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.\n");
+    process.exit(1);
+  }
+  if (/^sb_publishable_/.test(key) || key === process.env.SUPABASE_ANON_KEY) {
+    console.error(`
+❌ La key de SUPABASE_SERVICE_ROLE_KEY es la ANON/PUBLISHABLE, no la service_role.
+
+   Con esta key el script NO puede escribir: los INSERT fallan con
+   "violates row-level security policy" y los DELETE borran 0 filas sin avisar.
+
+   Copiá la correcta en:  Supabase → Project Settings → API Keys → "service_role" (secret)
+   Empieza con  sb_secret_...  o es un JWT largo  eyJ...
+   (la que empieza con sb_publishable_ es la pública, va en el navegador)
+`);
+    process.exit(1);
+  }
+  return { url, key };
+}
+
 /** Normaliza un precio argentino ("$1.234.567,89" | 1234567) a entero ARS. */
 export function parsePriceARS(raw) {
   if (typeof raw === "number") return Math.round(raw);

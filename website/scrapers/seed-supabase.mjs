@@ -6,15 +6,12 @@
  * Corré la migración 0001_init.sql antes.
  */
 import { readFile } from "fs/promises";
+import { requireServiceRole } from "./lib.mjs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });

@@ -14,17 +14,14 @@
  * Escribe también data/listings.raw.json para inspección/debug.
  */
 import { readFile, writeFile } from "fs/promises";
+import { requireServiceRole } from "./lib.mjs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { SOURCES } from "./sources.mjs";
 import { matchListings, CONFIDENCE_THRESHOLD } from "./matching.mjs";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

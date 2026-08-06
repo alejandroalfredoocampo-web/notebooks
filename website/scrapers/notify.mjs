@@ -12,14 +12,11 @@
  * (así, cuando se configure el envío, nada quedó perdido).
  */
 import crypto from "crypto";
+import { requireServiceRole } from "./lib.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail, layout, emailConfigured, BASE } from "./email.mjs";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const fmtARS = (n) => "$" + Math.round(n).toLocaleString("es-AR");

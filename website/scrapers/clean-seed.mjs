@@ -10,12 +10,9 @@
  * historial. Para un borrado total del historial ficticio, ver el flag abajo.
  */
 import { createClient } from "@supabase/supabase-js";
+import { requireServiceRole } from "./lib.mjs";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Faltan SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY en el entorno.");
-  process.exit(1);
-}
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 // Poné WIPE_HISTORY=1 para borrar también el historial ficticio (los gráficos
@@ -30,7 +27,18 @@ async function main() {
 
   const { error } = await sb.from("listings").delete().like("id", "l-%");
   if (error) throw new Error(`delete listings: ${error.message}`);
-  console.log("✓ Publicaciones semilla borradas.");
+
+  // Verificar de verdad: un DELETE sin permisos (RLS) borra 0 filas SIN error,
+  // así que no alcanza con que no haya fallado — hay que volver a contar.
+  const { count: after } = await sb
+    .from("listings").select("*", { count: "exact", head: true }).like("id", "l-%");
+  if ((after ?? 0) > 0) {
+    throw new Error(
+      `el DELETE no borró nada: siguen ${after} publicaciones semilla.\n` +
+      `   Suele ser por RLS: ¿la key es realmente la service_role?`
+    );
+  }
+  console.log(`✓ Publicaciones semilla borradas (verificado: quedan ${after ?? 0}).`);
 
   if (wipeHistory) {
     const { error: hErr } = await sb.from("price_history").delete().neq("model_id", "");
