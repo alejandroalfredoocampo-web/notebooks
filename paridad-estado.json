@@ -1,0 +1,17 @@
+{
+  "_lea_esto": "Estado de la revisión semanal de paridad con Córdoba Notebooks. Lo actualiza la tarea programada 'paridad-cordoba-notebooks-semanal' (~/.claude/scheduled-tasks/). El procedimiento está en 07-runbook-paridad-semanal.md.",
+  "ultimaRevision": {
+    "fecha": "2026-08-22",
+    "commitCN": "4e89dad10f908abf7cfa1c9d7150c25ead07ea51",
+    "asuntoCN": "El WordPress viejo queda fuera de alcance, y el CDN atado al cutover",
+    "comentario": "Ronda inicial de paridad. Ver 06-paridad-con-cordoba-notebooks.md.",
+    "revisionesPortadas": 7,
+    "revisionesDescartadas": [
+      "Backend de comercio (carrito, checkout, Medusa, Mercado Pago, Dux, HubSpot): un indexador no vende.",
+      "Asistente con IA: endpoint pago, el techo de gasto lo decide el dueño.",
+      "Feeds de Google Shopping y Meta: no aplican a quien no vende.",
+      "Pixel de Meta y GA4: se decidió no sumar terceros; la atribución es first-party."
+    ]
+  },
+  "historial": []
+}
