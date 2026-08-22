@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { DESCRIPCION_SITIO, NOMBRE_SITIO } from "@/lib/site";
+// Relativo y con extensión, y no `@/lib/site`, para que este módulo se pueda importar
+// desde `node --test`: el runner de Node no conoce el alias `@/` del tsconfig ni resuelve
+// extensiones al hacer type stripping. Webpack lo acepta igual, así que el costo es esta
+// nota y el beneficio es que `metaRuta` y `recortar` tienen tests.
+import { DESCRIPCION_SITIO, NOMBRE_SITIO } from "./site.ts";
 
 /**
  * Metadata por ruta.

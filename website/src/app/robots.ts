@@ -69,6 +69,8 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: urlAbsoluta("/sitemap.xml"),
-    host: urlAbsoluta("/").replace(/\/$/, ""),
+    // Sin `host`: la directiva es de Yandex, Google la ignora, y Next la emite con el
+    // protocolo adelante — que no es el formato que define esa directiva. Un renglón que
+    // nadie lee y que el que lo lee lee mal.
   };
 }

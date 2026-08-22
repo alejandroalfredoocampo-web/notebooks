@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { metaRuta } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { breadcrumbLd, grafo, ID_SITIO } from "@/lib/schema";
+import { urlAbsoluta } from "@/lib/site";
 import Link from "next/link";
 import { getBrands } from "@/lib/data";
 
@@ -13,8 +17,41 @@ export const dynamic = "force-dynamic";
 
 export default async function MarcasPage() {
   const brands = await getBrands();
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Marcas", path: "/marcas" },
+  ];
 
   return (
+    <>
+      {/* Un `ItemList` de marcas, no de productos: por eso no se reusa `coleccionLd`, que
+          arma la URL de cada item como una ficha. Ver su docblock. */}
+      <JsonLd
+        data={grafo(
+          {
+            "@type": "CollectionPage",
+            "@id": `${urlAbsoluta("/marcas")}#coleccion`,
+            url: urlAbsoluta("/marcas"),
+            name: "Marcas de notebooks a la venta en Argentina",
+            inLanguage: "es-AR",
+            isPartOf: { "@id": ID_SITIO },
+            mainEntity: {
+              "@type": "ItemList",
+              numberOfItems: brands.length,
+              itemListElement: brands.map((b, i) => ({
+                "@type": "ListItem",
+                position: i + 1,
+                name: b.name,
+                url: urlAbsoluta(`/marcas/${b.slug}`),
+              })),
+            },
+          },
+          breadcrumbLd(migas),
+        )}
+      />
+      <div className="mx-auto max-w-6xl px-4">
+        <Breadcrumbs items={migas} />
+      </div>
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-extrabold tracking-tight">Marcas</h1>
       <p className="mt-1 max-w-2xl text-sm text-slate-500">
@@ -40,5 +77,6 @@ export default async function MarcasPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

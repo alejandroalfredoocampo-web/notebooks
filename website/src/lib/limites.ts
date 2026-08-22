@@ -1,5 +1,3 @@
-import { supabase } from "@/lib/supabaseServer";
-
 /**
  * Rate limiting de los endpoints públicos.
  *
@@ -108,6 +106,10 @@ export async function chequearLimite(
   const k = clave(alcance, ip, limite.ventana, ahora);
 
   try {
+    // Import diferido a propósito: `supabaseServer` tira al importarse si faltan las
+    // variables de entorno, y eso volvía imposible testear las funciones puras de este
+    // módulo (`clave`, `ipDelRequest`, `reintentarEn`) sin levantar medio entorno.
+    const { supabase } = await import("./supabaseServer");
     const { data, error } = await supabase.rpc("bump_rate_limit", {
       p_clave: k,
       p_segundos: limite.ventana + 60,
