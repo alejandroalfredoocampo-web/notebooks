@@ -16,7 +16,7 @@ lenguaje**. Conviene separarlas, porque tienen requisitos y costos muy distintos
 | Parte | Qué hace | ¿Necesita IA? | ¿Corre en la nube hoy? |
 |---|---|---|---|
 | **A. Verificación** | 76 pruebas: unitarios, tipos, build, seguridad, SEO, humo, regresión, integración | No | **Sí, ya está hecho** |
-| **B. Detección** | Ver qué commits nuevos tiene Córdoba Notebooks y avisar | No | Sí, con media hora de trabajo |
+| **B. Detección** | Ver qué commits nuevos tiene Córdoba Notebooks y avisar | No | **Sí, ya está hecho** — falta la deploy key |
 | **C. Criterio** | Leer esos commits, decidir qué aplica, adaptarlo y escribirlo | **Sí** | Necesita una decisión tuya |
 
 La parte A es la que más veces te va a salvar y no necesita nada de nadie.
@@ -65,22 +65,88 @@ que se queda sin ofertas, un certificado que vence. Un CI que corre sólo en pus
 
 ---
 
-## Parte B — la detección: media hora de trabajo
+## Parte B — la detección: **ya está lista**
 
-Un workflow que clona los dos repos, compara `paridad-estado.json` contra el `HEAD` de Córdoba
-Notebooks y, si hay commits nuevos que tocan `storefront/`, abre un issue con la lista.
+`.github/workflows/detectar-paridad.yml` corre los lunes 9:50, compara `paridad-estado.json`
+contra el `HEAD` de Córdoba Notebooks y **mantiene un issue al día** con lo que falta mirar.
 
-No decide nada: te avisa. Con eso ya no dependés de acordarte, y el criterio lo ponés vos o
-una corrida local cuando tengas ganas.
+No decide, no porta y no toca código: te avisa. El criterio lo ponés vos, o una corrida local
+de la tarea semanal cuando tengas ganas.
 
-Lo que hace falta:
+### Un issue vivo, no doce issues muertos
 
-1. **Una deploy key de lectura** de `cordoba-notebooks` cargada como secreto en el repo de
-   `notebooks` (Settings → Deploy keys en CN, la privada como secreto en NB). Es de sólo
-   lectura y sólo para ese repo: si se filtra, no da acceso a nada más.
-2. Un `actions/checkout@v4` extra con `repository:` y `ssh-key:`.
+La tentación es abrir un issue por semana. A los tres meses son doce hilos abiertos que dicen
+casi lo mismo y nadie lee ninguno.
 
-Decime y lo escribo.
+Este mantiene **uno solo**:
+
+| Situación | Qué hace |
+|---|---|
+| Hay pendientes y no hay issue | Lo abre |
+| Hay pendientes y el issue existe, con novedades | Actualiza la descripción **y** comenta |
+| Hay pendientes y el issue existe, sin novedades | Actualiza y **no** comenta |
+| No hay pendientes y el issue existe | Comenta que se emparejó y lo **cierra** |
+
+Ese "no comenta si no hay novedades" es lo que evita que el hilo se vuelva ruido: un aviso
+semanal que repite lo mismo entrena a la gente a ignorarlo. El estado no vive en ningún lado
+raro — es un marcador HTML invisible en el cuerpo del propio issue.
+
+Y el ciclo se cierra solo: cuando hacés la revisión y actualizás `paridad-estado.json`, el
+lunes siguiente no encuentra nada y cierra el aviso.
+
+### La clasificación ordena, no decide
+
+El script etiqueta cada commit por palabras del asunto: *probablemente transversal*,
+*probablemente de comercio*, o *sin clasificar*. Eso alcanza para ordenar una lista de veinte
+y no alcanza para decidir nada — un commit que dice "checkout" puede estar tocando la CSP.
+
+**En la duda cae en "sin clasificar" y alguien la mira.** No se adivina.
+
+También lista los documentos `.md` que se tocaron en Córdoba Notebooks, que suelen valer más
+que el diff: ahí está escrito el *por qué*.
+
+Se puede correr a mano, y no necesita CI:
+
+```bash
+cd website && node scripts/detectar-cambios-cn.mjs
+```
+
+### Lo único que falta: cargar la deploy key
+
+`cordoba-notebooks` es privado, así que el workflow necesita una credencial de lectura. Ya
+generé el par de claves; sólo hay que pegarlas en dos lugares.
+
+**1. La pública, en Córdoba Notebooks** (le da acceso de lectura a ese repo, y a nada más):
+
+> GitHub → `alejandroalfredoocampo-web/cordoba-notebooks` → Settings → **Deploy keys** →
+> Add deploy key
+> - **Title:** `notebooks CI (paridad, solo lectura)`
+> - **Key:** el contenido de `~/.ssh/notebooks_paridad_deploy.pub`
+> - **Allow write access:** ⛔ **dejalo destildado**
+
+```bash
+cat ~/.ssh/notebooks_paridad_deploy.pub | pbcopy   # queda en el portapapeles
+```
+
+**2. La privada, como secreto en este repo:**
+
+> GitHub → `alejandroalfredoocampo-web/notebooks` → Settings → Secrets and variables →
+> Actions → New repository secret
+> - **Nombre:** `CN_DEPLOY_KEY`
+> - **Valor:** el contenido de `~/.ssh/notebooks_paridad_deploy` (la **sin** `.pub`)
+
+```bash
+cat ~/.ssh/notebooks_paridad_deploy | pbcopy
+```
+
+> ⚠️ Pegala completa, **incluidas** las líneas `-----BEGIN...` y `-----END...` y el salto de
+> línea final. Es el error más común y falla con un mensaje que no lo dice.
+
+Por qué una deploy key y no un token personal: un PAT da acceso a **todo** lo que vos podés
+ver en GitHub. Esta clave sirve para leer un solo repositorio y nada más, así que el peor caso
+si se filtra está acotado a eso. Y se revoca borrándola de Deploy keys, sin tocar tu cuenta.
+
+Después de cargarla, probala a mano: Actions → **Detectar paridad** → Run workflow.
 
 ---
 
@@ -116,11 +182,10 @@ Aunque pongas la credencial, hay una parte que **no debería** correr sola:
 
 ## Lo que yo recomendaría
 
-1. **Ahora:** cargar `SUPABASE_ANON_KEY` y dejar corriendo la parte A. Es gratis, no requiere
-   ninguna decisión y es lo que más veces te va a avisar de algo roto.
-2. **Cuando quieras:** la parte B, para que el aviso de "Córdoba Notebooks tiene cosas nuevas"
-   llegue solo.
-3. **La parte C, dejala local por ahora.** Corre dentro de tu suscripción, no cuesta aparte, y
+1. **Ahora, dos secretos y listo:** `SUPABASE_ANON_KEY` para la parte A y `CN_DEPLOY_KEY` para
+   la B. Las dos son gratis, no requieren decidir nada, y entre las dos cubren "¿se rompió
+   algo?" y "¿hay algo nuevo para traer?", que son las dos preguntas de la revisión semanal.
+2. **La parte C, dejala local por ahora.** Corre dentro de tu suscripción, no cuesta aparte, y
    una revisión de paridad que produce una rama y un informe conviene que ocurra cuando vos
    estás para leerla. Si en unos meses el hábito está tomado y te cansa depender de tener la
    app abierta, ahí sí tiene sentido pagarle un lugar en la nube.

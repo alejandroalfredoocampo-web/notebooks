@@ -51,13 +51,20 @@ crea un directorio fantasma. Seleccionarla siempre con el glob.
 ### 2. Ver qué cambió
 
 ```bash
-DESDE=$(jq -r .ultimaRevision.commitCN "$NB/paridad-estado.json")
-cd "$CN" && git log --oneline "$DESDE"..HEAD -- storefront/ src/ scripts/
+cd "$NB/website" && node scripts/detectar-cambios-cn.mjs
 ```
 
-Si no hay revisiones nuevas que toquen esas rutas, la corrida termina ahí: se anota la fecha
-en el historial y no se toca nada. **Una semana sin cambios es un resultado válido** y no hay
-que inventarle trabajo.
+Devuelve las revisiones nuevas que tocan `storefront/` y `scripts/`, ya clasificadas en
+*probablemente transversal*, *probablemente de comercio* y *sin clasificar*, más los
+documentos `.md` que se movieron. Es el mismo script que corre el workflow de detección en
+GitHub Actions, así que la lista es la misma que la del issue.
+
+**La clasificación ordena la lista, no decide.** Sale de palabras del asunto: un commit que
+dice "checkout" puede estar tocando la CSP. En la duda cae en "sin clasificar", y eso hay que
+leerlo, no descartarlo.
+
+Si no hay revisiones nuevas, la corrida termina ahí: se anota la fecha en el historial y no se
+toca nada. **Una semana sin cambios es un resultado válido** y no hay que inventarle trabajo.
 
 Los documentos numerados de `$CN/*.md` son la otra mitad: ahí están las auditorías con el
 razonamiento, que casi siempre valen más que el diff.

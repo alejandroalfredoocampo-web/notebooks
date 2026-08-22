@@ -1,0 +1,143 @@
+name: Detectar paridad
+
+# Avisa cuando Córdoba Notebooks acumuló cambios que este proyecto todavía no miró.
+#
+# Es la **parte B** de `08-correr-esto-sin-tu-maquina.md`: la mitad de la revisión semanal
+# que no necesita criterio. No decide, no porta y no toca código — mantiene un issue al día
+# para que nadie tenga que acordarse de mirar.
+#
+# El ciclo se cierra solo: cuando alguien hace la revisión y actualiza `paridad-estado.json`
+# con el commit nuevo, la corrida siguiente no encuentra nada pendiente y cierra el issue.
+on:
+  schedule:
+    - cron: "50 12 * * 1" # 12:50 UTC = 09:50 ART, lunes (después de la verificación)
+  workflow_dispatch: {}
+
+# Sólo lo que hace falta: leer este repo y escribir issues. Nada de contents: write — este
+# workflow no commitea, y un permiso que no se usa es superficie regalada.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  detectar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Traer este repo
+        uses: actions/checkout@v4
+
+      - name: Traer Córdoba Notebooks (sólo lectura)
+        uses: actions/checkout@v4
+        with:
+          repository: alejandroalfredoocampo-web/cordoba-notebooks
+          # Deploy key de SÓLO LECTURA de ese repo. Ver 08-correr-esto-sin-tu-maquina.md.
+          # Si se filtra, da acceso de lectura a ese repo y a nada más.
+          ssh-key: ${{ secrets.CN_DEPLOY_KEY }}
+          path: cordoba-notebooks
+          # Historia completa: la comparación necesita un commit de hace semanas, y con un
+          # clon superficial ese commit no existe y el script falla con un error correcto
+          # pero inútil.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Comparar
+        id: comparar
+        working-directory: website
+        run: |
+          node scripts/detectar-cambios-cn.mjs \
+            --cn "$GITHUB_WORKSPACE/cordoba-notebooks/Ecommerce y pagos/reconstruccion-sin-woocommerce" \
+            --estado "$GITHUB_WORKSPACE/paridad-estado.json" \
+            --json > "$RUNNER_TEMP/paridad.json"
+          # A los logs también, para poder leerlo sin abrir el issue.
+          node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/paridad.json','utf8')).markdown)"
+
+      - name: Mantener el issue al día
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/paridad.json', 'utf8'));
+
+            const ETIQUETA = 'paridad';
+            const TITULO = 'Paridad con Córdoba Notebooks';
+            const { owner, repo } = context.repo;
+
+            // La etiqueta puede no existir todavía. Crearla es idempotente en la práctica:
+            // si ya está, el 422 se ignora.
+            try {
+              await github.rest.issues.createLabel({
+                owner, repo, name: ETIQUETA, color: '1d76db',
+                description: 'Cambios de Córdoba Notebooks pendientes de revisar',
+              });
+            } catch (e) {
+              if (e.status !== 422) throw e;
+            }
+
+            const abiertos = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: ETIQUETA, per_page: 10,
+            });
+            const issue = abiertos.data[0] ?? null;
+
+            // Nada pendiente: si había un aviso abierto, se cerró el ciclo.
+            if (d.paraRevisar === 0) {
+              if (issue) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: issue.number,
+                  body: `Emparejado. \`paridad-estado.json\` quedó en \`${d.baseCorto}\` y ` +
+                        `Córdoba Notebooks no tiene cambios nuevos en \`storefront/\` ni \`scripts/\`.\n\n` +
+                        `Se reabre solo cuando aparezcan.`,
+                });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed' });
+                core.notice(`Sin pendientes: se cerró el issue #${issue.number}.`);
+              } else {
+                core.notice('Sin pendientes y sin issue abierto: nada que hacer.');
+              }
+              return;
+            }
+
+            // El marcador permite saber si esto ya se reportó, sin guardar estado en ningún
+            // lado: vive en el cuerpo del propio issue.
+            const marcador = `<!-- paridad-head: ${d.head} -->`;
+            const cuerpo = [
+              marcador,
+              '',
+              d.markdown,
+              '',
+              '---',
+              '',
+              `<sub>Generado por [\`detectar-paridad.yml\`](../blob/main/.github/workflows/detectar-paridad.yml). ` +
+              `Este aviso se actualiza solo los lunes y se cierra cuando \`paridad-estado.json\` alcanza a Córdoba Notebooks.</sub>`,
+            ].join('\n');
+
+            const titulo = `${TITULO}: ${d.paraRevisar} ${d.paraRevisar === 1 ? 'revisión' : 'revisiones'} para mirar`;
+
+            if (!issue) {
+              const nuevo = await github.rest.issues.create({
+                owner, repo, title: titulo, body: cuerpo, labels: [ETIQUETA],
+              });
+              core.notice(`Abierto el issue #${nuevo.data.number} con ${d.paraRevisar} revisiones.`);
+              return;
+            }
+
+            // Ya existe. Se actualiza siempre, pero **sólo se comenta si hay algo nuevo**:
+            // un comentario semanal que repite lo mismo entrena a la gente a ignorar el hilo.
+            const yaReportado = (issue.body || '').includes(marcador);
+            await github.rest.issues.update({
+              owner, repo, issue_number: issue.number, title: titulo, body: cuerpo,
+            });
+
+            if (yaReportado) {
+              core.notice(`Sin novedades desde la semana pasada; el issue #${issue.number} quedó igual.`);
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `Hay más cambios: van **${d.paraRevisar}** revisiones para mirar ` +
+                      `(hasta \`${d.headCorto}\`). El detalle está en la descripción, actualizada arriba.`,
+              });
+              core.notice(`Actualizado el issue #${issue.number}: ${d.paraRevisar} revisiones.`);
+            }
