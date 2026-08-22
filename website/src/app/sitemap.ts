@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getModels, getStores, getBrands } from "@/lib/data";
 import { getPublishedPosts } from "@/lib/blog";
 import { urlAbsoluta } from "@/lib/site";
+import { GUIAS } from "@/content/guias";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // escapa: los chequeos de regresión recorren el sitemap, así que una página que no está
     // en el sitemap es invisible para el chequeo que debería detectar que falta.
     { url: urlAbsoluta("/comparar"), changeFrequency: "weekly", priority: 0.6 },
+    { url: urlAbsoluta("/guias"), changeFrequency: "weekly", priority: 0.7 },
+    // Las guías son contenido editorial: son las páginas que responden en prosa y las que
+    // un modelo puede citar. Prioridad alta a propósito.
+    ...GUIAS.map((g) => ({
+      url: urlAbsoluta(`/guias/${g.slug}`),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
     { url: urlAbsoluta("/marcas"), changeFrequency: "weekly", priority: 0.6 },
     { url: urlAbsoluta("/tiendas"), changeFrequency: "weekly", priority: 0.5 },
     { url: urlAbsoluta("/blog"), changeFrequency: "daily", priority: 0.6 },

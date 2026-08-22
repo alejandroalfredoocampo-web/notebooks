@@ -46,6 +46,9 @@ export default async function Header() {
             <Link href="/marcas" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Marcas
             </Link>
+            <Link href="/guias" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
+              Guías
+            </Link>
             <Link href="/comparar" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Comparar
             </Link>

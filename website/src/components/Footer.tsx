@@ -28,6 +28,7 @@ export default function Footer() {
           <ul className="space-y-1.5">
             <li><Link className="hover:text-white" href="/notebooks">Todas las notebooks</Link></li>
             <li><Link className="hover:text-white" href="/ofertas">Ofertas verificadas</Link></li>
+            <li><Link className="hover:text-white" href="/guias">Guías para elegir</Link></li>
             <li><Link className="hover:text-white" href="/tiendas">Tiendas indexadas</Link></li>
             <li><Link className="hover:text-white" href="/marcas">Marcas</Link></li>
             <li><Link className="hover:text-white" href="/blog">Blog</Link></li>

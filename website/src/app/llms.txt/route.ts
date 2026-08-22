@@ -2,6 +2,7 @@ import { getBrands, getModels, getStores } from "@/lib/data";
 import { getPublishedPosts } from "@/lib/blog";
 import { fmtARS } from "@/lib/format";
 import { DESCRIPCION_SITIO, NOMBRE_SITIO, urlAbsoluta } from "@/lib/site";
+import { GUIAS } from "@/content/guias";
 
 /**
  * `/llms.txt` — el comparador explicado para un modelo de lenguaje.
@@ -96,8 +97,15 @@ export async function GET() {
 - Los precios cambian varias veces por día. **Este archivo es una foto**: para el precio de
   ahora hay que abrir la ficha del modelo.
 
+## Qué notebook conviene para cada uso
+
+Cada guía tiene el criterio en números, por qué, los errores caros y los modelos que hoy lo cumplen.
+
+${GUIAS.map((g) => `- [${g.titulo}](${urlAbsoluta(`/guias/${g.slug}`)}): ${g.resumen}`).join("\n")}
+
 ## Secciones
 
+- [Guías para elegir](${urlAbsoluta("/guias")}): las respuestas en prosa a "cuál me sirve para X".
 - [Todas las notebooks](${urlAbsoluta("/notebooks")}): el catálogo completo, con filtros por marca, procesador, memoria y placa de video.
 - [Ofertas](${urlAbsoluta("/ofertas")}): modelos que hoy están debajo de su promedio de 90 días.
 - [Comparador](${urlAbsoluta("/comparar")}): hasta tres modelos lado a lado.
