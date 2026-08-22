@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Honeypot from "./Honeypot";
 
 const EMPTY = {
   commercialName: "", legalName: "", cuit: "", website: "",
@@ -10,6 +11,7 @@ const EMPTY = {
   instagram: "", facebook: "", tiktok: "", youtube: "", linkedin: "", mercadolibre: "",
   googleRating: "", googleReviewsCount: "", googleMapsUrl: "",
   catalogUrl: "", platform: "", message: "",
+  honeypot: "",
 };
 
 const field = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue";
@@ -58,7 +60,8 @@ export default function StoreApplicationForm() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={submit} className="relative rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Honeypot name="honeypot" value={f.honeypot} onChange={(v) => set("honeypot", v)} />
       <h2 className="text-lg font-extrabold tracking-tight">Sumá tu tienda</h2>
       <p className="mb-4 mt-1 text-sm text-slate-500">
         Completá tus datos y los revisamos. La indexación es gratuita. Los campos con * son obligatorios.

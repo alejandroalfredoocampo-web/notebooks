@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Honeypot from "./Honeypot";
 
 export default function PriceAlertForm({
   modelId,
@@ -13,6 +14,7 @@ export default function PriceAlertForm({
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hp, setHp] = useState(""); // honeypot
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +24,7 @@ export default function PriceAlertForm({
     const res = await fetch("/api/alertas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, modelId }),
+      body: JSON.stringify({ email, modelId, website: hp }),
     });
     setLoading(false);
     if (res.ok) setSent(true);
@@ -43,8 +45,9 @@ export default function PriceAlertForm({
   return (
     <form
       onSubmit={submit}
-      className="flex flex-wrap items-center gap-2.5 rounded-xl border border-brand-sky bg-blue-50 p-4"
+      className="relative flex flex-wrap items-center gap-2.5 rounded-xl border border-brand-sky bg-blue-50 p-4"
     >
+      <Honeypot name="website" value={hp} onChange={setHp} />
       <div className="w-full text-sm font-bold text-brand-darker">
         🔔 Avisame si baja de precio
       </div>

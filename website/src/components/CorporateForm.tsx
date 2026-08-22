@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { fmtARS } from "@/lib/format";
+import Honeypot from "./Honeypot";
 
 type ModelOpt = { id: string; label: string; bestPrice: number };
 
@@ -118,7 +119,7 @@ export default function CorporateForm({ models }: { models: ModelOpt[] }) {
       </div>
 
       {/* Formulario RFQ */}
-      <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <form onSubmit={submit} className="relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-extrabold">Pedí presupuesto</h3>
         <p className="mt-1 text-[13px] text-slate-500">
           Contanos qué necesitás y las tiendas te acercan una propuesta con precio diferencial.
@@ -175,8 +176,7 @@ export default function CorporateForm({ models }: { models: ModelOpt[] }) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
           />
-          {/* honeypot */}
-          <input type="text" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden value={website} onChange={(e) => setWebsite(e.target.value)} />
+          <Honeypot name="website" value={website} onChange={setWebsite} />
         </div>
 
         {error && <p className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
