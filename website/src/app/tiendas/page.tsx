@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
 import Link from "next/link";
 import { getStores, getModels } from "@/lib/data";
 import StoreApplicationForm from "@/components/StoreApplicationForm";
@@ -6,11 +7,11 @@ import StoreRating from "@/components/StoreRating";
 import StoreTierBadge from "@/components/StoreTierBadge";
 import SponsoredStores from "@/components/SponsoredStores";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/tiendas", {
   title: "Tiendas indexadas",
   description:
     "Las tiendas argentinas que monitoreamos para comparar precios de notebooks. Indexación gratuita para tiendas online establecidas.",
-};
+});
 
 export const dynamic = "force-dynamic";
 

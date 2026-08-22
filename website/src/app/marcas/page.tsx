@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
 import Link from "next/link";
 import { getBrands } from "@/lib/data";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/marcas", {
   title: "Marcas de notebooks",
   description:
     "Explorá las notebooks por marca: Lenovo, HP, Asus, Dell, Acer, Apple, Samsung y más. Precios comparados en todas las tiendas de Argentina.",
-};
+});
 
 export const dynamic = "force-dynamic";
 

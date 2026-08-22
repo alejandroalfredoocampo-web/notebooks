@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { unsubToken } from "@/lib/unsubToken";
+import { metaPrivada } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Baja de alerta", robots: { index: false } };
+// `follow: true` a propósito: la página no se indexa pero sus links al catálogo sí se
+// siguen. Es la diferencia entre "no muestres esto" y "hacé de cuenta que no existe".
+export const metadata: Metadata = metaPrivada("Baja de alerta");
 export const dynamic = "force-dynamic";
 
 export default function BajaPage({

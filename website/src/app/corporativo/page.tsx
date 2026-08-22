@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
 import { getModels } from "@/lib/data";
 import CorporateForm from "@/components/CorporateForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/corporativo", {
   title: "Venta corporativa y mayorista de notebooks",
   description:
     "¿Comprás notebooks al por mayor? Pedí presupuesto y dejá que las tiendas compitan por tu compra. Comparativa de precios por volumen para empresas, escuelas y revendedores.",
-};
+});
 
 export const dynamic = "force-dynamic";
 

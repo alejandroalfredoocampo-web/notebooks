@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
 import { getModels } from "@/lib/data";
 import { recommendUse } from "@/lib/useRecommendation";
 import CompareTool from "@/components/CompareTool";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/comparar", {
   title: "Comparar notebooks lado a lado",
   description: "Elegí hasta 3 notebooks y compará specs, precio, cuotas y para qué sirve cada una.",
-};
+});
 
 export default async function CompararPage({
   searchParams,

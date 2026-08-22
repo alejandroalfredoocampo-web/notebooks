@@ -17,6 +17,10 @@ import FavoriteButton from "@/components/FavoriteButton";
 import UsdHint from "@/components/UsdHint";
 import TrackView from "@/components/TrackView";
 import { priceInsight } from "@/lib/priceInsight";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { metaRuta, recortar } from "@/lib/seo";
+import { breadcrumbLd, grafo, productoLd, tiendaLd } from "@/lib/schema";
 
 interface Params {
   brand: string;
@@ -31,24 +35,27 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const title = `${model.brand} ${model.name} — precio en ${model.listings.length} tiendas`;
   const description = `Mejor precio del ${model.brand} ${model.name} (${model.cpu}, ${model.ramGb} GB RAM, ${model.storageGb} GB SSD): ${fmtARS(model.bestPrice)}. Compará ${model.listings.length} ofertas con historial de precios.`;
   const canonical = `/notebooks/${model.brandSlug}/${model.slug}`;
-  return {
+  return metaRuta(canonical, {
     title,
-    description,
-    alternates: { canonical },
+    // `recortar` corta en el último espacio. Antes esta description podía salir partida a
+    // mitad de palabra cuando el nombre del modelo era largo, y un snippet que termina en
+    // "con placa de vid" no es un resumen, es un error visible en el resultado de Google.
+    description: recortar(description, 300),
     openGraph: {
       title,
-      description,
-      url: canonical,
+      description: recortar(description, 200),
       type: "website",
-      images: model.imageUrl ? [{ url: model.imageUrl }] : undefined,
+      // La foto del equipo cuando la hay; si no, la portada del sitio (la que arma
+      // `metaRuta`), que es mejor que compartir un link sin imagen.
+      ...(model.imageUrl ? { images: [{ url: model.imageUrl }] } : {}),
     },
     twitter: {
       card: model.imageUrl ? "summary_large_image" : "summary",
       title,
-      description,
+      description: recortar(description, 200),
       images: model.imageUrl ? [model.imageUrl] : undefined,
     },
-  };
+  });
 }
 
 export default async function ModelPage({ params }: { params: Params }) {
@@ -83,22 +90,31 @@ export default async function ModelPage({ params }: { params: Params }) {
     return scored[0].id;
   })();
 
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: `${model.brand} ${model.name}`,
-    brand: { "@type": "Brand", name: model.brand },
-    sku: model.partNumber,
-  };
-  if (hasOffers) {
-    jsonLd.offers = {
-      "@type": "AggregateOffer",
-      priceCurrency: "ARS",
-      lowPrice: model.bestPrice,
-      highPrice: Math.max(...model.listings.map((l) => l.priceCash)),
-      offerCount: model.listings.length,
-    };
-  }
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Notebooks", path: "/notebooks" },
+    { nombre: model.brand, path: `/marcas/${model.brandSlug}` },
+    { nombre: model.name, path: `/notebooks/${model.brandSlug}/${model.slug}` },
+  ];
+
+  /**
+   * El grafo de la ficha.
+   *
+   * Lo que había era un `Product` con `AggregateOffer` y nada más: declaraba que existe un
+   * rango de precios y **no quién vende a cada uno**. Para un buscador eso es una página
+   * con muchos números; para un asistente al que le preguntan "¿dónde está más barata?", no
+   * hay respuesta.
+   *
+   * Ahora van tres cosas atadas por `@id`:
+   *
+   *  - el `Product`, con una `Offer` por publicación y su `seller`;
+   *  - un nodo por cada **tienda** que la vende, que es a lo que apunta ese `seller` (sin
+   *    esto la referencia queda colgada y Google descarta el bloque);
+   *  - la miga de pan, que es lo que hace que el resultado muestre la ruta en vez de la URL.
+   *
+   * Las tiendas se deduplican: dos publicaciones de la misma tienda comparten el nodo.
+   */
+  const tiendasUnicas = new Map(model.listings.map((l) => [l.store.slug, l.store]));
 
   const specs: [string, string][] = [
     ["Procesador", model.cpu],
@@ -115,21 +131,14 @@ export default async function ModelPage({ params }: { params: Params }) {
   return (
     <div className="mx-auto max-w-6xl px-4">
       <TrackView modelId={model.id} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <JsonLd
+        data={grafo(
+          productoLd(model),
+          ...[...tiendasUnicas.values()].map(tiendaLd),
+          breadcrumbLd(migas),
+        )}
       />
-      <nav className="pt-5 text-[13px] text-slate-400">
-        <Link href="/" className="hover:text-brand-blue">Inicio</Link>
-        {" / "}
-        <Link href="/notebooks" className="hover:text-brand-blue">Notebooks</Link>
-        {" / "}
-        <Link href={`/marcas/${model.brandSlug}`} className="hover:text-brand-blue">
-          {model.brand}
-        </Link>
-        {" / "}
-        <b className="text-slate-600">{model.name}</b>
-      </nav>
+      <Breadcrumbs items={migas} />
 
       <div className="grid gap-8 py-5 md:grid-cols-[1fr_1.4fr]">
         {/* Columna izquierda: imagen + specs */}

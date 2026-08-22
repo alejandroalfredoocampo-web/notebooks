@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getDeals, getModels, getStores, countListings, getBrands } from "@/lib/data";
 import ModelCard from "@/components/ModelCard";
 import HeroSearch from "@/components/HeroSearch";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import { metaRuta } from "@/lib/seo";
+import { DESCRIPCION_SITIO } from "@/lib/site";
 
 const USE_CASES = [
   { slug: "estudiar", icon: "📚", title: "Estudiar", desc: "Liviana y con batería" },
@@ -11,6 +14,13 @@ const USE_CASES = [
   { slug: "diseno", icon: "🎨", title: "Diseño", desc: "Pantalla y color" },
   { slug: "programar", icon: "👩‍💻", title: "Programar", desc: "RAM y multitarea" },
 ];
+
+/**
+ * La home es la única página cuyo canonical es `/` y no la URL con la que se llegó. Sin
+ * esto, `notebooks.com.ar/?utm_source=instagram` entraba al índice como una página propia
+ * que compite con la home por su mismo contenido.
+ */
+export const metadata: Metadata = metaRuta("/", { description: DESCRIPCION_SITIO });
 
 export const dynamic = "force-dynamic";
 

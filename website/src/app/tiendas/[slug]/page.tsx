@@ -7,6 +7,10 @@ import StoreRating from "@/components/StoreRating";
 import StoreTierBadge from "@/components/StoreTierBadge";
 import EntityHero from "@/components/EntityHero";
 import ModelImage from "@/components/ModelImage";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { metaRuta, recortar } from "@/lib/seo";
+import { breadcrumbLd, coleccionLd, grafo, tiendaLd } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +25,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const description =
     store.description ||
     `Notebooks a la venta en ${store.name}${store.city ? ` (${store.city})` : ""}. Compará sus precios con el resto de las tiendas de Argentina.`;
-  return { title, description, alternates: { canonical: `/tiendas/${store.slug}` } };
+  return metaRuta(`/tiendas/${store.slug}`, { title, description: recortar(description, 300) });
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -41,23 +45,39 @@ export default async function StoreProfilePage({ params }: { params: Params }) {
   const inStock = offers.filter((o) => o.listing.inStock).length;
   const minPrice = offers.length ? Math.min(...offers.map((o) => o.listing.priceCash)) : 0;
 
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Store",
-    name: store.name,
-    url: store.url,
-  };
-  if (store.googleRating && store.googleRating > 0) {
-    jsonLd.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: store.googleRating,
-      reviewCount: store.googleReviewsCount ?? undefined,
-    };
-  }
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Tiendas", path: "/tiendas" },
+    { nombre: store.name, path: `/tiendas/${store.slug}` },
+  ];
+
+  /**
+   * El nodo de la tienda sale de `tiendaLd`, que es el **mismo** que emite cada ficha de
+   * producto como `seller` de sus ofertas. Que compartan `@id` es lo que hace que para
+   * Google sea una sola entidad: la tienda que vende en 40 fichas es la misma que tiene su
+   * perfil acá, con su reputación y su dirección.
+   *
+   * Lo que había antes emitía `reviewCount: undefined` cuando la tienda no tenía la cantidad
+   * de reseñas cargada. Un `aggregateRating` sin `reviewCount` es un error de validación:
+   * Google descarta el bloque **entero**, así que también se perdía el resto. `tiendaLd`
+   * omite el rating salvo que estén los dos datos.
+   */
+  const catalogo = coleccionLd({
+    path: `/tiendas/${store.slug}`,
+    nombre: `Notebooks en ${store.name}`,
+    descripcion: store.description || undefined,
+    items: offers.slice(0, 100).map((o) => ({
+      nombre: `${o.model.brand} ${o.model.name}`,
+      path: `/notebooks/${o.model.brandSlug}/${o.model.slug}`,
+    })),
+  });
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={grafo(tiendaLd(store), catalogo, breadcrumbLd(migas))} />
+      <div className="mx-auto max-w-6xl px-4">
+        <Breadcrumbs items={migas} />
+      </div>
 
       <EntityHero
         eyebrow="Tienda"

@@ -7,6 +7,10 @@ import { fmtDateLong, fmtARS } from "@/lib/format";
 import Markdown from "@/components/Markdown";
 import ShareButton from "@/components/ShareButton";
 import ModelImage from "@/components/ModelImage";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { metaRuta, recortar } from "@/lib/seo";
+import { articuloLd, breadcrumbLd, grafo } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -17,25 +21,25 @@ interface Params {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const post = await getPostBySlug(params.slug);
   if (!post) return {};
-  return {
+  return metaRuta(`/blog/${post.slug}`, {
     title: post.title,
-    description: post.excerpt,
-    alternates: { canonical: `/blog/${post.slug}` },
+    description: recortar(post.excerpt, 300),
     openGraph: {
       title: post.title,
-      description: post.excerpt,
-      url: `/blog/${post.slug}`,
+      description: recortar(post.excerpt, 200),
       type: "article",
       publishedTime: post.publishedAt ?? undefined,
-      images: post.coverImage ? [{ url: post.coverImage }] : undefined,
+      modifiedTime: post.updatedAt || undefined,
+      authors: post.author ? [post.author] : undefined,
+      ...(post.coverImage ? { images: [{ url: post.coverImage }] } : {}),
     },
     twitter: {
       card: post.coverImage ? "summary_large_image" : "summary",
       title: post.title,
-      description: post.excerpt,
+      description: recortar(post.excerpt, 200),
       images: post.coverImage ? [post.coverImage] : undefined,
     },
-  };
+  });
 }
 
 export default async function BlogPostPage({ params }: { params: Params }) {
@@ -46,26 +50,31 @@ export default async function BlogPostPage({ params }: { params: Params }) {
     ? (await getModels()).filter((m) => post.modelIds.includes(m.id))
     : [];
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: post.title,
-    description: post.excerpt,
-    author: { "@type": "Organization", name: post.author },
-    datePublished: post.publishedAt ?? undefined,
-    dateModified: post.updatedAt || undefined,
-    image: post.coverImage ? [post.coverImage] : undefined,
-  };
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Blog", path: "/blog" },
+    { nombre: post.title, path: `/blog/${post.slug}` },
+  ];
+
+  /**
+   * El `@id` del artículo es el mismo que emite el índice del blog en su `blogPost`, así
+   * que para un buscador son **una** entidad y no dos artículos con el mismo título. Eso lo
+   * resuelve `articuloLd` / `blogLd`; el bloque suelto que había acá no lo hacía.
+   */
+  const ld = articuloLd({
+    slug: post.slug,
+    titulo: post.title,
+    descripcion: post.excerpt,
+    publicado: post.publishedAt ?? post.createdAt,
+    modificado: post.updatedAt,
+    imagen: post.coverImage,
+    autor: post.author,
+  });
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      <nav className="text-[13px] text-slate-400">
-        <Link href="/" className="hover:text-brand-blue">Inicio</Link>
-        {" / "}
-        <Link href="/blog" className="hover:text-brand-blue">Blog</Link>
-      </nav>
+      <JsonLd data={grafo(ld, breadcrumbLd(migas))} />
+      <Breadcrumbs items={migas} />
 
       <div className="mt-3 flex items-center gap-2 text-[12px]">
         <span className="rounded-full bg-blue-50 px-2 py-0.5 font-bold text-brand-blue">

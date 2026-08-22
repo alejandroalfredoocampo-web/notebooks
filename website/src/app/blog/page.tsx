@@ -1,21 +1,40 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import { blogLd, grafo } from "@/lib/schema";
 import Link from "next/link";
 import { getPublishedPosts, KIND_LABEL } from "@/lib/blog";
 import { fmtDate } from "@/lib/format";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/blog", {
   title: "Blog — opiniones y reseñas de notebooks",
   description:
     "Opiniones, reseñas y guías sobre las notebooks que se venden en Argentina. Analizamos modelos, relación precio/rendimiento y cuándo conviene comprar.",
-};
+});
 
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
   const posts = await getPublishedPosts();
 
+  /**
+   * El índice declara sus artículos. Sin esto, la portada del blog es para un buscador un
+   * `<h1>` y una grilla de links: no hay forma legible por máquina de saber que es un blog
+   * ni de qué escribe.
+   */
+  const ld = blogLd(
+    posts.map((p) => ({
+      slug: p.slug,
+      titulo: p.title,
+      publicado: p.publishedAt ?? p.createdAt,
+      modificado: p.updatedAt || undefined,
+    })),
+  );
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <>
+      <JsonLd data={grafo(ld)} />
+      <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Blog</h1>
@@ -69,5 +88,6 @@ export default async function BlogPage() {
         </p>
       )}
     </div>
+    </>
   );
 }
