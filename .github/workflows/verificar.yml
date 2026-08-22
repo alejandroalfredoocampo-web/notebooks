@@ -1,0 +1,81 @@
+name: Verificación
+
+# Corre la suite completa: unitarios, tipos, build, chequeo de seguridad y SEO, y las
+# pruebas de humo, regresión e integración contra un servidor de producción levantado acá.
+#
+# ## Por qué también corre semanal, y no sólo en cada push
+#
+# Casi todo lo que este proyecto vigila **puede romperse sin que nadie toque el código**:
+# una tienda que cambia el HTML y deja de matchear, un precio que se vuelve absurdo, la API
+# del dólar que cambia de forma, un modelo que se queda sin ofertas. Un CI que corre sólo en
+# push contesta "el último commit no rompió nada", que no es la pregunta.
+#
+# El lunes a la mañana es a propósito: es cuando alguien va a estar mirando.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/verificar.yml"
+  pull_request:
+    paths:
+      - "website/**"
+  schedule:
+    - cron: "40 12 * * 1" # 12:40 UTC = 09:40 ART, lunes
+  workflow_dispatch: {}
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: website
+
+    env:
+      # El sitio lee con la anon key (respeta RLS). La service_role NO va acá: esta suite no
+      # necesita escribir nada, y darle permisos que no usa es regalar superficie.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      # El sitio se declara a sí mismo en su host real aunque corra en localhost: así el
+      # chequeo verifica los canonical que van a salir en producción y no los de un puerto
+      # efímero de CI.
+      NEXT_PUBLIC_SITE_URL: https://www.notebooks.com.ar
+      # Sin esto el admin queda cerrado y la puerta se puede probar de verdad. Es un valor
+      # inventado para el CI: no abre nada en ningún lado.
+      ADMIN_PASSWORD: solo-para-ci-no-abre-nada-1234567890
+      ADMIN_SESSION_TOKEN: solo-para-ci-no-abre-nada-0987654321
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # supabase-js necesita WebSocket nativo
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - run: npm ci
+
+      - name: Faltan los secretos de Supabase
+        if: ${{ env.SUPABASE_URL == '' || env.SUPABASE_ANON_KEY == '' }}
+        run: |
+          echo "::error::Faltan SUPABASE_URL y/o SUPABASE_ANON_KEY en los secretos del repo."
+          echo "El build no puede correr sin ellos: supabaseServer tira al importarse."
+          echo "Settings → Secrets and variables → Actions → New repository secret."
+          exit 1
+
+      # Una sola llamada: levanta y baja su propio servidor, y sale con código 1 si algo
+      # falla. Ver scripts/probar-todo.mjs.
+      - name: Verificación completa
+        run: npm run probar
+
+      # Contra el sitio desplegado, y sólo en el schedule: en un push todavía no se desplegó
+      # lo que se acaba de mergear, así que chequear producción mediría el build anterior y
+      # el resultado no querría decir nada.
+      - name: Chequear el sitio desplegado
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true # informativo: que producción esté vieja no invalida el código
+        run: npm run chequear -- "${{ vars.SITE_URL || 'https://notebooks-tan.vercel.app' }}"
