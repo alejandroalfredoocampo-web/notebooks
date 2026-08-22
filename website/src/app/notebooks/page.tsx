@@ -42,6 +42,19 @@ const PARAMS_DE_FILTRO = [
   "cond", "stock", "peso", "price", "fin", "use", "sort",
 ] as const;
 
+/**
+ * El título de la página, que describe lo que la página realmente muestra.
+ *
+ * Sin filtros es el título canónico del catálogo. Con filtros dice qué se filtró, para que
+ * el encabezado no contradiga a la grilla.
+ */
+function tituloDelListado(sp: SP, parsed: { summary?: string } | null): string {
+  if (parsed?.summary) return `Notebooks para ${parsed.summary}`;
+  if (typeof sp.q === "string" && sp.q.trim()) return `Notebooks: “${sp.q.trim().slice(0, 60)}”`;
+  if (!hayFiltros(sp)) return "Notebooks a la venta en Argentina";
+  return "Notebooks filtradas";
+}
+
 function hayFiltros(sp: SP): boolean {
   return PARAMS_DE_FILTRO.some((k) => {
     const v = sp[k];
@@ -135,11 +148,28 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
             </Link>
           </div>
         )}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm text-slate-500">
+        {/**
+         * El `<h1>` del catálogo, que no existía.
+         *
+         * Lo encontró la suite de humo, no una lectura del código: la página tenía la
+         * grilla, los filtros y el contador, y ninguna etiqueta que dijera de qué es. Es la
+         * página más importante del sitio después de la home — la que Google usa como
+         * entrada a "notebooks en Argentina" — y para un buscador o un lector de pantalla
+         * empezaba directamente por una lista de productos sin título.
+         *
+         * El texto cambia con los filtros a propósito: un `<h1>` que dice "Notebooks" en una
+         * vista de Lenovo con 16 GB es peor que no tenerlo, porque afirma algo que la página
+         * no muestra. La vista filtrada es `noindex` igual (ver `generateMetadata`), así que
+         * esto es sobre todo para quien la está leyendo.
+         */}
+        <h1 className="mb-1 text-2xl font-extrabold tracking-tight">
+          {tituloDelListado(searchParams, parsed)}
+        </h1>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">
             <b className="text-slate-900">{models.length}</b> modelos encontrados{" "}
             <span className="text-slate-400">· {totalOffers} ofertas comparadas</span>
-          </div>
+          </p>
           <Suspense>
             <SortSelect />
           </Suspense>

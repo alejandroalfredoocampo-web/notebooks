@@ -65,8 +65,25 @@ function rutaDeLoc(sitemap) {
   }
 }
 
+/**
+ * User-Agent del chequeo.
+ *
+ * No es cosmético: este script pide `/salir/<id>`, y ese endpoint **registra un click que se
+ * le factura a la tienda**. La palabra "monitor" cae en el `RE_BOT` del redirect, así que el
+ * click queda marcado `bot: true` y fuera de lo facturable.
+ *
+ * Antes funcionaba por accidente —`fetch` de Node no manda User-Agent y el endpoint trata la
+ * ausencia como bot— y depender de un accidente para no cobrarle de más a un cliente es mal
+ * negocio. Ahora es explícito y no se rompe si Node algún día manda uno por defecto.
+ */
+export const UA_CHEQUEO = "notebooks-chequeo/1.0 (+monitor de paridad; no facturable)";
+
 async function traer(ruta, opciones = {}) {
-  const res = await fetch(`${ORIGEN}${ruta}`, { redirect: "manual", ...opciones });
+  const res = await fetch(`${ORIGEN}${ruta}`, {
+    redirect: "manual",
+    ...opciones,
+    headers: { "user-agent": UA_CHEQUEO, ...(opciones.headers ?? {}) },
+  });
   const cuerpo = opciones.method === "HEAD" ? "" : await res.text();
   return { res, cuerpo, headers: res.headers };
 }
