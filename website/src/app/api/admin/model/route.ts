@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createModel, getAdminModels, slugify } from "@/lib/adminData";
+import { invalidarCatalogo } from "@/lib/revalidar";
 
 /**
  * Crea un modelo canónico nuevo (típicamente desde una publicación scrapeada
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
     };
 
     await createModel(row, b.fromListingId ? String(b.fromListingId) : undefined);
+    invalidarCatalogo("admin/model");
     return NextResponse.json({ ok: true, model: { id, brand, name } });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

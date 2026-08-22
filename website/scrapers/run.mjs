@@ -120,6 +120,39 @@ async function main() {
   if (review.length) {
     console.log(`\n⚠️  ${review.length} publicaciones quedaron pendientes (confianza < ${CONFIDENCE_THRESHOLD}). Revisalas en /admin/revision.`);
   }
+
+  await avisarAlSitio();
+}
+
+/**
+ * Le avisa al sitio que el catálogo cambió, para que tire su caché.
+ *
+ * El sitio sirve el catálogo desde caché con etiqueta (ver `TAG_CATALOGO` en `lib/data.ts`)
+ * y no desde un TTL: sin este aviso, los precios que se acaban de escribir tardan hasta
+ * cinco minutos en aparecer. Cinco minutos no es una catástrofe —de ahí que el techo
+ * exista— pero es una espera evitable después de un scrapeo que tardó varios minutos.
+ *
+ * **No aborta el scrapeo si falla.** El trabajo importante ya está hecho y guardado; no
+ * poder avisar es un dato que tarda un rato más en verse, no una corrida perdida. Por eso
+ * se avisa por consola y se sale con 0.
+ */
+async function avisarAlSitio() {
+  const url = process.env.SITE_URL || "https://www.notebooks.com.ar";
+  const token = process.env.REVALIDATE_SECRET;
+  if (!token) {
+    console.log("ℹ️  Sin REVALIDATE_SECRET: el sitio va a tomar los precios nuevos en ≤5 min.");
+    return;
+  }
+  try {
+    const res = await fetch(`${url.replace(/\/+$/, "")}/api/revalidar`, {
+      method: "POST",
+      headers: { "x-revalidar-token": token },
+    });
+    if (res.ok) console.log("✅ Caché del sitio invalidada: los precios nuevos ya se ven.");
+    else console.warn(`⚠️  El sitio contestó ${res.status} al invalidar la caché.`);
+  } catch (e) {
+    console.warn(`⚠️  No se pudo avisarle al sitio (${e.message}). Toma los precios en ≤5 min.`);
+  }
 }
 
 main().catch((e) => { console.error("❌", e.message); process.exit(1); });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { confirmMatch, rejectMatch, getAdminModels } from "@/lib/adminData";
+import { invalidarCatalogo } from "@/lib/revalidar";
 
 /**
  * Decisión del operador sobre un matcheo pendiente.
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
     } else {
       await rejectMatch(String(body.id));
     }
+    invalidarCatalogo("admin/match");
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

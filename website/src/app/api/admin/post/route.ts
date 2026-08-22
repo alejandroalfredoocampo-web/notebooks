@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { upsertPost, setPostStatus, deletePost, type PostKind, type PostStatus } from "@/lib/blog";
+import { invalidarCatalogo } from "@/lib/revalidar";
 
 /** CMS del blog. Protegido por el middleware (cookie admin). */
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       status,
       modelIds: Array.isArray(b.modelIds) ? b.modelIds.map(String) : [],
     });
+    invalidarCatalogo("admin/post");
     return NextResponse.json({ ok: true, id });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
@@ -41,6 +43,7 @@ export async function PATCH(req: Request) {
   }
   try {
     await setPostStatus(String(b.id), b.status);
+    invalidarCatalogo("admin/post");
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
@@ -52,6 +55,7 @@ export async function DELETE(req: Request) {
   if (!b?.id) return NextResponse.json({ error: "Falta id" }, { status: 400 });
   try {
     await deletePost(String(b.id));
+    invalidarCatalogo("admin/post");
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

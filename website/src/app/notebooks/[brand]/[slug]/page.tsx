@@ -276,7 +276,7 @@ export default async function ModelPage({ params }: { params: Params }) {
               )}
               {model.minHistoric && (
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-500">
-                  Mínimo histórico: {fmtARS(model.minHistoric)}
+                  Mínimo en 90 días: {fmtARS(model.minHistoric)}
                 </span>
               )}
             </div>
