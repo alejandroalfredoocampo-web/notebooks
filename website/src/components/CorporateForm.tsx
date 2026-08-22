@@ -147,19 +147,19 @@ export default function CorporateForm({ models }: { models: ModelOpt[] }) {
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <input className={field} placeholder="Empresa *" value={company} onChange={(e) => setCompany(e.target.value)} required />
-            <input className={field} placeholder="CUIT" value={cuit} onChange={(e) => setCuit(e.target.value)} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input className={field} name="organization" autoComplete="organization" aria-label="Empresa" placeholder="Empresa *" value={company} onChange={(e) => setCompany(e.target.value)} required />
+            <input className={field} inputMode="numeric" aria-label="CUIT" placeholder="CUIT" value={cuit} onChange={(e) => setCuit(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input className={field} placeholder="Nombre de contacto" value={contactName} onChange={(e) => setContactName(e.target.value)} />
-            <input className={field} type="email" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input className={field} name="name" autoComplete="name" aria-label="Nombre de contacto" placeholder="Nombre de contacto" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+            <input className={field} type="email" autoComplete="email" inputMode="email" aria-label="Email de contacto" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input className={field} placeholder="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <input className={field} placeholder="Provincia" value={province} onChange={(e) => setProvince(e.target.value)} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input className={field} type="tel" name="tel" autoComplete="tel" inputMode="tel" aria-label="Teléfono" placeholder="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input className={field} name="address-level1" autoComplete="address-level1" aria-label="Provincia" placeholder="Provincia" value={province} onChange={(e) => setProvince(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[12px] font-semibold text-slate-500">Cantidad</label>
               <input type="number" min={1} className={field} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
@@ -172,14 +172,16 @@ export default function CorporateForm({ models }: { models: ModelOpt[] }) {
           <textarea
             className={field}
             rows={2}
-            placeholder="Comentarios (opcional)"
+            aria-label="Comentarios" placeholder="Comentarios (opcional)"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
           />
           <Honeypot name="website" value={website} onChange={setWebsite} />
         </div>
 
-        {error && <p className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
+        {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
 
         <button
           type="submit"

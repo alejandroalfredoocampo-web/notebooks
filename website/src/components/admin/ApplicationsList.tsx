@@ -40,7 +40,7 @@ function Row({ label, value, href }: { label: string; value?: string | null; hre
     <div className="flex gap-2 text-[13px]">
       <span className="w-40 shrink-0 text-slate-400">{label}</span>
       {href ? (
-        <a href={href} target="_blank" rel="noreferrer" className="break-all font-medium text-brand-blue hover:underline">
+        <a href={href} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-brand-blue hover:underline">
           {value}
         </a>
       ) : (

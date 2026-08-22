@@ -52,7 +52,7 @@ export default function PriceAlertForm({
         🔔 Avisame si baja de precio
       </div>
       <input
-        type="email"
+        type="email" autoComplete="email" inputMode="email"
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
@@ -66,7 +66,9 @@ export default function PriceAlertForm({
       >
         {loading ? "Creando…" : "Crear alerta"}
       </button>
-      {error && <p className="w-full text-[13px] font-semibold text-red-600">{error}</p>}
+      {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="w-full text-[13px] font-semibold text-red-600">{error}</p>}
     </form>
   );
 }

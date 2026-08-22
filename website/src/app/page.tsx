@@ -19,11 +19,17 @@ import { DESCRIPCION_SITIO } from "@/lib/site";
  * Los slugs son los de `content/guias.ts`. La lista se deriva de ahí para que no puedan
  * quedar desincronizadas.
  */
+/** "Qué notebook conviene para estudiar" → "Estudiar". */
+function tituloCorto(titulo: string): string {
+  const t = titulo.replace(/^Qué notebook conviene para (trabajo de )?/, "");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 const USE_CASES = GUIAS.map((g) => ({
   slug: g.slug,
   icon: g.icono,
-  title: g.titulo.replace(/^Qué notebook conviene para /, "").replace(/^\w/, (c) => c.toUpperCase()),
-  desc: g.resumen,
+  title: tituloCorto(g.titulo),
+  desc: g.corto,
 }));
 
 /**

@@ -113,26 +113,33 @@ const nextConfig = {
   // El header "hecho con Next" no aporta nada y le dice a cualquiera qué stack atacar.
   poweredByHeader: false,
 
+  /**
+   * **El optimizador de imágenes queda apagado, y es una decisión, no un olvido.**
+   *
+   * La tentación era `remotePatterns: [{ hostname: "**" }]`, porque las imágenes de
+   * producto salen de los scrapers y el conjunto de hosts es abierto por diseño: crece cada
+   * vez que se suma una tienda. Pero ese comodín tiene dos consecuencias que lo vuelven
+   * mala idea justo en este sitio:
+   *
+   *  1. **Deja `/_next/image?url=…` como proxy abierto.** Con `**`, cualquiera puede pedirle
+   *     al sitio que baje y sirva una imagen arbitraria de internet desde *nuestro* dominio.
+   *     Es un vector conocido de abuso —para servir contenido ajeno con nuestra reputación,
+   *     y para usarnos de intermediario— y no hay lista blanca posible que lo cierre sin
+   *     romper el catálogo.
+   *  2. **Se factura por imagen de origen.** Con miles de productos de decenas de dominios,
+   *     la cuota de optimización se consume en días y pasa a ser una factura variable atada
+   *     a cuántas tiendas se indexen. Es exactamente el costo que un comparador no quiere
+   *     que crezca con su catálogo.
+   *
+   * A cambio, las ganancias reales de rendimiento se toman sin el optimizador: dimensiones
+   * declaradas para que no haya salto de layout, carga temprana de la imagen que define el
+   * LCP y diferida para el resto. Ver `components/ModelImage.tsx`.
+   *
+   * Si algún día las imágenes se copian a un bucket propio (que es lo que hizo el otro
+   * proyecto con R2), acá se declara ese host y se prende el optimizador.
+   */
   images: {
-    /**
-     * Las imágenes son de terceros y el conjunto de hosts es abierto (ver `IMAGENES`).
-     * `remotePatterns` con `hostname: "**"` es lo que permite usar `next/image` sin tener
-     * que dar de alta un host cada vez que se suma una tienda.
-     *
-     * `dangerouslyAllowSVG` queda en **false** (el default) a propósito: un SVG servido
-     * desde el host de otra empresa puede traer script, y el optimizador lo pasaría tal
-     * cual. Las tiendas publican JPG y WebP; el día que una publique SVG, esa imagen no se
-     * muestra y está bien que así sea.
-     */
-    remotePatterns: [
-      { protocol: "https", hostname: "**" },
-    ],
-    // Los tamaños que el sitio pide de verdad: la tarjeta de la grilla y la ficha.
-    imageSizes: [96, 128, 200, 256, 384],
-    deviceSizes: [640, 750, 828, 1080, 1200],
-    formats: ["image/webp"],
-    // Una imagen de producto cambia cuando la tienda la cambia, no en cada request.
-    minimumCacheTTL: 60 * 60 * 24,
+    unoptimized: true,
   },
 
   async headers() {

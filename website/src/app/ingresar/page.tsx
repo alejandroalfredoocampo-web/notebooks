@@ -106,7 +106,9 @@ export default function IngresarPage() {
         </button>
       </form>
 
-      {error && <p className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
+      {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
       {msg && <p className="mt-3 text-[13px] font-semibold text-emerald-700">{msg}</p>}
 
       <p className="mt-5 text-center text-[13px] text-slate-500">

@@ -179,7 +179,7 @@ export default async function StoreProfilePage({ params }: { params: Params }) {
                     </span>
                     <a
                       href={`/salir/${listing.id}`}
-                      rel="nofollow sponsored"
+                      rel="nofollow sponsored noopener noreferrer"
                       className="rounded-lg border-[1.5px] border-brand-blue px-2.5 py-1 text-[11px] font-bold text-brand-blue hover:bg-blue-50"
                     >
                       Ir a la tienda

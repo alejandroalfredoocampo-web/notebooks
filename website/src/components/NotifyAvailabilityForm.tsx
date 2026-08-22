@@ -58,7 +58,7 @@ export default function NotifyAvailabilityForm({
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
         <input
-          type="email"
+          type="email" autoComplete="email" inputMode="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -83,7 +83,9 @@ export default function NotifyAvailabilityForm({
           {loading ? "Registrando…" : "Avisarme"}
         </button>
       </div>
-      {error && <p className="mt-2 text-[13px] font-semibold text-red-600">{error}</p>}
+      {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="mt-2 text-[13px] font-semibold text-red-600">{error}</p>}
     </form>
   );
 }

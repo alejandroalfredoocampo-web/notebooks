@@ -104,12 +104,24 @@ export default function HeroSearch() {
       <form ref={formRef} action="/notebooks" className="relative" autoComplete="off">
         <input
           ref={inputRef}
-          type="text"
+          type="search"
           name="q"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => sug && setOpen(true)}
           placeholder="¿Qué notebook estás buscando?"
+          // `inputMode` y `enterKeyHint` cambian el teclado de mobile: aparece la tecla
+          // "Ir" en vez del salto de línea. `autoComplete="off"` evita que el historial del
+          // navegador tape las sugerencias del sitio, que es lo que pasaba en Chrome de
+          // Android. Y el combobox declarado es lo que hace que un lector de pantalla
+          // anuncie que hay sugerencias, en vez de leer un campo de texto cualquiera.
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          aria-label="Buscar notebooks por modelo, marca o características"
           className="h-13 w-full rounded-full border-0 py-4 pl-6 pr-24 text-base text-slate-900 shadow-xl outline-none ring-2 ring-transparent focus:ring-brand-cyan"
         />
         {supported && (

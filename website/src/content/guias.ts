@@ -30,8 +30,18 @@ export type Guia = {
   slug: string;
   /** Lo que la persona escribiría en el buscador. Es el H1 y la base del title. */
   titulo: string;
-  /** Para las tarjetas del índice. */
+  /** Para las tarjetas del índice de guías, donde hay lugar para una línea larga. */
   resumen: string;
+  /**
+   * Dos o tres palabras, para la grilla de la home.
+   *
+   * Existe separado de `resumen` porque en la home esas tarjetas van a dos columnas en un
+   * viewport de 375px: cada una mide ~170px y el resumen largo se corta a la mitad. Es el
+   * mismo problema que las cuatro grillas de contenido largo del otro proyecto, que había
+   * que apilar en mobile — acá se resuelve con un texto más corto en vez de apilando,
+   * porque cinco tarjetas apiladas son cinco pantallas.
+   */
+  corto: string;
   icono: string;
   /**
    * La respuesta, en prosa y arriba de todo.
@@ -75,6 +85,7 @@ export const GUIAS: Guia[] = [
   {
     slug: "estudiar",
     titulo: "Qué notebook conviene para estudiar",
+    corto: "Liviana y con batería",
     resumen: "Liviana, con batería que aguante el día y suficiente para cursar sin frenarse.",
     icono: "📚",
     respuesta:
@@ -108,6 +119,7 @@ export const GUIAS: Guia[] = [
   {
     slug: "gaming",
     titulo: "Qué notebook conviene para jugar",
+    corto: "GPU dedicada y 144 Hz",
     resumen: "La placa de video manda, pero la pantalla y la refrigeración deciden la experiencia real.",
     icono: "🎮",
     respuesta:
@@ -141,6 +153,7 @@ export const GUIAS: Guia[] = [
   {
     slug: "diseno",
     titulo: "Qué notebook conviene para diseño y edición",
+    corto: "Pantalla y memoria",
     resumen: "La pantalla es la herramienta de trabajo. Después, memoria y placa dedicada.",
     icono: "🎨",
     respuesta:
@@ -177,6 +190,7 @@ export const GUIAS: Guia[] = [
   {
     slug: "programar",
     titulo: "Qué notebook conviene para programar",
+    corto: "RAM y disco",
     resumen: "Memoria y disco antes que procesador. Contenedores y entornos comen RAM.",
     icono: "👩‍💻",
     respuesta:
@@ -211,6 +225,7 @@ export const GUIAS: Guia[] = [
   {
     slug: "oficina",
     titulo: "Qué notebook conviene para trabajo de oficina",
+    corto: "Confiable y liviana",
     resumen: "Confiabilidad, teclado y batería. La potencia sobra hace años.",
     icono: "💼",
     respuesta:

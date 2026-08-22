@@ -21,6 +21,7 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
 import { metaRuta, recortar } from "@/lib/seo";
 import { breadcrumbLd, grafo, productoLd, tiendaLd } from "@/lib/schema";
+import BarraMejorPrecio from "@/components/BarraMejorPrecio";
 
 interface Params {
   brand: string;
@@ -131,6 +132,22 @@ export default async function ModelPage({ params }: { params: Params }) {
   return (
     <div className="mx-auto max-w-6xl px-4">
       <TrackView modelId={model.id} />
+      {/**
+       * La barra fija de mobile con el mejor precio y el link a la tienda.
+       *
+       * Medido: sin ella, el primer "Ir a la tienda" está a 1.584px — casi dos pantallas
+       * abajo del pliegue en un iPhone. Ver el docblock del componente.
+       */}
+      {model.bestListing && (
+        <BarraMejorPrecio
+          precio={model.bestPrice}
+          tienda={model.bestListing.store.name}
+          listingId={model.bestListing.id}
+          cantidadTiendas={model.listings.length}
+          cuotas={model.bestInstallment}
+        />
+      )}
+
       <JsonLd
         data={grafo(
           productoLd(model),
@@ -140,35 +157,51 @@ export default async function ModelPage({ params }: { params: Params }) {
       />
       <Breadcrumbs items={migas} />
 
-      <div className="grid gap-8 py-5 md:grid-cols-[1fr_1.4fr]">
-        {/* Columna izquierda: imagen + specs */}
-        <div>
-          <div className="flex h-72 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white text-8xl shadow-sm">
-            <ModelImage
-              src={model.imageUrl}
-              alt={`${model.brand} ${model.name}`}
-              emoji={model.gpuType === "dedicada" ? "🎮" : model.os === "macOS" ? "🍎" : "💻"}
-              className="h-full w-full p-4"
-              sizes="400px"
-            />
-          </div>
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 font-extrabold">Especificaciones</h2>
-            <table className="w-full table-fixed text-[13px]">
-              <tbody>
-                {specs.map(([k, v]) => (
-                  <tr key={k} className="border-b border-slate-100 last:border-0">
-                    <td className="w-[42%] py-2 pr-2 align-top text-slate-500">{k}</td>
-                    <td className="py-2 font-semibold [overflow-wrap:anywhere]">{v}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/**
+       * ## El orden en mobile, que estaba al revés
+       *
+       * En escritorio son dos columnas: a la izquierda imagen y specs, a la derecha nombre y
+       * precios. En mobile eso se apila en el orden del HTML, así que lo primero que veía
+       * alguien con un teléfono era **una foto de 288px y la tabla de especificaciones
+       * completa**; el nombre del equipo y el precio quedaban abajo del pliegue. Medido: el
+       * `<h1>` no entraba en la primera pantalla.
+       *
+       * Ahora los tres bloques son hijos directos de la grilla y se ordenan por separado:
+       * en mobile van foto → nombre y precios → specs, que es el orden en el que alguien
+       * decide. En escritorio se los vuelve a poner en su celda con `col-start` / `row-start`,
+       * así la disposición de dos columnas queda igual que antes.
+       */}
+      <div className="grid gap-x-8 gap-y-6 py-5 md:grid-cols-[1fr_1.4fr]">
+        {/* Foto — primera en las dos disposiciones */}
+        <div className="order-1 flex h-56 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white text-8xl shadow-sm sm:h-72 md:order-none md:col-start-1 md:row-start-1">
+          <ModelImage
+            src={model.imageUrl}
+            alt={`${model.brand} ${model.name}`}
+            emoji={model.gpuType === "dedicada" ? "🎮" : model.os === "macOS" ? "🍎" : "💻"}
+            className="h-full w-full p-4"
+            sizes="(max-width: 767px) 100vw, 400px"
+            // La imagen que domina la primera pantalla de la ficha: es la que mide el LCP.
+            prioridad
+          />
         </div>
 
-        {/* Columna derecha: precios */}
-        <div>
+        {/* Specs — última en mobile, debajo de la foto en escritorio */}
+        <div className="order-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:order-none md:col-start-1 md:row-start-2">
+          <h2 className="mb-3 font-extrabold">Especificaciones</h2>
+          <table className="w-full table-fixed text-[13px]">
+            <tbody>
+              {specs.map(([k, v]) => (
+                <tr key={k} className="border-b border-slate-100 last:border-0">
+                  <td className="w-[42%] py-2 pr-2 align-top text-slate-500">{k}</td>
+                  <td className="py-2 font-semibold [overflow-wrap:anywhere]">{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Nombre, precios y ofertas — segunda en mobile, columna derecha en escritorio */}
+        <div className="order-2 md:order-none md:col-start-2 md:row-start-1 md:row-span-2">
           <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
             {model.brand}
           </div>
@@ -312,7 +345,7 @@ export default async function ModelPage({ params }: { params: Params }) {
                   )}
                   <a
                     href={`/salir/${l.id}`}
-                    rel="nofollow sponsored"
+                    rel="nofollow sponsored noopener noreferrer"
                     className={`mt-3 block rounded-lg px-4 py-2 text-center text-[13px] font-bold transition ${
                       isBest
                         ? "bg-brand-blue text-white hover:bg-brand-darker"
@@ -401,7 +434,7 @@ export default async function ModelPage({ params }: { params: Params }) {
                       <td className="px-4 py-3.5 text-right">
                         <a
                           href={`/salir/${l.id}`}
-                          rel="nofollow sponsored"
+                          rel="nofollow sponsored noopener noreferrer"
                           className={`inline-block whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-bold transition ${
                             isBest
                               ? "bg-brand-blue text-white hover:bg-brand-darker"

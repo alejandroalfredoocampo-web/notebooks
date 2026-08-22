@@ -21,7 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="border-t border-slate-100 pt-4">
       <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-brand-blue">{title}</h3>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
     </div>
   );
 }
@@ -83,7 +83,7 @@ export default function StoreApplicationForm() {
           </div>
           <div>
             <label className={label}>Sitio web *</label>
-            <input className={field} value={f.website} onChange={(e) => set("website", e.target.value)} placeholder="https://mitienda.com.ar" />
+            <input className={field} type="url" inputMode="url" aria-label="Sitio web de la tienda" value={f.website} onChange={(e) => set("website", e.target.value)} placeholder="https://mitienda.com.ar" />
           </div>
         </Section>
 
@@ -94,11 +94,11 @@ export default function StoreApplicationForm() {
           </div>
           <div>
             <label className={label}>Email *</label>
-            <input className={field} type="email" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} placeholder="ventas@mitienda.com.ar" />
+            <input className={field} type="email" autoComplete="email" inputMode="email" name="email" aria-label="Email de contacto" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} placeholder="ventas@mitienda.com.ar" />
           </div>
           <div>
             <label className={label}>Teléfono / WhatsApp</label>
-            <input className={field} value={f.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} placeholder="+54 9 351 ..." />
+            <input className={field} type="tel" autoComplete="tel" inputMode="tel" aria-label="Teléfono de contacto" value={f.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} placeholder="+54 9 351 ..." />
           </div>
         </Section>
 
@@ -175,7 +175,9 @@ export default function StoreApplicationForm() {
         </div>
       </div>
 
-      {error && <p className="mt-4 text-[13px] font-semibold text-red-600">{error}</p>}
+      {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="mt-4 text-[13px] font-semibold text-red-600">{error}</p>}
 
       <button
         type="submit"
