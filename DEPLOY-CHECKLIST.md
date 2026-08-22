@@ -8,6 +8,59 @@ Todo esto requiere la `service_role` o acceso a dashboards → lo hacés vos, no
 
 ---
 
+## ⚠️ Antes de desplegar la ronda de paridad (2026-08-22)
+
+La rama `paridad-cordoba-notebooks` trae **dos cambios que rompen si el entorno no está
+preparado**. Leé esto antes de mergear; el detalle está en
+`06-paridad-con-cordoba-notebooks.md`.
+
+### 1. `ADMIN_SESSION_TOKEN` ahora es obligatoria
+
+Antes, cuando faltaba, el código caía en un valor por defecto escrito en el repositorio. Eso
+significa que **si hoy no está seteada en Vercel, el admin está protegido por un string
+público** y anda igual — que es exactamente el problema. Ahora falta la variable y no entra
+nadie.
+
+**Qué hacer, en este orden:**
+
+1. Vercel → Settings → Environment Variables → verificar que existan **las dos**:
+   - `ADMIN_PASSWORD` (16 caracteres o más; el panel avisa si es corta o previsible)
+   - `ADMIN_SESSION_TOKEN` (`openssl rand -hex 32`, distinta de la contraseña)
+2. Recién después, desplegar.
+
+Si desplegás primero, el admin contesta **503 "El admin no está configurado"** hasta que
+las cargues. No se pierde nada, pero no vas a poder entrar.
+
+### 2. Dos migraciones nuevas
+
+| Migración | Qué habilita | Rompe si falta |
+|---|---|---|
+| `0013_rate_limits.sql` | Rate limiting de los formularios públicos | No: el limitador falla abierto y loguea. Pero el sitio queda sin techo. |
+| `0014_clickout_atribucion.sql` | Atribución del click saliente | **Sí**: el `insert` en `click_outs` referencia columnas que no existen y **los clicks dejan de registrarse** (el redirect sigue andando, el registro no). |
+
+Correr las dos en Supabase → SQL Editor antes de desplegar.
+
+### 3. Variables nuevas, todas opcionales
+
+| Variable | Si falta |
+|---|---|
+| `NEXT_PUBLIC_SITE_URL` | Se usa `https://www.notebooks.com.ar`. **Setearla en preview/staging**, o ese entorno se declara como producción. |
+| `REVALIDATE_SECRET` | El endpoint de invalidación contesta 503 y los precios nuevos tardan hasta 5 min en verse. Nada se rompe. |
+| `CSP_ENFORCE` | La CSP sale en report-only: informa y no bloquea. **Dejarla así unas semanas** y recién después poner `true`. |
+
+Todas están documentadas en `website/.env.example`.
+
+### 4. Verificación después del deploy
+
+```bash
+cd website && npm run chequear -- https://notebooks-tan.vercel.app
+```
+
+Chequea cabeceras, CSP, indexación, las 15 rutas públicas, el sitemap, `llms.txt`, los datos
+estructurados y que el admin y el portal sigan cerrados. Sale con código 1 si algo falla.
+
+---
+
 ## 0. 🔴 Rotar la `service_role` (seguridad, primero)
 
 Se expuso en una captura de pantalla compartida en el chat. Da acceso total a la base.
@@ -38,6 +91,8 @@ Estado verificado hoy:
 | `0010_store_portal.sql` | Portal de tiendas | ✅ corrida |
 | **`0011_store_tiers.sql`** | **Destacados + tiers + CPC** | ❌ **FALTA** |
 | `0012_store_clicks_read.sql` | Panel de tráfico de la tienda | ⚠️ verificar |
+| **`0013_rate_limits.sql`** | **Rate limiting de los formularios** | ❌ **nueva (22-ago)** |
+| **`0014_clickout_atribucion.sql`** | **Atribución del click saliente** | ❌ **nueva (22-ago)** |
 
 **Qué hacer:** abrir cada archivo de `website/supabase/migrations/` y pegar su contenido en el
 **SQL Editor** de Supabase → Run. Correr **`0007`** y **`0011`**.
@@ -132,8 +187,10 @@ Todas funcionan pero no tienen datos que mostrar:
 | 📝 Blog | ✅ ya tiene 5 reseñas |
 | 🔔 Ficha "próximamente" | Crear en `/admin` un modelo sin publicaciones (requiere `0007`) |
 
-**Admin:** si no podés entrar, revisá `ADMIN_PASSWORD` en Vercel → Environment Variables
-(y redeploy). Login en `/admin/login`.
+**Admin:** si no podés entrar, revisá que estén **las dos** variables (`ADMIN_PASSWORD` y
+`ADMIN_SESSION_TOKEN`) en Vercel → Environment Variables, y redeploy. Si falta alguna, el
+login contesta 503 con el texto "El admin no está configurado en este entorno" — eso es un
+problema de configuración, no de contraseña. Login en `/admin/login`.
 
 ---
 

@@ -1,16 +1,43 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getDeals, getModels, getStores, countListings, getBrands } from "@/lib/data";
 import ModelCard from "@/components/ModelCard";
 import HeroSearch from "@/components/HeroSearch";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import { GUIAS } from "@/content/guias";
+import { metaRuta } from "@/lib/seo";
+import { DESCRIPCION_SITIO } from "@/lib/site";
 
-const USE_CASES = [
-  { slug: "estudiar", icon: "📚", title: "Estudiar", desc: "Liviana y con batería" },
-  { slug: "oficina", icon: "💼", title: "Oficina", desc: "Rendimiento diario" },
-  { slug: "gaming", icon: "🎮", title: "Gaming", desc: "GPU dedicada" },
-  { slug: "diseno", icon: "🎨", title: "Diseño", desc: "Pantalla y color" },
-  { slug: "programar", icon: "👩‍💻", title: "Programar", desc: "RAM y multitarea" },
-];
+/**
+ * Los cinco casos de uso ahora llevan a su **guía** y no a `/notebooks?use=…`.
+ *
+ * Dos razones. La de producto: el listado filtrado le devuelve una grilla a alguien que
+ * todavía no sabe qué mirar, que es exactamente el que hizo click acá. La de SEO: el
+ * listado filtrado es `noindex` (ver `notebooks/page.tsx`), así que estos cinco links —de
+ * los más prominentes de la home— apuntaban a páginas que le pedimos a Google que ignore.
+ *
+ * Los slugs son los de `content/guias.ts`. La lista se deriva de ahí para que no puedan
+ * quedar desincronizadas.
+ */
+/** "Qué notebook conviene para estudiar" → "Estudiar". */
+function tituloCorto(titulo: string): string {
+  const t = titulo.replace(/^Qué notebook conviene para (trabajo de )?/, "");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+const USE_CASES = GUIAS.map((g) => ({
+  slug: g.slug,
+  icon: g.icono,
+  title: tituloCorto(g.titulo),
+  desc: g.corto,
+}));
+
+/**
+ * La home es la única página cuyo canonical es `/` y no la URL con la que se llegó. Sin
+ * esto, `notebooks.com.ar/?utm_source=instagram` entraba al índice como una página propia
+ * que compite con la home por su mismo contenido.
+ */
+export const metadata: Metadata = metaRuta("/", { description: DESCRIPCION_SITIO });
 
 export const dynamic = "force-dynamic";
 
@@ -81,12 +108,12 @@ export default async function Home() {
           {USE_CASES.map((u) => (
             <Link
               key={u.slug}
-              href={`/notebooks?use=${u.slug}`}
+              href={`/guias/${u.slug}`}
               className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:border-brand-blue hover:shadow-lg"
             >
               <div className="text-2xl">{u.icon}</div>
               <div className="mt-1.5 text-sm font-bold">{u.title}</div>
-              <div className="text-xs text-slate-500">{u.desc}</div>
+              <div className="mt-0.5 text-xs leading-snug text-slate-500">{u.desc}</div>
             </Link>
           ))}
         </div>

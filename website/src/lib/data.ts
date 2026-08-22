@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { supabase } from "./supabaseServer";
 import { ramBucket, storageBucket, screenBucket } from "./specFilters";
 import { cleanModelName } from "./format";
@@ -93,35 +94,117 @@ function mapListing(r: Row): Listing {
   };
 }
 
+/**
+ * Ventana del historial de precios, en días.
+ *
+ * ## Por qué existe, y el error que arregla
+ *
+ * `price_history` se traía **entera**, sin filtro de fecha, y de ahí salía `avg90`. O sea
+ * que el promedio que el sitio llama "de los últimos 90 días" era en realidad el promedio
+ * de **todo** el historial — y esa cifra es la que sostiene la afirmación central del
+ * producto: la insignia de "oferta verificada", el termómetro de precio, y lo que
+ * `llms.txt` le declara a un modelo como definición de oferta real. Hoy la diferencia es
+ * chica porque el historial es corto; dentro de un año el "promedio de 90 días" sería el
+ * promedio de cuatro trimestres y las ofertas dejarían de detectarse.
+ *
+ * El mismo filtro arregla un problema de escala: la consulta crecía sin techo. Con 3.000
+ * modelos y un punto por día, al año son ~1.000.000 de filas traídas **en cada request**.
+ */
+const DIAS_HISTORIAL = 90;
+
+function desdeCuando(dias = DIAS_HISTORIAL): string {
+  const d = new Date();
+  d.setDate(d.getDate() - dias);
+  return d.toISOString().slice(0, 10);
+}
+
 // ---------------------------------------------------------------------------
 // Carga única por request (React cache dedupe). RLS deja ver solo el catálogo
 // público y las publicaciones confirmadas.
 // ---------------------------------------------------------------------------
+/**
+ * Etiqueta de caché del catálogo.
+ *
+ * Todo lo público sale de una sola consulta, así que hay una sola etiqueta. La invalidan
+ * el scraper (por `POST /api/revalidar`) y las escrituras del admin, que es lo que permite
+ * que el sitio esté cacheado **y** al día: no se espera a que venza un TTL, se avisa cuando
+ * el dato cambió.
+ */
+export const TAG_CATALOGO = "catalogo";
+
+/**
+ * Techo de frescura, en segundos.
+ *
+ * Es la red por si la invalidación no llega — un scraper que falla, un deploy que se lleva
+ * el secreto, una escritura por fuera de la app (alguien tocando la tabla en el panel de
+ * Supabase). Sin este techo, un aviso perdido deja el sitio con precios viejos hasta el
+ * próximo deploy, y en un comparador eso no es un cache viejo: es un precio equivocado.
+ *
+ * Cinco minutos es corto para lo que cambia "varias veces por día" y suficiente para que
+ * una ráfaga de visitas no se traduzca en una ráfaga de consultas.
+ */
+const SEGUNDOS_CATALOGO = 300;
+
+/**
+ * La consulta cruda. Devuelve **sólo estructuras planas**, a propósito.
+ *
+ * `unstable_cache` serializa lo que devuelve la función, y un `Map` no sobrevive esa vuelta:
+ * entra como `Map` y sale como `{}`, sin error y sin ruido. Por eso los índices (`storesById`)
+ * se arman afuera, sobre lo que salió del caché.
+ */
+const traerCatalogo = unstable_cache(
+  async () => {
+    const [storesR, modelsR, listingsR, historyR] = await Promise.all([
+      // select('*') es resiliente (solo trae columnas existentes → no rompe si una
+      // migración no corrió). `cpc_ars` (info comercial) NO se mapea al Store público
+      // — ver mapStore — y como las páginas públicas son server components, nunca llega
+      // al navegador.
+      supabase.from("stores").select("*"),
+      supabase.from("models").select("*"),
+      supabase.from("listings").select("*"),
+      supabase
+        .from("price_history")
+        .select("model_id,captured_on,best_price")
+        // Acotado a la ventana que el sitio dice usar. Ver `DIAS_HISTORIAL`.
+        .gte("captured_on", desdeCuando())
+        .order("captured_on", { ascending: true }),
+    ]);
+
+    const firstErr = storesR.error || modelsR.error || listingsR.error || historyR.error;
+    if (firstErr) throw new Error(`Supabase: ${firstErr.message}`);
+
+    return {
+      stores: (storesR.data ?? []).map(mapStore),
+      models: (modelsR.data ?? []).map(mapModel),
+      listings: (listingsR.data ?? []).map(mapListing),
+      historial: (historyR.data ?? []) as Row[],
+    };
+  },
+  ["catalogo-publico"],
+  { tags: [TAG_CATALOGO], revalidate: SEGUNDOS_CATALOGO },
+);
+
+/**
+ * Catálogo listo para usar: una vez por request (`cache` de React) sobre el resultado
+ * cacheado entre requests (`unstable_cache`).
+ *
+ * ## Por qué se cachea, si la decisión anterior era "siempre en vivo"
+ *
+ * La decisión era correcta en su motivo —un comparador no puede mostrar un precio de ayer—
+ * y cara en su implementación: cada visita a cualquier página disparaba cuatro consultas de
+ * tabla completa. La home sola son cinco llamadas al catálogo entero.
+ *
+ * Cachear **por etiqueta** en vez de por tiempo conserva el motivo y saca el costo: el dato
+ * se sirve del caché hasta que alguien avisa que cambió, y quien lo cambia es siempre el
+ * mismo par de lugares (el scraper y el admin), que ahora avisan. El techo de cinco minutos
+ * cubre el caso en que el aviso no llegue.
+ */
 const loadAll = cache(async () => {
-  const [storesR, modelsR, listingsR, historyR] = await Promise.all([
-    // select('*') es resiliente (solo trae columnas existentes → no rompe si una
-    // migración no corrió). `cpc_ars` (info comercial) NO se mapea al Store público
-    // — ver mapStore — y como las páginas públicas son server components, nunca llega
-    // al navegador.
-    supabase.from("stores").select("*"),
-    supabase.from("models").select("*"),
-    supabase.from("listings").select("*"),
-    supabase
-      .from("price_history")
-      .select("model_id,captured_on,best_price")
-      .order("captured_on", { ascending: true }),
-  ]);
-
-  const firstErr = storesR.error || modelsR.error || listingsR.error || historyR.error;
-  if (firstErr) throw new Error(`Supabase: ${firstErr.message}`);
-
-  const stores = (storesR.data ?? []).map(mapStore);
-  const models = (modelsR.data ?? []).map(mapModel);
-  const listings = (listingsR.data ?? []).map(mapListing);
+  const { stores, models, listings, historial } = await traerCatalogo();
 
   const storesById = new Map(stores.map((s) => [s.id, s]));
   const historyByModel: Record<string, PricePoint[]> = {};
-  for (const r of historyR.data ?? []) {
+  for (const r of historial) {
     (historyByModel[r.model_id as string] ??= []).push({
       date: r.captured_on as string,
       bestPrice: r.best_price as number,
@@ -186,6 +269,10 @@ function enrich(model: NotebookModel, data: Loaded): ModelWithOffers {
   const avg90 = h.length
     ? Math.round(h.reduce((s, p) => s + p.bestPrice, 0) / h.length)
     : null;
+  // Es el mínimo **de la ventana**, no de todo el tiempo. El nombre del campo quedó por
+  // compatibilidad; el texto que lo muestra dice "en 90 días", que es lo que se puede
+  // afirmar. Decir "mínimo histórico" sobre una ventana de 90 días es la clase de
+  // afirmación que un lector puede desmentir mirando el gráfico de al lado.
   const minHistoric = h.length ? Math.min(...h.map((p) => p.bestPrice)) : null;
   const dropPct =
     avg90 && bestPrice ? Math.round(((avg90 - bestPrice) / avg90) * 100) : 0;

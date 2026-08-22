@@ -6,6 +6,10 @@ import { fmtARS } from "@/lib/format";
 import ModelCard from "@/components/ModelCard";
 import EntityHero from "@/components/EntityHero";
 import Markdown from "@/components/Markdown";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { metaRuta, recortar } from "@/lib/seo";
+import { breadcrumbLd, coleccionLd, grafo } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +30,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const description =
     info?.seoDesc ||
     `Todas las notebooks ${brand.name} con el mejor precio de cada tienda de Argentina. ${brand.count} modelos comparados con historial de precios.`;
-  return { title, description, alternates: { canonical: `/marcas/${brand.slug}` } };
+  return metaRuta(`/marcas/${brand.slug}`, { title, description: recortar(description, 300) });
 }
 
 export default async function BrandLandingPage({ params }: { params: Params }) {
@@ -42,8 +46,39 @@ export default async function BrandLandingPage({ params }: { params: Params }) {
   const minPrice = Math.min(...models.map((m) => m.bestPrice).filter((p) => p > 0));
   const dedicated = models.filter((m) => m.gpuType === "dedicada").length;
 
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Marcas", path: "/marcas" },
+    { nombre: brand.name, path: `/marcas/${brand.slug}` },
+  ];
+
   return (
     <>
+      {/**
+       * Las páginas de marca eran las únicas del sitio sin ningún dato estructurado: un
+       * `<h1>`, una grilla y un párrafo. Para un buscador eso es una página de la que hay
+       * que adivinar qué es. `CollectionPage` + `ItemList` la declara como lista, con su
+       * orden y sus items — que es lo que permite que un modelo conteste "qué notebooks
+       * Lenovo hay" enumerando en vez de resumiendo.
+       */}
+      <JsonLd
+        data={grafo(
+          coleccionLd({
+            path: `/marcas/${brand.slug}`,
+            nombre: `Notebooks ${brand.name}`,
+            descripcion: info?.seoDesc || undefined,
+            items: models.slice(0, 100).map((m) => ({
+              nombre: `${m.brand} ${m.name}`,
+              path: `/notebooks/${m.brandSlug}/${m.slug}`,
+            })),
+          }),
+          breadcrumbLd(migas),
+        )}
+      />
+      <div className="mx-auto max-w-6xl px-4">
+        <Breadcrumbs items={migas} />
+      </div>
+
       <EntityHero
         eyebrow="Marca"
         title={info?.name || brand.name}

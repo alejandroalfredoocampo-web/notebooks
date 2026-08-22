@@ -33,13 +33,13 @@ export function priceInsight(bestPrice: number, history: PricePoint[]): PriceIns
     isAtMin ? "min" : vsAvgPct <= -5 ? "good" : vsAvgPct < 5 ? "normal" : "high";
 
   const headline =
-    level === "min" ? "Mínimo histórico" :
+    level === "min" ? "El más bajo en 90 días" :
     level === "good" ? "Buen momento para comprar" :
     level === "normal" ? "Precio en su valor habitual" :
     "Está caro";
 
   const detailBase =
-    level === "min" ? "Es el precio más bajo que registramos." :
+    level === "min" ? "Es el precio más bajo de los últimos 90 días." :
     level === "good" ? `Está ${Math.abs(vsAvgPct)}% por debajo del promedio de los últimos 90 días.` :
     level === "normal" ? "En línea con el promedio de los últimos 90 días." :
     `Está ${vsAvgPct}% por encima del promedio; suele conseguirse más barato.`;

@@ -5,6 +5,9 @@ out/
 var/
 *.log
 .env*
+# El ejemplo sí va al repositorio: no tiene valores, y es lo que le dice a quien
+# despliega qué hay que setear. Sin él, la lista vive en la cabeza de una persona.
+!.env.example
 .DS_Store
 tsconfig.tsbuildinfo
 

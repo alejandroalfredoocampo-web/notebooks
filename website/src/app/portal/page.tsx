@@ -28,8 +28,15 @@ type InsightRow = {
 type Insights = { kpis: { modelsSold: number; wins: number; avgGapPct: number }; rows: InsightRow[] };
 type Traffic = { total: number; last30: number; top: { modelId: string; count: number }[] };
 
+/**
+ * ID de la cotización.
+ *
+ * `crypto.randomUUID()` en vez de `Math.random()`: el generador de V8 no es criptográfico
+ * y su estado se reconstruye observando salidas. Acá el id identifica una cotización
+ * comercial, así que no conviene que sea adivinable.
+ */
 function genId() {
-  return "q_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  return "q_" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
 export default function PortalPage() {
@@ -60,10 +67,25 @@ export default function PortalPage() {
       setMembership({ storeId, storeName });
 
       // Inteligencia de precios (spec 11): posición competitiva de la tienda.
-      fetch(`/api/portal/insights?storeId=${encodeURIComponent(storeId)}`)
-        .then((r) => r.json())
-        .then((d) => setInsights(d?.rows ? d : null))
-        .catch(() => {});
+      //
+      // El informe dejó de ser público (ver `lib/sesionTienda.ts`), así que ahora va con el
+      // token de la sesión. Se lee en el momento del pedido y no antes: Supabase lo rota,
+      // y un token capturado al montar el componente puede estar vencido cuando se usa.
+      (async () => {
+        const { data: s } = await sb.auth.getSession();
+        const token = s.session?.access_token;
+        if (!token) return;
+        try {
+          const r = await fetch(`/api/portal/insights?storeId=${encodeURIComponent(storeId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!r.ok) return;
+          const d = await r.json();
+          setInsights(d?.rows ? d : null);
+        } catch {
+          /* el panel de insights simplemente no se muestra */
+        }
+      })();
 
       // Panel de tráfico: click-outs que le mandamos a la tienda (RLS: solo los suyos).
       (async () => {

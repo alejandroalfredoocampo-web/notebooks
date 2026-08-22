@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
+import { breadcrumbLd, grafo, tiendaLd, ID_SITIO } from "@/lib/schema";
+import { urlAbsoluta } from "@/lib/site";
 import Link from "next/link";
 import { getStores, getModels } from "@/lib/data";
 import StoreApplicationForm from "@/components/StoreApplicationForm";
@@ -6,16 +11,30 @@ import StoreRating from "@/components/StoreRating";
 import StoreTierBadge from "@/components/StoreTierBadge";
 import SponsoredStores from "@/components/SponsoredStores";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/tiendas", {
   title: "Tiendas indexadas",
   description:
     "Las tiendas argentinas que monitoreamos para comparar precios de notebooks. Indexación gratuita para tiendas online establecidas.",
-};
+});
 
 export const dynamic = "force-dynamic";
 
 export default async function TiendasPage() {
   const [stores, models] = await Promise.all([getStores(), getModels()]);
+  const migas: Miga[] = [
+    { nombre: "Inicio", path: "/" },
+    { nombre: "Tiendas", path: "/tiendas" },
+  ];
+
+  /**
+   * El nodo de cada tienda va acá también, no sólo en su ficha.
+   *
+   * Comparte `@id` con el que emiten la ficha de la tienda y cada oferta de producto, así
+   * que no son tres entidades: es la misma, declarada donde aparece. Es lo que permite que
+   * un buscador entienda que el vendedor de una oferta es una empresa con reputación y
+   * dirección, y no un nombre suelto en un `seller`.
+   */
+  const nodosDeTiendas = stores.map(tiendaLd);
 
   const offersByStore = new Map<string, number>();
   const interestFreeStores = new Set<string>();
@@ -29,7 +48,35 @@ export default async function TiendasPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
+      <JsonLd
+        data={grafo(
+          {
+            "@type": "CollectionPage",
+            "@id": `${urlAbsoluta("/tiendas")}#coleccion`,
+            url: urlAbsoluta("/tiendas"),
+            name: "Tiendas de notebooks indexadas en Argentina",
+            inLanguage: "es-AR",
+            isPartOf: { "@id": ID_SITIO },
+            mainEntity: {
+              "@type": "ItemList",
+              numberOfItems: stores.length,
+              itemListElement: stores.map((t, i) => ({
+                "@type": "ListItem",
+                position: i + 1,
+                name: t.name,
+                url: urlAbsoluta(`/tiendas/${t.slug}`),
+              })),
+            },
+          },
+          ...nodosDeTiendas,
+          breadcrumbLd(migas),
+        )}
+      />
+      <div className="mx-auto max-w-6xl px-4">
+        <Breadcrumbs items={migas} />
+      </div>
+      <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-extrabold tracking-tight">
         Tiendas indexadas
       </h1>
@@ -74,5 +121,6 @@ export default async function TiendasPage() {
         <StoreApplicationForm />
       </div>
     </div>
+    </>
   );
 }

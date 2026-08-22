@@ -1,59 +1,87 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseServer";
+import { LIMITES, chequearLimite, respuesta429 } from "@/lib/limites";
+import {
+  email,
+  errorGuardando,
+  esEmail,
+  leerJson,
+  texto,
+  textoOpcional,
+  urlHttp,
+} from "@/lib/entrada";
+
+export const dynamic = "force-dynamic";
 
 /**
- * Recibe una solicitud de una tienda que quiere sumarse (formulario público).
- * Inserta en store_applications (RLS permite insert público, no lectura).
+ * Alta pública de una tienda que quiere sumarse al comparador.
+ *
+ * ## El agujero que se tapa acá
+ *
+ * Este formulario guarda **siete URLs** (sitio, catálogo, mapa y cinco redes) que el admin
+ * después renderiza como links en la bandeja de aprobación, y varias terminan visibles en
+ * la ficha pública de la tienda. Antes ninguna se validaba: sólo el `website` pasaba por un
+ * `/^https?:\/\//`, y las otras seis entraban tal cual. Un `javascript:...` en `instagram`
+ * es XSS almacenado que se dispara en el navegador de quien aprueba la solicitud — o sea,
+ * en una sesión con permisos sobre el catálogo entero.
+ *
+ * Ahora las siete pasan por `urlHttp`, que parsea y exige `http`/`https`.
  */
 export async function POST(req: Request) {
-  const b = await req.json().catch(() => null);
+  const limite = await chequearLimite("alta-tienda", req, LIMITES.formulario);
+  if (!limite.permitido) return respuesta429(limite.reintentarEn);
+
+  const b = await leerJson(req);
   if (!b) return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  if (texto(b.honeypot, 10)) return NextResponse.json({ ok: true });
 
-  const commercialName = String(b.commercialName ?? "").trim();
-  const contactEmail = String(b.contactEmail ?? "").trim();
-  const website = String(b.website ?? "").trim();
+  const commercialName = texto(b.commercialName, 160);
+  const website = urlHttp(b.website);
 
-  const errors: string[] = [];
-  if (!commercialName) errors.push("El nombre comercial es obligatorio.");
-  if (!contactEmail.includes("@")) errors.push("El email de contacto es inválido.");
-  if (!/^https?:\/\//i.test(website)) errors.push("El sitio web debe empezar con http(s)://");
-  if (errors.length) return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
-
-  const num = (v: unknown) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
+  const errores: string[] = [];
+  if (!commercialName) errores.push("El nombre comercial es obligatorio.");
+  if (!esEmail(b.contactEmail)) errores.push("El email de contacto es inválido.");
+  if (!website) errores.push("El sitio web tiene que ser una URL http(s) válida.");
+  if (errores.length) return NextResponse.json({ error: errores.join(" ") }, { status: 400 });
 
   const row = {
     commercial_name: commercialName,
-    legal_name: String(b.legalName ?? "").trim() || null,
-    cuit: String(b.cuit ?? "").trim() || null,
+    legal_name: textoOpcional(b.legalName, 200),
+    cuit: textoOpcional(b.cuit, 20),
     website,
-    contact_name: String(b.contactName ?? "").trim() || null,
-    contact_email: contactEmail,
-    contact_phone: String(b.contactPhone ?? "").trim() || null,
-    province: String(b.province ?? "").trim() || null,
-    city: String(b.city ?? "").trim() || null,
+    contact_name: textoOpcional(b.contactName, 120),
+    contact_email: email(b.contactEmail),
+    contact_phone: textoOpcional(b.contactPhone, 40),
+    province: textoOpcional(b.province, 80),
+    city: textoOpcional(b.city, 80),
     has_physical_store: b.hasPhysicalStore === true,
-    physical_address: String(b.physicalAddress ?? "").trim() || null,
+    physical_address: textoOpcional(b.physicalAddress, 300),
     ships_nationwide: b.shipsNationwide === true,
-    payment_methods: String(b.paymentMethods ?? "").trim() || null,
+    payment_methods: textoOpcional(b.paymentMethods, 500),
     interest_free_installments: b.interestFreeInstallments === true,
-    instagram: String(b.instagram ?? "").trim() || null,
-    facebook: String(b.facebook ?? "").trim() || null,
-    tiktok: String(b.tiktok ?? "").trim() || null,
-    youtube: String(b.youtube ?? "").trim() || null,
-    linkedin: String(b.linkedin ?? "").trim() || null,
-    mercadolibre: String(b.mercadolibre ?? "").trim() || null,
-    google_rating: num(b.googleRating),
-    google_reviews_count: num(b.googleReviewsCount),
-    google_maps_url: String(b.googleMapsUrl ?? "").trim() || null,
-    catalog_url: String(b.catalogUrl ?? "").trim() || null,
-    platform: String(b.platform ?? "").trim() || null,
-    message: String(b.message ?? "").trim() || null,
+    instagram: urlHttp(b.instagram),
+    facebook: urlHttp(b.facebook),
+    tiktok: urlHttp(b.tiktok),
+    youtube: urlHttp(b.youtube),
+    linkedin: urlHttp(b.linkedin),
+    mercadolibre: urlHttp(b.mercadolibre),
+    // La reputación que declara la tienda entra acotada al rango que existe. Un 4,9 sobre 5
+    // es un dato; un 47 es una tienda probando qué pasa, y termina en la ficha pública.
+    google_rating: rango(b.googleRating, 0, 5),
+    google_reviews_count: rango(b.googleReviewsCount, 0, 1_000_000),
+    google_maps_url: urlHttp(b.googleMapsUrl),
+    catalog_url: urlHttp(b.catalogUrl),
+    platform: textoOpcional(b.platform, 80),
+    message: textoOpcional(b.message, 4000),
   };
 
   const { error } = await supabase.from("store_applications").insert(row);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return errorGuardando("alta-tienda", error);
   return NextResponse.json({ ok: true });
+}
+
+function rango(v: unknown, min: number, max: number): number | null {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return n;
 }

@@ -142,8 +142,9 @@ export default function Filters() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between md:hidden"
+        className="flex min-h-[44px] w-full items-center justify-between md:hidden"
         aria-expanded={open}
+        aria-controls="panel-filtros"
       >
         <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
           Filtrar{activeCount > 0 ? ` (${activeCount})` : ""}
@@ -154,18 +155,26 @@ export default function Filters() {
         Filtrar
       </h3>
 
-      <div className={`${open ? "mt-4 block" : "hidden"} md:mt-0 md:block`}>
+      <div id="panel-filtros" className={`${open ? "mt-4 block" : "hidden"} md:mt-0 md:block`}>
       {GROUPS.map((g) => (
         <div key={g.param} className="mb-5">
           <div className="mb-2 text-[13px] font-bold">{g.title}</div>
           {g.options.map((o) => (
             <label
               key={o.value}
-              className="flex cursor-pointer items-center gap-2 py-0.5 text-[13px] text-slate-600 hover:text-slate-900"
+              /**
+               * `min-h-[40px]` en mobile y `py-0.5` en escritorio.
+               *
+               * Con `py-0.5` la fila mide 22px de alto: es la mitad del área táctil mínima
+               * recomendada, y en una lista de casillas pegadas eso se traduce en marcar la
+               * de al lado. En escritorio, donde el puntero es preciso, la lista compacta es
+               * mejor — de ahí que sea un cambio por breakpoint y no uno global.
+               */
+              className="flex min-h-[40px] cursor-pointer items-center gap-2.5 text-[13px] text-slate-600 hover:text-slate-900 md:min-h-0 md:py-0.5"
             >
               <input
                 type="checkbox"
-                className="accent-brand-blue"
+                className="h-4 w-4 accent-brand-blue"
                 checked={sp.getAll(g.param).includes(o.value)}
                 onChange={() => toggle(g.param, o.value)}
               />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllListings, getReviewQueue, getAdminModels, getAdminStores, getStoreApplications } from "@/lib/adminData";
-import { usingDefaultCreds } from "@/lib/adminAuth";
+import { contrasenaDebil } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +32,10 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      {usingDefaultCreds && (
+      {contrasenaDebil && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] text-amber-800">
-          ⚠️ Estás usando credenciales por defecto. Seteá <code>ADMIN_PASSWORD</code> y{" "}
-          <code>ADMIN_SESSION_TOKEN</code> en el entorno antes de exponer esto online.
+          ⚠️ La <code>ADMIN_PASSWORD</code> de este entorno es corta o previsible. Es la única
+          credencial que protege el catálogo entero: poné una de 16 caracteres o más.
         </div>
       )}
 

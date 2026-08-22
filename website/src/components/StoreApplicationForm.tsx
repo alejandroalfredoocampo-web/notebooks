@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Honeypot from "./Honeypot";
 
 const EMPTY = {
   commercialName: "", legalName: "", cuit: "", website: "",
@@ -10,6 +11,7 @@ const EMPTY = {
   instagram: "", facebook: "", tiktok: "", youtube: "", linkedin: "", mercadolibre: "",
   googleRating: "", googleReviewsCount: "", googleMapsUrl: "",
   catalogUrl: "", platform: "", message: "",
+  honeypot: "",
 };
 
 const field = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-blue";
@@ -19,7 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="border-t border-slate-100 pt-4">
       <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-brand-blue">{title}</h3>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
     </div>
   );
 }
@@ -58,7 +60,8 @@ export default function StoreApplicationForm() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={submit} className="relative rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Honeypot name="honeypot" value={f.honeypot} onChange={(v) => set("honeypot", v)} />
       <h2 className="text-lg font-extrabold tracking-tight">Sumá tu tienda</h2>
       <p className="mb-4 mt-1 text-sm text-slate-500">
         Completá tus datos y los revisamos. La indexación es gratuita. Los campos con * son obligatorios.
@@ -80,7 +83,7 @@ export default function StoreApplicationForm() {
           </div>
           <div>
             <label className={label}>Sitio web *</label>
-            <input className={field} value={f.website} onChange={(e) => set("website", e.target.value)} placeholder="https://mitienda.com.ar" />
+            <input className={field} type="url" inputMode="url" aria-label="Sitio web de la tienda" value={f.website} onChange={(e) => set("website", e.target.value)} placeholder="https://mitienda.com.ar" />
           </div>
         </Section>
 
@@ -91,11 +94,11 @@ export default function StoreApplicationForm() {
           </div>
           <div>
             <label className={label}>Email *</label>
-            <input className={field} type="email" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} placeholder="ventas@mitienda.com.ar" />
+            <input className={field} type="email" autoComplete="email" inputMode="email" name="email" aria-label="Email de contacto" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} placeholder="ventas@mitienda.com.ar" />
           </div>
           <div>
             <label className={label}>Teléfono / WhatsApp</label>
-            <input className={field} value={f.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} placeholder="+54 9 351 ..." />
+            <input className={field} type="tel" autoComplete="tel" inputMode="tel" aria-label="Teléfono de contacto" value={f.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} placeholder="+54 9 351 ..." />
           </div>
         </Section>
 
@@ -172,7 +175,9 @@ export default function StoreApplicationForm() {
         </div>
       </div>
 
-      {error && <p className="mt-4 text-[13px] font-semibold text-red-600">{error}</p>}
+      {/* `role="alert"` + `aria-live`: sin esto, un lector de pantalla no anuncia el error
+          y la persona se queda esperando frente a un formulario que ya falló. */}
+      {error && <p role="alert" aria-live="assertive" className="mt-4 text-[13px] font-semibold text-red-600">{error}</p>}
 
       <button
         type="submit"

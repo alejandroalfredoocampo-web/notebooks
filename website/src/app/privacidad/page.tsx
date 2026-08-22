@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { metaRuta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = metaRuta("/privacidad", {
   title: "Política de privacidad",
   description:
     "Qué datos maneja Notebooks.com.ar: búsqueda por voz, alertas de precio, clicks a tiendas y cookies. Cómo los usamos y cómo darte de baja.",
-};
+});
 
 export default function PrivacidadPage() {
   return (

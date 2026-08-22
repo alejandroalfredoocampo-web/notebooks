@@ -28,8 +28,12 @@ export default async function Header() {
 
           <form action="/notebooks" className="relative hidden flex-1 max-w-lg md:block">
             <input
-              type="text"
+              type="search"
               name="q"
+              inputMode="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              aria-label="Buscar notebooks por modelo, marca o características"
               placeholder='Buscá por modelo, marca o specs: "lenovo i5 16gb"'
               className="h-10 w-full rounded-full border border-slate-300 pl-4 pr-11 text-sm outline-none transition focus:border-brand-blue"
             />
@@ -45,6 +49,9 @@ export default async function Header() {
           <nav className="ml-auto hidden items-center gap-1 text-sm font-semibold text-slate-600 md:flex">
             <Link href="/marcas" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Marcas
+            </Link>
+            <Link href="/guias" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
+              Guías
             </Link>
             <Link href="/comparar" className="rounded-lg px-3 py-2 transition hover:bg-slate-100 hover:text-brand-blue">
               Comparar

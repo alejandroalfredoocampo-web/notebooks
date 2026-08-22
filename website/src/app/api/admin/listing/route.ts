@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { addManualListing, getAdminStores, getAdminModels } from "@/lib/adminData";
+import { invalidarCatalogo } from "@/lib/revalidar";
 
 /**
  * Alta de una publicación propia (cargada a mano por el operador).
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
       inStock: b.inStock !== false,
       image: b.image?.trim() || null,
     });
+    invalidarCatalogo("admin/listing");
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });

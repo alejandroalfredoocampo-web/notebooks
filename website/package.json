@@ -15,7 +15,9 @@
     "seed:blog": "node scrapers/seed-blog.mjs",
     "seed:supabase": "node scrapers/seed-supabase.mjs",
     "clean:seed": "node scrapers/clean-seed.mjs",
-    "review:bulk": "node scrapers/bulk-review.mjs"
+    "review:bulk": "node scrapers/bulk-review.mjs",
+    "test": "node --test --experimental-strip-types 'src/lib/__tests__/*.test.ts'",
+    "chequear": "node scripts/chequear-sitio.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",

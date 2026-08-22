@@ -6,6 +6,9 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Los tests de `node --test` importan con extension `.ts`, que es lo que pide el
+    // runner de Node al hacer type stripping. Solo aplica a los archivos de test.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

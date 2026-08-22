@@ -5,3 +5,64 @@
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
 }
+
+/**
+ * Espacio para la barra fija de mobile de la ficha de producto.
+ *
+ * Vive acá y se aplica al `<body>` porque el footer está fuera del árbol de la página: un
+ * `padding-bottom` puesto en el componente de la ficha deja el footer tapado igual. Ver
+ * `components/BarraMejorPrecio.tsx`, que es quien pone y saca la clase.
+ */
+@media (max-width: 767px) {
+  body.con-barra-fija {
+    padding-bottom: 5rem;
+  }
+}
+
+/**
+ * 16px en los campos de formulario en mobile.
+ *
+ * Debajo de 16px, Safari en iOS **hace zoom automático al enfocar el campo** y después no
+ * vuelve: la persona termina con la página ampliada y desplazada, y tiene que pellizcar
+ * para salir. Es la razón por la que un buscador de 14px se siente roto en un iPhone y bien
+ * en el simulador de Chrome.
+ *
+ * Va como regla global y no campo por campo porque el bug es del navegador, no del diseño:
+ * cualquier input nuevo que alguien agregue mañana lo tendría igual.
+ */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="password"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/**
+ * Área táctil mínima para los controles chicos del listado.
+ *
+ * El objetivo son 44×44 px (la recomendación de Apple y de las WCAG). Se logra con
+ * pseudo-elemento y no agrandando el control, para no mover el diseño ni provocar el
+ * desborde horizontal que aparece cuando se agranda algo dentro de un header que ya está
+ * justo de ancho.
+ */
+@media (pointer: coarse) {
+  .area-tactil {
+    position: relative;
+  }
+  .area-tactil::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

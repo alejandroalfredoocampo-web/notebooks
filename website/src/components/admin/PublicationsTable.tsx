@@ -80,7 +80,7 @@ export default function PublicationsTable({
               <tr key={r.id} className={`border-b border-slate-100 last:border-0 ${r.rejected ? "opacity-50" : ""}`}>
                 <td className="max-w-[320px] px-4 py-3 font-semibold">
                   {r.url ? (
-                    <a href={r.url} target="_blank" rel="noreferrer" className="hover:text-brand-blue">
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="hover:text-brand-blue">
                       {r.title}
                     </a>
                   ) : (
