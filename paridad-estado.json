@@ -1,17 +1,38 @@
 {
   "_lea_esto": "Estado de la revisión semanal de paridad con Córdoba Notebooks. Lo actualiza la tarea programada 'paridad-cordoba-notebooks-semanal' (~/.claude/scheduled-tasks/). El procedimiento está en 07-runbook-paridad-semanal.md.",
   "ultimaRevision": {
-    "fecha": "2026-08-22",
-    "commitCN": "4e89dad10f908abf7cfa1c9d7150c25ead07ea51",
-    "asuntoCN": "El WordPress viejo queda fuera de alcance, y el CDN atado al cutover",
-    "comentario": "Ronda inicial de paridad. Ver 06-paridad-con-cordoba-notebooks.md.",
-    "revisionesPortadas": 7,
+    "fecha": "2026-08-24",
+    "commitCN": "9eab0301",
+    "asuntoCN": "El alt por imagen, con el piloto de 10 productos para revisar",
+    "comentario": "Semana chica. 5 revisiones de CN: 1 portada (las dos pantallas de error, sin la mitad de Sentry), 4 descartadas. El hallazgo propio de la semana fue una regresion nuestra: /privacidad no declaraba la cookie de atribucion que agrego la ronda del 22-ago. Ver paridad/2026-08-24.md.",
+    "revisionesPortadas": 1,
     "revisionesDescartadas": [
-      "Backend de comercio (carrito, checkout, Medusa, Mercado Pago, Dux, HubSpot): un indexador no vende.",
-      "Asistente con IA: endpoint pago, el techo de gasto lo decide el dueño.",
-      "Feeds de Google Shopping y Meta: no aplican a quien no vende.",
-      "Pixel de Meta y GA4: se decidió no sumar terceros; la atribución es first-party."
+      "Sentry en storefront y backend (3a905b0c, f76793d4): cuenta de terceros con costo recurrente; misma categoria que el asistente con IA y el pixel de Meta. Se porto la mitad que no cuesta nada — error.tsx y global-error.tsx.",
+      "onRequestError de instrumentation.ts (3a905b0c): es un hook de Next 15 y aca el proyecto esta en Next 14.2.15. Agregarlo seria dejar un archivo que parece configurado y no se llama nunca.",
+      "alt por imagen (1ab3e7f1): aca cada modelo tiene una sola foto con alt = marca + nombre, no galerias de 6 fotos repitiendo el titulo. El bug de accesibilidad que encontraron de paso (botones de miniatura sin nombre accesible) tampoco aplica: verificado que todo boton de icono lleva aria-label.",
+      "Barra de avisos editable desde el panel (d98c1d84): aca no hay barra de avisos ni panel de marketing. La leccion transversal (Tailwind v4 solo compila las clases que ve en el codigo, asi que una clase guardada en la base no existe en el CSS) se verifico: ninguna className de este sitio sale de datos.",
+      "Envio gratis derivado del precio (7ad2d7f4): un indexador no envia nada. La leccion transversal (una promesa fija en la meta description que no es cierta para todo el catalogo) se verifico: la description de la ficha se arma entera de los datos del modelo."
+    ],
+    "pendienteDeUnaPersona": [
+      "Inscripcion del registro de bases ante la AAIP (Ley 25.326), contrapartida de la cookie de atribucion y de los emails de alertas. Sale del doc 42 §C4 de CN, que lo tiene pendiente por lo mismo. No es codigo.",
+      "Correr 0015_store_click_outs_vista.sql (y antes 0012, 0013 y 0014). La vista y el revoke por columna ya estan escritos y el portal ya lee de la vista, pero la migracion NO se corrio: hasta que no este aplicada la tienda sigue pudiendo leer visitor_id, user_agent y referrer de sus clicks, y el panel de trafico va a quedar vacio.",
+      "Revision de /privacidad por un abogado. El texto ahora es exacto, pero nunca lo miro nadie del rubro.",
+      "Si el opt-out de atribucion merece una interfaz (hoy es una cookie que hay que poner a mano) o alcanza con tenerlo declarado."
     ]
   },
-  "historial": []
+  "historial": [
+    {
+      "fecha": "2026-08-22",
+      "commitCN": "4e89dad10f908abf7cfa1c9d7150c25ead07ea51",
+      "asuntoCN": "El WordPress viejo queda fuera de alcance, y el CDN atado al cutover",
+      "comentario": "Ronda inicial de paridad. Ver 06-paridad-con-cordoba-notebooks.md.",
+      "revisionesPortadas": 7,
+      "revisionesDescartadas": [
+        "Backend de comercio (carrito, checkout, Medusa, Mercado Pago, Dux, HubSpot): un indexador no vende.",
+        "Asistente con IA: endpoint pago, el techo de gasto lo decide el dueño.",
+        "Feeds de Google Shopping y Meta: no aplican a quien no vende.",
+        "Pixel de Meta y GA4: se decidió no sumar terceros; la atribución es first-party."
+      ]
+    }
+  ]
 }

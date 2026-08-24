@@ -88,8 +88,14 @@ export default function PortalPage() {
       })();
 
       // Panel de tráfico: click-outs que le mandamos a la tienda (RLS: solo los suyos).
+      //
+      // Lee de `store_click_outs` y no de `click_outs`. La vista trae las columnas que son de
+      // la tienda y deja afuera las que no lo son: `visitor_id`, `user_agent` y `referrer` (de
+      // la persona) y los `utm_*` (nuestro costo de adquisición). Esta consulta ya pedía sólo
+      // dos columnas; lo que cambia es que ahora la base tampoco deja pedir las otras — ver
+      // la migración 0015, que además revoca el select por columna.
       (async () => {
-        const { data: clicks } = await sb.from("click_outs").select("model_id, created_at").eq("store_id", storeId).limit(100000);
+        const { data: clicks } = await sb.from("store_click_outs").select("model_id, created_at").eq("store_id", storeId).limit(100000);
         const cl = (clicks ?? []) as { model_id: string | null; created_at: string }[];
         const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
         const byModel = new Map<string, number>();

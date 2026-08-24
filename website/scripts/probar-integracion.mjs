@@ -317,6 +317,32 @@ async function regresion() {
     debe(/noindex/i.test(xr), `no mandó noindex (x-robots-tag: "${xr || "ausente"}")`);
   });
 
+  await prueba("cada cookie que el sitio escribe está declarada en /privacidad", async () => {
+    // No compara contra una lista escrita a mano: **descubre** las cookies pidiendo una página
+    // como un visitante nuevo y exige que cada una esté nombrada en la política. Así el día que
+    // alguien agregue una cookie y no toque el texto, esto falla — que es el único momento en
+    // que se puede arreglar barato. La política dice además que no las puede leer un script,
+    // así que se verifica `HttpOnly` sobre la cookie real y no sobre el código que la escribe.
+    const { headers } = await pedir("/?utm_source=paridad&utm_medium=prueba");
+    const crudas = headers.getSetCookie?.() ?? [headers.get("set-cookie")].filter(Boolean);
+    debe(crudas.length > 0, "el sitio no escribió ninguna cookie: la prueba no verifica nada");
+
+    const { texto: politica } = await pedir("/privacidad");
+    for (const cruda of crudas) {
+      const nombre = cruda.split("=")[0].trim();
+      debe(politica.includes(nombre), `la cookie "${nombre}" no está declarada en /privacidad`);
+      debe(/httponly/i.test(cruda), `la cookie "${nombre}" no es HttpOnly y la política dice que sí`);
+    }
+
+    // Y el opt-out que la política ofrece tiene que apagarlas de verdad.
+    const conNo = await pedir("/?utm_source=paridad", { headers: { cookie: "nb_atribucion=no" } });
+    const tras = conNo.headers.getSetCookie?.() ?? [conNo.headers.get("set-cookie")].filter(Boolean);
+    const quedan = tras.filter((c) => /^nb_(vid|origen)/.test(c));
+    debe(quedan.length === 0, `nb_atribucion=no no apagó: ${quedan.map((c) => c.split("=")[0]).join(", ")}`);
+
+    return `${crudas.length} declarada(s) · opt-out efectivo`;
+  });
+
   await prueba("/llms.txt sigue teniendo la forma que un modelo espera", async () => {
     const { estado, texto, headers } = await pedir("/llms.txt");
     debe(estado === 200, `devolvió ${estado}`);
