@@ -31,14 +31,16 @@ nadie.
 Si desplegás primero, el admin contesta **503 "El admin no está configurado"** hasta que
 las cargues. No se pierde nada, pero no vas a poder entrar.
 
-### 2. Dos migraciones nuevas
+### 2. Tres migraciones nuevas
 
 | Migración | Qué habilita | Rompe si falta |
 |---|---|---|
 | `0013_rate_limits.sql` | Rate limiting de los formularios públicos | No: el limitador falla abierto y loguea. Pero el sitio queda sin techo. |
 | `0014_clickout_atribucion.sql` | Atribución del click saliente | **Sí**: el `insert` en `click_outs` referencia columnas que no existen y **los clicks dejan de registrarse** (el redirect sigue andando, el registro no). |
+| `0015_store_click_outs_vista.sql` | Que la tienda vea el conteo de sus clicks y no la fila cruda | **Sí, y al revés de lo que parece**: el portal ahora lee de la vista `store_click_outs`. Si la migración no está, la vista no existe y el panel de tráfico de la tienda queda vacío. |
 
-Correr las dos en Supabase → SQL Editor antes de desplegar.
+Correr las tres en Supabase → SQL Editor antes de desplegar, **y en ese orden**: la `0015`
+nombra columnas que agrega la `0014` y se apoya en la policy de la `0012`.
 
 ### 3. Variables nuevas, todas opcionales
 
@@ -93,12 +95,23 @@ Estado verificado hoy:
 | `0012_store_clicks_read.sql` | Panel de tráfico de la tienda | ⚠️ verificar |
 | **`0013_rate_limits.sql`** | **Rate limiting de los formularios** | ❌ **nueva (22-ago)** |
 | **`0014_clickout_atribucion.sql`** | **Atribución del click saliente** | ❌ **nueva (22-ago)** |
+| **`0015_store_click_outs_vista.sql`** | **La tienda ve el conteo, no la fila cruda** | ❌ **nueva (24-ago)** |
 
 **Qué hacer:** abrir cada archivo de `website/supabase/migrations/` y pegar su contenido en el
 **SQL Editor** de Supabase → Run. Correr **`0007`** y **`0011`**.
 
 Para `0012` (no se puede verificar desde afuera): si al correrlo dice
 `policy "members read own clicks" ... already exists`, ya estaba — ignoralo.
+
+⚠️ **`0012` dejó de ser opcional.** La `0015` le saca a `authenticated` el `select` sobre
+`click_outs`, así que las filas del panel de tráfico pasan a depender enteramente de esa
+policy. Si `0012` no está y `0015` sí, cada tienda ve **cero clicks** y no hay ningún error
+que lo diga. Si el panel queda en cero después de desplegar, es esto.
+
+⚠️ **Si la `0015` falla en la línea `with (security_invoker = on)`**, la base es anterior a
+PostgreSQL 15. **No saques esa opción para que pase**: sin ella la vista corre con los
+permisos del dueño, saltea la RLS y cada tienda ve los clicks de todas. Dejá la migración sin
+aplicar y avisá.
 
 > ⚠️ Las migraciones con `create policy` **no** se pueden correr dos veces. Si tira
 > "already exists", ya estaba aplicada: seguí de largo.
