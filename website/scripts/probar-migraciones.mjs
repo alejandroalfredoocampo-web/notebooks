@@ -23,24 +23,28 @@
  * Docker y sin sudo. Es Postgres de verdad —el mismo planner, las mismas policies, los mismos
  * grants por columna—, no un simulador.
  *
+ * ## Qué corre exactamente
+ *
+ * `supabase/local/andamio.sql` y después **las quince migraciones del repo, en orden**, sin
+ * saltear ninguna y sin recortes: si una rompe a otra, se ve acá. El andamio es el mismo
+ * archivo que usa la base local de Postgres.app (ver `supabase/local/LEEME.md`), así que las
+ * dos formas de probar arrancan del mismo lugar y no pueden divergir.
+ *
  * ## Qué NO prueba
  *
  * No es Supabase. Los roles `anon`, `authenticated` y `service_role`, el esquema `auth` y
- * `auth.uid()` los fabrica este script para parecerse a lo que hay allá. O sea que verifica
- * **la lógica del SQL**, no la configuración de la instancia: si en Supabase alguien le dio a
+ * `auth.uid()` salen del andamio para parecerse a lo que hay allá. O sea que verifica **la
+ * lógica del SQL**, no la configuración de la instancia: si en Supabase alguien le dio a
  * `authenticated` un grant extra a mano, acá no se ve.
- *
- * Tampoco corre las migraciones anteriores a la `0012`: se arma a mano el pedazo de `0001`
- * que importa (la tabla `click_outs` y sus grants por defecto) y desde ahí se aplican los
- * archivos reales del repo.
  */
 
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const MIGRACIONES = join(dirname(fileURLToPath(import.meta.url)), "..", "supabase", "migrations");
+const SUPABASE = join(dirname(fileURLToPath(import.meta.url)), "..", "supabase");
+const MIGRACIONES = join(SUPABASE, "migrations");
 const leer = (f) => readFileSync(join(MIGRACIONES, f), "utf8");
 
 let pasaron = 0;
@@ -70,61 +74,43 @@ const UID_B = "22222222-2222-2222-2222-222222222222";
 const db = await PGlite.create();
 
 /* ===========================================================================
- * El andamio: lo que en Supabase ya existe y acá hay que fabricar
+ * El andamio y las migraciones
  * ======================================================================== */
 
-await db.exec(`
-  create role anon nologin;
-  create role authenticated nologin;
-  create role service_role nologin bypassrls;
-  create schema auth;
-  create function auth.uid() returns uuid language sql stable as
-    $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
-`);
+seccion("Se aplica el andamio y las 15 migraciones");
 
-/* El pedazo de 0001 del que dependen las migraciones que sí se prueban, con los grants que
- * Supabase le da por defecto a cada tabla nueva. */
-await db.exec(`
-  create table click_outs (
-    id bigint generated always as identity primary key,
-    listing_id text, store_id text, model_id text,
-    price_at_click int, referrer text, user_agent text,
-    created_at timestamptz default now()
-  );
-  create table store_members (user_id uuid, store_id text);
-  alter table click_outs enable row level security;
-  create policy "public insert clicks" on click_outs for insert with check (true);
-  grant select, insert on click_outs to anon, authenticated;
-  grant all on click_outs to service_role;
-  grant select on store_members to authenticated;
-`);
+await prueba("andamio.sql (roles, auth.users, auth.uid, privilegios por defecto)", async () => {
+  await db.exec(readFileSync(join(SUPABASE, "local", "andamio.sql"), "utf8"));
+});
 
-/* ===========================================================================
- * Las migraciones reales del repo, en el orden en que van al SQL Editor
- * ======================================================================== */
-
-seccion("Se aplican las migraciones");
-for (const f of [
-  "0014_clickout_atribucion.sql",
-  "0012_store_clicks_read.sql",
-  "0015_store_click_outs_vista.sql",
-]) {
-  await prueba(`aplica ${f}`, async () => {
+// En orden y sin saltear ninguna: si una rompe a otra, se ve acá y no en el SQL Editor.
+const archivos = readdirSync(MIGRACIONES).filter((f) => f.endsWith(".sql")).sort();
+if (archivos.length < 15) throw new Error(`sólo se encontraron ${archivos.length} migraciones`);
+for (const f of archivos) {
+  await prueba(f, async () => {
     await db.exec(leer(f));
   });
 }
 
-await db.exec(`
-  insert into store_members values ('${UID_A}','tienda-a'), ('${UID_B}','tienda-b');
-  insert into click_outs (store_id, model_id, visitor_id, user_agent, referrer, utm_source, bot, device)
-  values ('tienda-a','m1','vid-1','Mozilla/5.0','https://google.com','google',false,'mobile'),
-         ('tienda-a','m2','vid-2','Mozilla/5.0',null,'meta',true,'desktop'),
-         ('tienda-b','m3','vid-3','Mozilla/5.0',null,'google',false,'mobile');
-`);
+/* Dos tiendas, dos miembros, tres clicks. `auth.users` primero: 0010 le cuelga una FK. */
+await prueba("se puede sembrar el caso de prueba", async () => {
+  await db.exec(`
+    insert into auth.users (id) values ('${UID_A}'), ('${UID_B}');
+    insert into stores (id, name, slug, url) values
+      ('tienda-a','Tienda A','tienda-a','https://tienda-a.test'),
+      ('tienda-b','Tienda B','tienda-b','https://tienda-b.test');
+    insert into store_members (user_id, store_id) values ('${UID_A}','tienda-a'), ('${UID_B}','tienda-b');
+    insert into click_outs (store_id, model_id, visitor_id, user_agent, referrer, utm_source, bot, device)
+    values ('tienda-a','m1','vid-1','Mozilla/5.0','https://google.com','google',false,'mobile'),
+           ('tienda-a','m2','vid-2','Mozilla/5.0',null,'meta',true,'desktop'),
+           ('tienda-b','m3','vid-3','Mozilla/5.0',null,'google',false,'mobile');
+  `);
+  return "2 tiendas · 2 miembros · 3 clicks";
+});
 
 /** Corre una consulta como si fuera el navegador de un miembro de esa tienda. */
 async function comoTienda(uid, sql) {
-  await db.exec(`set role authenticated; set test.uid = '${uid}';`);
+  await db.exec(`set role authenticated; set local.uid = '${uid}';`);
   try {
     return await db.query(sql);
   } finally {
