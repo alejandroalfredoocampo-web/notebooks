@@ -15,7 +15,7 @@
     ],
     "pendienteDeUnaPersona": [
       "Inscripcion del registro de bases ante la AAIP (Ley 25.326), contrapartida de la cookie de atribucion y de los emails de alertas. Sale del doc 42 §C4 de CN, que lo tiene pendiente por lo mismo. No es codigo.",
-      "Que ve una tienda de sus propios clicks. La policy 0012 es por fila y no por columna: un miembro puede leer visitor_id, user_agent y referrer de cada click. El portal solo le muestra el conteo. Si la respuesta es 'solo el conteo', el arreglo es una vista con las columnas seguras y la policy sobre la vista.",
+      "Correr 0015_store_click_outs_vista.sql (y antes 0012, 0013 y 0014). La vista y el revoke por columna ya estan escritos y el portal ya lee de la vista, pero la migracion NO se corrio: hasta que no este aplicada la tienda sigue pudiendo leer visitor_id, user_agent y referrer de sus clicks, y el panel de trafico va a quedar vacio.",
       "Revision de /privacidad por un abogado. El texto ahora es exacto, pero nunca lo miro nadie del rubro.",
       "Si el opt-out de atribucion merece una interfaz (hoy es una cookie que hay que poner a mano) o alcanza con tenerlo declarado."
     ]
