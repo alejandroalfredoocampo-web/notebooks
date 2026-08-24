@@ -62,7 +62,8 @@ export default function PrivacidadPage() {
           </p>
           <p className="mt-2">
             No le pedimos tu nombre ni tu email para esto y no cruzamos ese registro con datos de otras
-            empresas. A la tienda le informamos el volumen de clicks, nunca quién hizo cada uno.
+            empresas. Cada tienda ve únicamente los clicks que le mandamos a ella, y ninguno de los
+            de las demás.
           </p>
         </section>
 
