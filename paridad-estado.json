@@ -15,6 +15,7 @@
     ],
     "pendienteDeUnaPersona": [
       "Inscripcion del registro de bases ante la AAIP (Ley 25.326), contrapartida de la cookie de atribucion y de los emails de alertas. Sale del doc 42 §C4 de CN, que lo tiene pendiente por lo mismo. No es codigo.",
+      "Que ve una tienda de sus propios clicks. La policy 0012 es por fila y no por columna: un miembro puede leer visitor_id, user_agent y referrer de cada click. El portal solo le muestra el conteo. Si la respuesta es 'solo el conteo', el arreglo es una vista con las columnas seguras y la policy sobre la vista.",
       "Revision de /privacidad por un abogado. El texto ahora es exacto, pero nunca lo miro nadie del rubro.",
       "Si el opt-out de atribucion merece una interfaz (hoy es una cookie que hay que poner a mano) o alcanza con tenerlo declarado."
     ]
