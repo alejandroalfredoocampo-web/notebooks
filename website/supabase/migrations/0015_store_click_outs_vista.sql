@@ -92,6 +92,16 @@ grant select on store_click_outs to authenticated;
 -- contar clicks por tienda. Quitarle el select rompería el tablero de monetización.
 
 -- ---------------------------------------------------------------------------
+-- Que PostgREST se entere
+-- ---------------------------------------------------------------------------
+-- El portal no habla SQL: pide `/rest/v1/store_click_outs` y del otro lado hay PostgREST, que
+-- sirve lo que tiene en su caché de esquema. Una vista recién creada existe en la base y
+-- todavía no para la API, y el síntoma es un 404 sobre una vista que en el SQL Editor anda
+-- perfecto — o sea, otra vez el panel de tráfico vacío, por una razón distinta a la de arriba.
+-- Supabase suele recargar solo; esto lo fuerza y no cuesta nada.
+notify pgrst, 'reload schema';
+
+-- ---------------------------------------------------------------------------
 -- Cómo verificar que quedó bien (con la sesión de un miembro de tienda, no con service_role)
 -- ---------------------------------------------------------------------------
 --   select count(*) from store_click_outs;              -- devuelve sólo los de su tienda
