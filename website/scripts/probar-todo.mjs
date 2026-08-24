@@ -2,8 +2,8 @@
 /**
  * Corre toda la verificación del proyecto y devuelve un veredicto.
  *
- *   npm run probar                  # unitarios → tipos → build → servidor → humo/regresión/integración
- *   npm run probar -- --rapido      # sin build ni servidor: sólo unitarios y tipos
+ *   npm run probar                  # unitarios → tipos → migraciones → build → servidor → humo/regresión/integración
+ *   npm run probar -- --rapido      # sin build ni servidor: unitarios, tipos y migraciones
  *   npm run probar -- --url <URL>   # contra un sitio ya desplegado, sin levantar nada
  *
  * ## Por qué existe, si ya hay tres comandos sueltos
@@ -16,19 +16,24 @@
  * Esto es lo que corre la revisión semanal de paridad (ver `07-runbook-paridad-semanal.md`).
  * Una tarea automática no puede depender de que alguien recuerde el orden.
  *
- * ## Las cinco etapas, y por qué en este orden
+ * ## Las seis etapas, y por qué en este orden
  *
  * Cada una es más cara que la anterior y sirve de filtro para la siguiente. Si los tipos no
  * compilan, no tiene sentido esperar tres minutos a un build que va a fallar por lo mismo.
  *
  *   1. Unitarios      — segundos, sin dependencias
  *   2. Tipos          — segundos
- *   3. Build          — minutos; es también la prueba de que las páginas se generan
- *   4. Chequeo        — cabeceras, CSP, indexación, SEO/LLMO, datos estructurados
- *   5. Humo/regresión/integración — el comportamiento real de las rutas
+ *   3. Migraciones    — segundos; el SQL de permisos contra un Postgres de verdad (PGlite)
+ *   4. Build          — minutos; es también la prueba de que las páginas se generan
+ *   5. Chequeo        — cabeceras, CSP, indexación, SEO/LLMO, datos estructurados
+ *   6. Humo/regresión/integración — el comportamiento real de las rutas
  *
- * Las etapas 4 y 5 corren contra un `next start` levantado por este script en un puerto
+ * Las etapas 5 y 6 corren contra un `next start` levantado por este script en un puerto
  * libre, y **se baja siempre**, incluso si algo falla en el medio.
+ *
+ * La 3 entra al modo rápido a propósito: cuesta segundos y es lo único que mira el SQL, que
+ * es la parte del proyecto que falla callada — una policy mal escrita no tira error, devuelve
+ * filas de más.
  */
 
 import { spawn } from "node:child_process";
@@ -116,11 +121,15 @@ for (const senal of ["SIGINT", "SIGTERM", "exit"]) {
 async function main() {
   console.log(`\n\x1b[1mVerificación completa\x1b[0m${RAPIDO ? " (modo rápido)" : ""}`);
 
-  if (!(await etapa("1/5 · Tests unitarios", () =>
+  if (!(await etapa("1/6 · Tests unitarios", () =>
     correr("node", ["--test", "--experimental-strip-types", "src/lib/__tests__/*.test.ts"], { shell: true }),
   ))) return finalizar();
 
-  if (!(await etapa("2/5 · Tipos", () => correr("npx", ["tsc", "--noEmit"])))) return finalizar();
+  if (!(await etapa("2/6 · Tipos", () => correr("npx", ["tsc", "--noEmit"])))) return finalizar();
+
+  if (!(await etapa("3/6 · Migraciones", () =>
+    correr("node", ["scripts/probar-migraciones.mjs"]),
+  ))) return finalizar();
 
   if (RAPIDO) {
     console.log("\n\x1b[90mModo rápido: se saltean el build y las pruebas contra el servidor.\x1b[0m");
@@ -130,7 +139,7 @@ async function main() {
   let base = URL_EXTERNA;
 
   if (!base) {
-    if (!(await etapa("3/5 · Build", () => correr("npx", ["next", "build"])))) return finalizar();
+    if (!(await etapa("4/6 · Build", () => correr("npx", ["next", "build"])))) return finalizar();
 
     titulo("Levantando el servidor de producción");
     const puerto = await puertoLibre();
@@ -147,16 +156,16 @@ async function main() {
     }
     console.log(`  servidor en ${base}`);
   } else {
-    etapas.push({ nombre: "3/5 · Build", ok: true, seg: "—" });
+    etapas.push({ nombre: "4/6 · Build", ok: true, seg: "—" });
     console.log(`\n\x1b[90mProbando contra ${base}: no se buildea ni se levanta nada.\x1b[0m`);
   }
 
   // Estas dos corren aunque la anterior falle: son informes, y saber que fallan las dos
   // cosas de una vez ahorra una vuelta entera.
-  await etapa("4/5 · Chequeo de seguridad y SEO", () =>
+  await etapa("5/6 · Chequeo de seguridad y SEO", () =>
     correr("node", ["scripts/chequear-sitio.mjs", base]),
   );
-  await etapa("5/5 · Humo, regresión e integración", () =>
+  await etapa("6/6 · Humo, regresión e integración", () =>
     correr("node", ["scripts/probar-integracion.mjs", base]),
   );
 

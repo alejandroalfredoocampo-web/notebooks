@@ -19,7 +19,8 @@
     "test": "node --test --experimental-strip-types 'src/lib/__tests__/*.test.ts'",
     "chequear": "node scripts/chequear-sitio.mjs",
     "probar": "node scripts/probar-todo.mjs",
-    "probar:integracion": "node scripts/probar-integracion.mjs"
+    "probar:integracion": "node scripts/probar-integracion.mjs",
+    "probar:migraciones": "node scripts/probar-migraciones.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",
@@ -32,6 +33,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
