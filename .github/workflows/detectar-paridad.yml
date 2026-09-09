@@ -31,7 +31,7 @@ jobs:
       - name: Traer Córdoba Notebooks (sólo lectura)
         uses: actions/checkout@v4
         with:
-          repository: alejandroalfredoocampo-web/cordoba-notebooks
+          repository: aocampo-cordobanotebooks/cordoba-notebooks
           # Deploy key de SÓLO LECTURA de ese repo. Ver 08-correr-esto-sin-tu-maquina.md.
           # Si se filtra, da acceso de lectura a ese repo y a nada más.
           ssh-key: ${{ secrets.CN_DEPLOY_KEY }}
