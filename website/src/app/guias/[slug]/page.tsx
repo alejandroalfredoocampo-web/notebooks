@@ -8,7 +8,7 @@ import ModelCard from "@/components/ModelCard";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
 import { metaRuta, recortar } from "@/lib/seo";
-import { breadcrumbLd, coleccionLd, faqLd, grafo } from "@/lib/schema";
+import { breadcrumbLd, coleccionLd, faqLd, grafo, guiaLd } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +92,7 @@ export default async function GuiaPage({ params }: { params: Params }) {
               path: `/notebooks/${m.brandSlug}/${m.slug}`,
             })),
           }),
+          guiaLd(guia),
           faqLd(guia.faq),
           breadcrumbLd(migas),
         )}
@@ -111,6 +112,19 @@ export default async function GuiaPage({ params }: { params: Params }) {
          * La respuesta va arriba de todo y en un solo bloque de prosa. Es deliberado: es lo
          * que se cita, y lo que se cita tiene que entenderse sin el resto de la página.
          */}
+        {/* La fecha visible es la misma que declara el JSON-LD: un `dateModified` que la página
+            no muestra es una afirmación que nadie puede contrastar. */}
+        <p className="mt-2 text-[13px] text-slate-500">
+          Actualizada el{" "}
+          <time dateTime={guia.modificado}>
+            {new Date(`${guia.modificado}T12:00:00-03:00`).toLocaleDateString("es-AR", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "America/Argentina/Buenos_Aires",
+            })}
+          </time>
+        </p>
         <p className="mt-4 text-[17px] leading-relaxed text-slate-700">{guia.respuesta}</p>
 
         {cumplen.length > 0 && (

@@ -33,6 +33,17 @@ export type Guia = {
   /** Para las tarjetas del índice de guías, donde hay lugar para una línea larga. */
   resumen: string;
   /**
+   * Fechas del **texto**, en `AAAA-MM-DD`: cuándo se publicó y cuándo se editó por última vez
+   * la prosa, el criterio o las FAQ. Nunca la fecha del build ni la de hoy.
+   *
+   * Un asistente pondera por frescura, y una guía de hardware sin fecha no se puede ponderar:
+   * "16 GB alcanzan" es cierto o no según el año. Córdoba Notebooks sumó `Article` con
+   * `dateModified` y la fecha visible a sus guías en la tanda 16 (109b587e). La lista de
+   * modelos de abajo es en vivo y no cuenta como edición.
+   */
+  publicado: string;
+  modificado: string;
+  /**
    * Dos o tres palabras, para la grilla de la home.
    *
    * Existe separado de `resumen` porque en la home esas tarjetas van a dos columnas en un
@@ -84,6 +95,8 @@ const cpuMedia = (m: ModelWithOffers): boolean =>
 export const GUIAS: Guia[] = [
   {
     slug: "estudiar",
+    publicado: "2026-08-22",
+    modificado: "2026-08-22",
     titulo: "Qué notebook conviene para estudiar",
     corto: "Liviana y con batería",
     resumen: "Liviana, con batería que aguante el día y suficiente para cursar sin frenarse.",
@@ -118,6 +131,8 @@ export const GUIAS: Guia[] = [
   },
   {
     slug: "gaming",
+    publicado: "2026-08-22",
+    modificado: "2026-08-22",
     titulo: "Qué notebook conviene para jugar",
     corto: "GPU dedicada y 144 Hz",
     resumen: "La placa de video manda, pero la pantalla y la refrigeración deciden la experiencia real.",
@@ -152,6 +167,8 @@ export const GUIAS: Guia[] = [
   },
   {
     slug: "diseno",
+    publicado: "2026-08-22",
+    modificado: "2026-08-22",
     titulo: "Qué notebook conviene para diseño y edición",
     corto: "Pantalla y memoria",
     resumen: "La pantalla es la herramienta de trabajo. Después, memoria y placa dedicada.",
@@ -189,6 +206,8 @@ export const GUIAS: Guia[] = [
   },
   {
     slug: "programar",
+    publicado: "2026-08-22",
+    modificado: "2026-08-22",
     titulo: "Qué notebook conviene para programar",
     corto: "RAM y disco",
     resumen: "Memoria y disco antes que procesador. Contenedores y entornos comen RAM.",
@@ -224,6 +243,8 @@ export const GUIAS: Guia[] = [
   },
   {
     slug: "oficina",
+    publicado: "2026-08-22",
+    modificado: "2026-08-22",
     titulo: "Qué notebook conviene para trabajo de oficina",
     corto: "Confiable y liviana",
     resumen: "Confiabilidad, teclado y batería. La potencia sobra hace años.",

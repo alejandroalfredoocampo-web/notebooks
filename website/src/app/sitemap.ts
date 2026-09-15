@@ -51,6 +51,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // un modelo puede citar. Prioridad alta a propósito.
     ...GUIAS.map((g) => ({
       url: urlAbsoluta(`/guias/${g.slug}`),
+      // La fecha del texto, que es honesta; la lista de modelos cambia a diario pero no es
+      // una edición de la guía.
+      lastModified: g.modificado,
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),

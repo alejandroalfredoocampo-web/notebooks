@@ -100,9 +100,9 @@ export async function GET() {
 
 ## Qué notebook conviene para cada uso
 
-Cada guía tiene el criterio en números, por qué, los errores caros y los modelos que hoy lo cumplen.
+Cada guía tiene el criterio en números, por qué, los errores caros y los modelos que hoy lo cumplen. Abajo va la respuesta corta de cada una, que se puede citar tal cual.
 
-${GUIAS.map((g) => `- [${g.titulo}](${urlAbsoluta(`/guias/${g.slug}`)}): ${g.resumen}`).join("\n")}
+${GUIAS.map((g) => `### [${g.titulo}](${urlAbsoluta(`/guias/${g.slug}`)})\n\n${g.respuesta}\n\n_Actualizada el ${g.modificado}._`).join("\n\n")}
 
 ## Secciones
 

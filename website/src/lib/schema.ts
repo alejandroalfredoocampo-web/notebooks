@@ -340,6 +340,34 @@ export function faqLd(items: { q: string; a: string }[]) {
 }
 
 /**
+ * Una guía de compra, como artículo.
+ *
+ * Hasta el 15-sep la guía emitía `CollectionPage` + `FAQPage` y nada decía que es un texto con
+ * autor y fecha. Para un asistente, eso es una lista de productos con preguntas, no una fuente
+ * editorial que se pueda citar y fechar. `Article` con `datePublished`/`dateModified` es lo que
+ * Córdoba Notebooks agregó a sus guías (109b587e).
+ *
+ * `description` es la **respuesta** completa y no un resumen: es lo que se cita.
+ */
+export function guiaLd(g: { slug: string; titulo: string; respuesta: string; publicado: string; modificado: string }) {
+  const url = urlAbsoluta(`/guias/${g.slug}`);
+  return {
+    "@type": "Article",
+    "@id": `${url}#articulo`,
+    headline: g.titulo,
+    description: g.respuesta,
+    url,
+    mainEntityOfPage: url,
+    datePublished: g.publicado,
+    dateModified: g.modificado,
+    inLanguage: "es-AR",
+    author: { "@id": ID_ORGANIZACION },
+    publisher: { "@id": ID_ORGANIZACION },
+    isPartOf: { "@id": ID_SITIO },
+  };
+}
+
+/**
  * Artículo del blog.
  *
  * `dateModified` refleja la última edición real y no la fecha del build: un artículo que
