@@ -22,7 +22,7 @@
  * compilan, no tiene sentido esperar tres minutos a un build que va a fallar por lo mismo.
  *
  *   1. Unitarios      — segundos, sin dependencias
- *   2. Tipos          — segundos
+ *   2. Tipos y copy   — segundos; el copy, con `chequear-copy.mjs` (frases que no se pueden decir)
  *   3. Migraciones    — segundos; el SQL de permisos contra un Postgres de verdad (PGlite)
  *   4. Build          — minutos; es también la prueba de que las páginas se generan
  *   5. Chequeo        — cabeceras, CSP, indexación, SEO/LLMO, datos estructurados
@@ -125,7 +125,10 @@ async function main() {
     correr("node", ["--test", "--experimental-strip-types", "src/lib/__tests__/*.test.ts"], { shell: true }),
   ))) return finalizar();
 
-  if (!(await etapa("2/6 · Tipos", () => correr("npx", ["tsc", "--noEmit"])))) return finalizar();
+  // El chequeo de copy va con los tipos: cuesta lo mismo (segundos) y es igual de estático.
+  if (!(await etapa("2/6 · Tipos y copy", async () =>
+    (await correr("npx", ["tsc", "--noEmit"])) || correr("node", ["scripts/chequear-copy.mjs"]),
+  ))) return finalizar();
 
   if (!(await etapa("3/6 · Migraciones", () =>
     correr("node", ["scripts/probar-migraciones.mjs"]),

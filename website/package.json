@@ -18,6 +18,7 @@
     "review:bulk": "node scrapers/bulk-review.mjs",
     "test": "node --test --experimental-strip-types 'src/lib/__tests__/*.test.ts'",
     "chequear": "node scripts/chequear-sitio.mjs",
+    "chequear:copy": "node scripts/chequear-copy.mjs",
     "probar": "node scripts/probar-todo.mjs",
     "probar:integracion": "node scripts/probar-integracion.mjs",
     "probar:migraciones": "node scripts/probar-migraciones.mjs"
