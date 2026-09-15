@@ -8,6 +8,80 @@ Todo esto requiere la `service_role` o acceso a dashboards → lo hacés vos, no
 
 ---
 
+## 🚨 Estado al 2026-09-15: el sitio está caído y la causa no es código
+
+Medido el 15-sep: `notebooks-tan.vercel.app` contesta **500** en `/`, `/notebooks` y `/llms.txt`.
+El host de la base, **`itisgcfxvryxyvolxjvs.supabase.co`, no resuelve DNS** (NXDOMAIN en
+8.8.8.8, 1.1.1.1 y el resolver local). Ningún cambio de código lo arregla.
+
+1. Supabase → el proyecto: ¿está **pausado** (los gratuitos se pausan por inactividad), borrado,
+   o se recreó en la cuenta nueva con otra URL?
+2. Si cambió la URL: actualizar `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+   `SUPABASE_SERVICE_ROLE_KEY` en **Vercel** (y redeploy) y en **GitHub → Secrets**. La CSP toma
+   el origen de `SUPABASE_URL`, así que se ajusta sola con el redeploy.
+3. Aparte, y desde el 9-sep: los cuatro workflows fallan porque el repo nuevo nació **sin
+   secretos**. El script para cargarlos está en la rama `arreglo/cutover-secrets-y-paridad`
+   (sin mergear). Sumarle `REVALIDATE_SECRET` antes de usarlo: ahora `scrape.yml` lo pasa.
+
+---
+
+## ⚠️ Antes de desplegar la ronda de paridad del 2026-09-15
+
+Rama `paridad-2026-09-15`. Detalle en `paridad/2026-09-15.md`.
+
+### 1. El orden importa: primero el código, después la `0016`
+
+`0016_escrituras_publicas_por_la_api.sql` le saca a `anon` el insert directo en alertas,
+avisos, solicitudes, pedidos corporativos y **clicks salientes**. El código nuevo escribe con
+`service_role`. Con la migración aplicada y el código viejo:
+
+- los formularios devuelven "No se pudo guardar";
+- **los clicks salientes dejan de registrarse** (el redirect sigue andando).
+
+Orden: `0012` → `0013` → `0014` → `0015` (las de la ronda anterior, si siguen sin correr) →
+**deploy** → `0016`.
+
+### 2. `SUPABASE_SERVICE_ROLE_KEY` en el runtime de Vercel pasa a ser crítica
+
+Antes la usaba sólo el admin. Ahora la usan los cinco formularios, `/salir` y el rate limit. Si
+falta: formularios con error genérico, clicks sin registrar, y el login del admin cerrado (el
+rate limit del login falla cerrado). Verificar que esté en **Production** y en **Preview**.
+
+### 3. Todos los que estén logueados en el admin tienen que volver a entrar
+
+La cookie de sesión cambió de formato (ahora lleva vencimiento firmado). Las cookies viejas no
+entran. Es a propósito.
+
+### 4. Secretos y variables de GitHub Actions
+
+| Qué | Dónde | Si falta |
+|---|---|---|
+| `REVALIDATE_SECRET` | Secrets (el mismo valor que en Vercel) | El scrape avisa con `::warning::` y los precios nuevos tardan ≤5 min. |
+| `EMAIL_FROM` | Secrets | **El worker de emails falla** en el cron. Antes caía en `onboarding@resend.dev`, que sólo le entrega al dueño de la cuenta de Resend. |
+| `RESEND_API_KEY` | Secrets | **El worker de emails falla** en el cron (antes: dry-run en verde). |
+| `SITE_URL` | **Variables** (no Secrets) | Se usa `https://notebooks-tan.vercel.app`. Setearla el día que haya dominio. La usan el scrape, la verificación y el vigía. |
+| `SUPABASE_LIMITE_MB` | Env del scrape, opcional | Se asume 500 MB (plan gratuito). El scrape falla al 70 %. |
+
+### 5. Dos workflows nuevos, sin secretos
+
+- **`vigilar.yml`** — cada hora mira `/` y `/notebooks` y abre un issue "El sitio está caído" si
+  falla dos veces seguidas. Hoy lo abriría: es correcto.
+- **`avisar-fallas.yml`** — un issue por workflow programado que falla; se cierra solo.
+
+`workflow_run` sólo corre desde la rama por defecto: `avisar-fallas` empieza a andar cuando esto
+esté en `main`.
+
+### 6. Verificación después del deploy
+
+```bash
+cd website && npm run chequear -- https://notebooks-tan.vercel.app
+```
+
+Ahora también recorre el sitemap URL por URL: un tipo de página sin regla en `ESPERADO`
+(`scripts/chequear-sitio.mjs`) es una falla.
+
+---
+
 ## ⚠️ Antes de desplegar la ronda de paridad (2026-08-22)
 
 La rama `paridad-cordoba-notebooks` trae **dos cambios que rompen si el entorno no está
