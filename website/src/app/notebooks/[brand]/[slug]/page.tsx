@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getModelBySlug, getModels, getHistory } from "@/lib/data";
+import { notFound, redirect } from "next/navigation";
+import { conQuery } from "@/lib/conservarQuery";
+import { getBrands, getModelBySlug, getModels, getHistory } from "@/lib/data";
 import { fmtARS, fmtDateTime, daysAgo } from "@/lib/format";
 import SpecChips from "@/components/SpecChips";
 import PriceChart from "@/components/PriceChart";
@@ -75,9 +76,27 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   });
 }
 
-export default async function ModelPage({ params }: { params: Params }) {
+export default async function ModelPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const model = await getModelBySlug(params.brand, params.slug);
-  if (!model) notFound();
+  if (!model) {
+    // Un modelo que ya no está pero cuya marca sí: se manda a la página de la marca, que es lo
+    // más cerca, en vez de un 404. Pasa de verdad: `bulk-review --reset` borra los modelos
+    // automáticos y los vuelve a crear, y los links compartidos por WhatsApp quedaban muertos.
+    //
+    // Temporal (307) y no permanente: el modelo puede volver con el mismo slug, y un 308 lo
+    // cachea el navegador. Y **sólo cuando la carga respondió**: si la base falla,
+    // `getModelBySlug` tira y esto no corre — redirigir por un hipo del backend manda a la
+    // persona lejos de una ficha que existe (Córdoba Notebooks, doc 96 G18).
+    const marca = (await getBrands()).find((b) => b.slug === params.brand);
+    if (marca) redirect(conQuery(`/marcas/${marca.slug}`, searchParams));
+    notFound();
+  }
 
   const hasOffers = model.listings.length > 0; // modo "próximamente" si no hay ofertas (spec 06)
   const [history, allModels] = await Promise.all([getHistory(model.id), getModels()]);

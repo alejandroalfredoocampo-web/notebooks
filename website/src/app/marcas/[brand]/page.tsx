@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { conQuery } from "@/lib/conservarQuery";
 import { filterModels, getBrands, getBrandInfo } from "@/lib/data";
 import { fmtARS } from "@/lib/format";
 import ModelCard from "@/components/ModelCard";
@@ -33,7 +34,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return metaRuta(`/marcas/${brand.slug}`, { title, description: recortar(description, 300) });
 }
 
-export default async function BrandLandingPage({ params }: { params: Params }) {
+export default async function BrandLandingPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const brand = await resolveBrand(params.brand);
   if (!brand) notFound();
 
@@ -41,7 +48,12 @@ export default async function BrandLandingPage({ params }: { params: Params }) {
     getBrandInfo(params.brand),
     filterModels({ brands: [params.brand] }),
   ]);
-  if (!models.length) notFound();
+  // Una marca que existe y hoy no tiene ningún modelo con oferta no es un 404: es una página
+  // que va a volver. Antes daba 404, y cada link ya compartido o indexado caía en una pantalla
+  // vacía. Ahora va al catálogo con un redirect **temporal** (307, no 308): cuando la marca
+  // vuelva a tener ofertas, la URL tiene que volver a andar, y un 308 lo cachea el navegador.
+  // Es lo que hizo Córdoba Notebooks con las marcas sin productos (4a9fa88d).
+  if (!models.length) redirect(conQuery("/notebooks", searchParams));
 
   const minPrice = Math.min(...models.map((m) => m.bestPrice).filter((p) => p > 0));
   const dedicated = models.filter((m) => m.gpuType === "dedicada").length;

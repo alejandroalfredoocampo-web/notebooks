@@ -166,6 +166,21 @@ async function humo() {
     const { estado } = await pedir("/esta-ruta-no-existe-jamas-12345");
     debe(estado === 404, `devolvió ${estado}`);
   });
+
+  await prueba("un modelo que ya no está va a su marca, temporal y con la query", async () => {
+    // Desde el 15-sep (Córdoba Notebooks, 4a9fa88d + 6a640c2d). 307 y no 308: el modelo puede
+    // volver con el mismo slug. Y la marca inventada sigue siendo 404.
+    const ficha = await primeraFicha();
+    debe(ficha, "no hay fichas en el sitemap");
+    const marca = ficha.split("/")[2];
+    const r = await pedir(`/notebooks/${marca}/modelo-que-no-existe-12345?utm_source=prueba&gclid=G1`);
+    debe(r.estado === 307, `devolvió ${r.estado}`);
+    const destino = r.headers.get("location") ?? "";
+    debe(destino.includes(`/marcas/${marca}`), `redirige a ${destino}`);
+    debe(destino.includes("utm_source=prueba") && destino.includes("gclid=G1"), `perdió la query: ${destino}`);
+    const inventada = await pedir("/notebooks/marca-que-no-existe-12345/x");
+    debe(inventada.estado === 404, `una marca inventada devolvió ${inventada.estado}`);
+  });
 }
 
 let _ficha = null;
