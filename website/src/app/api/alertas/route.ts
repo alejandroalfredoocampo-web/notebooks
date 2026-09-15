@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseServer";
+import { clienteDeEscritura } from "@/lib/supabaseAdmin";
 import { LIMITES, chequearLimite, respuesta429 } from "@/lib/limites";
 import { email, entero, errorGuardando, esEmail, leerJson, texto } from "@/lib/entrada";
 
@@ -44,7 +44,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "El precio objetivo no es válido." }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const sb = clienteDeEscritura("alertas");
+  if (!sb) return errorGuardando("alertas", "falta SUPABASE_SERVICE_ROLE_KEY");
+  const { error } = await sb
     .from("price_alerts")
     .insert({ email: email(b.email), model_id: modelId, target_price: targetPrice });
   if (error) return errorGuardando("alertas", error);

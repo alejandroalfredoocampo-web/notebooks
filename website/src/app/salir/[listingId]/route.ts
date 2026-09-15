@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListing, getStore } from "@/lib/data";
-import { supabase } from "@/lib/supabaseServer";
+import { clienteDeEscritura } from "@/lib/supabaseAdmin";
 import { COOKIE_ORIGEN, COOKIE_VISITANTE, decodificar, ultimoToque } from "@/lib/atribucion";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export async function GET(
   const destino = destinoSeguro(listing.url);
   if (!destino) {
     // La publicación existe pero su URL no es utilizable. Es un problema de datos, no del
-    // visitante: se lo manda a la ficha del modelo, que es lo más cerca que se puede.
+    // visitante: se lo manda al catálogo.
     console.error("[salir] URL inválida en la publicación", { listingId: listing.id });
     return NextResponse.redirect(new URL("/notebooks", req.url), 302);
   }
@@ -61,8 +61,16 @@ export async function GET(
 
   // El registro nunca puede romper el redirect: si falla, la persona igual llega a la
   // tienda y nosotros perdemos un click de la contabilidad. Al revés sería inaceptable.
+  //
+  // Ojo con el `try`: supabase-js **no tira** cuando la base rechaza el insert, devuelve
+  // `{ error }`. Hasta el 15-sep el código sólo tenía el `catch`, así que un insert rechazado
+  // (una columna que falta porque no se corrió una migración, una policy) se perdía sin dejar
+  // ni una línea en el log. Es el click que se factura. Lección de Córdoba Notebooks
+  // (a1d5809b): "no pude preguntarle" y "me dijo que no" no pueden verse igual que "ok".
   try {
-    await supabase.from("click_outs").insert({
+    const sb = clienteDeEscritura("salir");
+    if (!sb) throw new Error("falta SUPABASE_SERVICE_ROLE_KEY");
+    const { error } = await sb.from("click_outs").insert({
       listing_id: listing.id,
       store_id: listing.storeId,
       model_id: listing.modelId,
@@ -78,6 +86,7 @@ export async function GET(
       click_id: toque?.click_id ?? null,
       first_touch_at: guardado.primero?.contacto ?? null,
     });
+    if (error) throw error;
   } catch (e) {
     console.error("[salir] no se pudo registrar el click", e);
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseServer";
+import { clienteDeEscritura } from "@/lib/supabaseAdmin";
 import { LIMITES, chequearLimite, respuesta429 } from "@/lib/limites";
 import {
   email,
@@ -71,7 +71,9 @@ export async function POST(req: Request) {
     message: textoOpcional(b.message, 4000),
   };
 
-  const { error } = await supabase.from("bulk_requests").insert(row);
+  const sb = clienteDeEscritura("corporativo");
+  if (!sb) return errorGuardando("corporativo", "falta SUPABASE_SERVICE_ROLE_KEY");
+  const { error } = await sb.from("bulk_requests").insert(row);
   if (error) return errorGuardando("corporativo", error);
   return NextResponse.json({ ok: true });
 }

@@ -77,7 +77,7 @@ const db = await PGlite.create();
  * El andamio y las migraciones
  * ======================================================================== */
 
-seccion("Se aplica el andamio y las 15 migraciones");
+seccion(`Se aplica el andamio y las ${readdirSync(MIGRACIONES).filter((f) => f.endsWith(".sql")).length} migraciones`);
 
 await prueba("andamio.sql (roles, auth.users, auth.uid, privilegios por defecto)", async () => {
   await db.exec(readFileSync(join(SUPABASE, "local", "andamio.sql"), "utf8"));
@@ -85,7 +85,7 @@ await prueba("andamio.sql (roles, auth.users, auth.uid, privilegios por defecto)
 
 // En orden y sin saltear ninguna: si una rompe a otra, se ve acá y no en el SQL Editor.
 const archivos = readdirSync(MIGRACIONES).filter((f) => f.endsWith(".sql")).sort();
-if (archivos.length < 15) throw new Error(`sólo se encontraron ${archivos.length} migraciones`);
+if (archivos.length < 16) throw new Error(`sólo se encontraron ${archivos.length} migraciones`);
 for (const f of archivos) {
   await prueba(f, async () => {
     await db.exec(leer(f));
@@ -210,10 +210,6 @@ await prueba("anon no lee clicks", async () => {
   throw new Error("anon pudo leer click_outs");
 });
 
-await prueba("anon conserva el insert que usa /salir", async () => {
-  await comoRol("anon", "insert into click_outs (store_id, model_id) values ('tienda-a','m9')");
-  return "insert ok";
-});
 
 await prueba("service_role sigue contando clicks por tienda (tablero de monetización)", async () => {
   const { rows } = await comoRol(
@@ -221,6 +217,83 @@ await prueba("service_role sigue contando clicks por tienda (tablero de monetiza
     "select store_id, count(*)::int n from click_outs group by 1 order by 1",
   );
   return rows.map((r) => `${r.store_id}:${r.n}`).join(" · ");
+});
+
+/* ===========================================================================
+ * 0016 — las escrituras públicas pasan sólo por la API
+ *
+ * Hasta la 0015 había una prueba "anon conserva el insert que usa /salir". Se sacó a
+ * propósito: esa capacidad es exactamente el agujero que cierra la 0016 (cualquiera con la
+ * anon key insertaba clicks, alertas y solicitudes salteando la API). Lo que se prueba
+ * ahora es lo contrario, y que `service_role` —con el que escriben las rutas— siga pudiendo.
+ * ======================================================================== */
+
+seccion("0016 · anon ya no escribe directo");
+
+// Un modelo real para que las FK de alertas y avisos no sean las que rechazan el insert.
+await db.exec("insert into models (id, brand, brand_slug, name, slug) values ('m-prueba','X','x','Prueba','prueba') on conflict do nothing;");
+
+/** Un insert que tiene que ser rechazado. Que pase es la falla. */
+async function insertNegado(rol, sql, que) {
+  try {
+    await comoRol(rol, sql);
+  } catch (e) {
+    const msg = e.message.split("\n")[0];
+    // Tiene que fallar por permisos. Si falla por una FK o una columna, la prueba pasaría
+    // sin haber probado nada.
+    if (!/row-level security|permission denied/i.test(msg)) {
+      throw new Error(`falló por otro motivo, no por permisos: ${msg}`);
+    }
+    return msg;
+  }
+  throw new Error(`${rol} pudo: ${que}`);
+}
+
+const INSERTS_PUBLICOS = [
+  ["click_outs", "insert into click_outs (store_id, model_id) values ('tienda-a','m9')", "clicks que se facturan"],
+  ["price_alerts", "insert into price_alerts (email, model_id, target_price) values ('x@example.com','m-prueba',1)", "mails a terceros"],
+  ["store_applications", "insert into store_applications (commercial_name, website, contact_email) values ('x','javascript:alert(1)','x@example.com')", "XSS en la bandeja del admin"],
+  ["model_notify", "insert into model_notify (email, model_id) values ('x@example.com','m-prueba')", "avisos a terceros"],
+  ["bulk_requests", "insert into bulk_requests (id, company_name, contact_email, quantity) values ('b-prueba','x','x@example.com',10)", "solicitudes corporativas"],
+];
+
+for (const [tabla, sql, porque] of INSERTS_PUBLICOS) {
+  await prueba(`anon no inserta en ${tabla} — ${porque}`, () => insertNegado("anon", sql, tabla));
+}
+
+await prueba("anon no puede inflar el rate limit de otra IP", () =>
+  insertNegado("anon", "select bump_rate_limit('admin-login:1.2.3.4:1', 60)", "bump_rate_limit"),
+);
+
+await prueba("authenticated tampoco", () =>
+  insertNegado("authenticated", "select bump_rate_limit('admin-login:1.2.3.4:1', 60)", "bump_rate_limit"),
+);
+
+await prueba("anon no lee el tamaño de la base", () =>
+  insertNegado("anon", "select tamano_base()", "tamano_base"),
+);
+
+await prueba("anon no ejecuta el mantenimiento del rate limit (0013 lo dejaba abierto)", () =>
+  insertNegado("anon", "select purge_rate_limits()", "purge_rate_limits"),
+);
+
+seccion("0016 · service_role, con el que escriben las rutas, sigue pudiendo");
+
+await prueba("service_role registra un click (/salir)", async () => {
+  await comoRol("service_role", "insert into click_outs (store_id, model_id) values ('tienda-a','m9')");
+  return "insert ok";
+});
+
+await prueba("service_role cuenta el rate limit", async () => {
+  const { rows } = await comoRol("service_role", "select bump_rate_limit('prueba:1.2.3.4:1', 60) n");
+  if (Number(rows[0].n) !== 1) throw new Error(`devolvió ${rows[0].n}`);
+  return "cuenta 1";
+});
+
+await prueba("service_role lee el tamaño de la base", async () => {
+  const { rows } = await comoRol("service_role", "select tamano_base() n");
+  if (!(Number(rows[0].n) > 0)) throw new Error(`devolvió ${rows[0].n}`);
+  return `${Math.round(Number(rows[0].n) / 1024 / 1024)} MB`;
 });
 
 /* ===========================================================================

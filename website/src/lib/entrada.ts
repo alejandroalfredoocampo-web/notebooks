@@ -134,3 +134,22 @@ export function errorGuardando(contexto: string, e: unknown): Response {
     { status: 500, headers: { "content-type": "application/json", "cache-control": "no-store" } },
   );
 }
+
+/**
+ * Un `href` que se puede renderizar, o `null`.
+ *
+ * Validar las URL en la API no alcanza: lo que se **muestra** puede haber entrado por otro
+ * camino (un insert directo con la anon key antes de la migración 0016, un scraper sobre HTML
+ * ajeno, una carga a mano en el SQL Editor). React 18 no bloquea `javascript:` en un `href`,
+ * así que el filtro tiene que estar donde se dibuja el link. Sólo `http:`, `https:` y
+ * `mailto:`.
+ */
+export function hrefSeguro(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw.trim());
+    return ["http:", "https:", "mailto:"].includes(u.protocol) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
