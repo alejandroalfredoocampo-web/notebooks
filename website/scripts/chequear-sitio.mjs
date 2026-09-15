@@ -375,13 +375,36 @@ async function estructurados() {
   }
 
   // La ficha de producto: que declare una oferta por tienda y no sólo el agregado.
+  //
+  // El `Product` sale sólo cuando hay ofertas vistas en los últimos 7 días (`productoLd`), y
+  // la ficha lo expone en `data-ofertas-vigentes`. Se busca la primera ficha que tenga, en vez
+  // de tomar la primera del sitemap: una "próximamente" daba "AggregateOffer ausente" en falso.
   const sm = await traer("/sitemap.xml");
-  const ficha = rutaDeLoc(sm.cuerpo);
-  if (!ficha) {
+  const candidatas = [...sm.cuerpo.matchAll(/<loc>([^<]*\/notebooks\/[^<]+\/[^<]+)<\/loc>/g)]
+    .slice(0, 20)
+    .map((m) => new URL(m[1]).pathname);
+  if (!candidatas.length) {
     aviso("JSON-LD de producto", "no se encontró ninguna ficha en el sitemap");
     return;
   }
-  const p = await traer(ficha);
+  let ficha = null;
+  let p = null;
+  for (const c of candidatas) {
+    const r = await traer(c);
+    const n = Number(/data-ofertas-vigentes="(\d+)"/.exec(r.cuerpo)?.[1] ?? 0);
+    if (n > 0) {
+      ficha = c;
+      p = r;
+      break;
+    }
+  }
+  if (!ficha) {
+    falla(
+      "JSON-LD de producto",
+      `ninguna de ${candidatas.length} fichas tiene precios vistos en los últimos 7 días: el scraper no está actualizando`,
+    );
+    return;
+  }
   const bloquesP = [...p.cuerpo.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)];
   let producto = null;
   const nodos = [];

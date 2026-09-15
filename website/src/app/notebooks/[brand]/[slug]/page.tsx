@@ -21,6 +21,7 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs, { type Miga } from "@/components/Breadcrumbs";
 import { metaRuta, recortar } from "@/lib/seo";
 import { breadcrumbLd, grafo, productoLd, tiendaLd } from "@/lib/schema";
+import { filasDeSpecs, ofertaVigente, resumenDeSpecs } from "@/lib/specs";
 import BarraMejorPrecio from "@/components/BarraMejorPrecio";
 
 interface Params {
@@ -33,9 +34,24 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const model = await getModelBySlug(params.brand, params.slug);
   if (!model) return {};
-  const title = `${model.brand} ${model.name} — precio en ${model.listings.length} tiendas`;
-  const description = `Mejor precio del ${model.brand} ${model.name} (${model.cpu}, ${model.ramGb} GB RAM, ${model.storageGb} GB SSD): ${fmtARS(model.bestPrice)}. Compará ${model.listings.length} ofertas con historial de precios.`;
+  // Sin ofertas no hay "mejor precio" que afirmar: antes esta ficha decía "precio en 0
+  // tiendas" y "Mejor precio: $0". Y las specs salen de lo que se sabe: antes decía "GB SSD"
+  // fijo aunque el disco fuera HDD, y "0 GB RAM" cuando faltaba el dato.
+  const n = model.listings.length;
+  const specs = resumenDeSpecs(model);
+  const entreParentesis = specs ? ` (${specs})` : "";
+  const title = n
+    ? `${model.brand} ${model.name} — precio en ${n} ${n === 1 ? "tienda" : "tiendas"}`
+    : `${model.brand} ${model.name} — próximamente`;
+  const description = n
+    ? `Mejor precio del ${model.brand} ${model.name}${entreParentesis}: ${fmtARS(model.bestPrice)}. Compará ${n} ${n === 1 ? "oferta" : "ofertas"} con historial de precios.`
+    : `${model.brand} ${model.name}${entreParentesis}. Todavía no lo vemos en ninguna tienda indexada: dejá tu email y te avisamos cuando aparezca.`;
   const canonical = `/notebooks/${model.brandSlug}/${model.slug}`;
+  // La foto viene hotlinkeada de la tienda, con el formato que la tienda eligió. WhatsApp y
+  // Meta no muestran WebP ni AVIF en la vista previa (Córdoba Notebooks lo pagó con el feed de
+  // Meta, doc 118, y con la OG de la home, 649c946b): un link compartido salía sin imagen. Sólo
+  // JPEG o PNG; si no, la portada del sitio que pone `metaRuta`.
+  const foto = model.imageUrl && /\.(jpe?g|png)(\?|#|$)/i.test(model.imageUrl) ? model.imageUrl : undefined;
   return metaRuta(canonical, {
     title,
     // `recortar` corta en el último espacio. Antes esta description podía salir partida a
@@ -48,13 +64,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       type: "website",
       // La foto del equipo cuando la hay; si no, la portada del sitio (la que arma
       // `metaRuta`), que es mejor que compartir un link sin imagen.
-      ...(model.imageUrl ? { images: [{ url: model.imageUrl }] } : {}),
+      ...(foto ? { images: [{ url: foto }] } : {}),
     },
     twitter: {
-      card: model.imageUrl ? "summary_large_image" : "summary",
+      card: foto ? "summary_large_image" : "summary",
       title,
       description: recortar(description, 200),
-      images: model.imageUrl ? [model.imageUrl] : undefined,
+      images: foto ? [foto] : undefined,
     },
   });
 }
@@ -117,20 +133,17 @@ export default async function ModelPage({ params }: { params: Params }) {
    */
   const tiendasUnicas = new Map(model.listings.map((l) => [l.store.slug, l.store]));
 
-  const specs: [string, string][] = [
-    ["Procesador", model.cpu],
-    ["Memoria RAM", `${model.ramGb} GB ${model.ramType}`],
-    ["Almacenamiento", `${model.storageGb >= 1000 ? "1 TB" : model.storageGb + " GB"} ${model.storageType}`],
-    ["Pantalla", `${model.screenSizeIn}" ${model.screenResolution} ${model.screenPanel} ${model.screenRefreshHz} Hz`],
-    ["Placa de video", model.gpu],
-    ["Sistema operativo", model.os],
-    ["Peso", `${model.weightKg} kg`],
-    ["Batería", `${model.batteryWh} Wh`],
-    ["Part number", model.partNumber],
-  ];
+  // Sólo las filas con dato: antes la tabla mostraba "Peso 0 kg" y "Batería 0 Wh".
+  const specs = filasDeSpecs(model);
+
+  const ofertasVigentes = model.listings.filter((l) => ofertaVigente(l.lastSeenAt)).length;
+  const conStock = model.listings.filter((l) => l.inStock).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    // `data-ofertas-vigentes` es para los chequeos: el `Product` del JSON-LD existe si y sólo
+    // si ese número es mayor que cero (ver `productoLd`). Sin el dato en la página, una sonda
+    // no puede distinguir "se rompió el schema" de "esta ficha no tiene precios recientes".
+    <div className="mx-auto max-w-6xl px-4" data-ofertas-vigentes={ofertasVigentes}>
       <TrackView modelId={model.id} />
       {/**
        * La barra fija de mobile con el mejor precio y el link a la tienda.
@@ -231,7 +244,7 @@ export default async function ModelPage({ params }: { params: Params }) {
           <>
           <div className="mb-3.5 rounded-xl border-2 border-brand-green bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-widest text-brand-green">
-              Mejor precio hoy
+              {conStock > 0 ? "Mejor precio hoy" : "Último precio visto"}
             </div>
             <div className="text-3xl font-extrabold tracking-tight">
               {fmtARS(model.bestPrice)}
@@ -240,7 +253,14 @@ export default async function ModelPage({ params }: { params: Params }) {
             {model.bestListing && (
               <div className="text-[13px] text-slate-500">
                 en <b className="text-slate-800">{model.bestListing.store.name}</b> ·{" "}
-                {model.listings.length} tiendas lo venden
+                {/* Lo que dice el texto y lo que declara el JSON-LD tienen que ser lo mismo
+                    (Córdoba Notebooks, 109b587e). Antes decía "N tiendas lo venden" contando
+                    las que no tienen stock, mientras el `offerCount` contaba sólo las que sí. */}
+                {conStock === model.listings.length
+                  ? `${conStock} ${conStock === 1 ? "tienda lo tiene" : "tiendas lo tienen"} en stock`
+                  : conStock > 0
+                    ? `en stock en ${conStock} de ${model.listings.length} tiendas`
+                    : `sin stock en ${model.listings.length === 1 ? "la tienda" : `las ${model.listings.length} tiendas`} por ahora`}
               </div>
             )}
             {model.bestInstallment && (
@@ -249,6 +269,10 @@ export default async function ModelPage({ params }: { params: Params }) {
                   <span className="font-semibold text-brand-green">
                     o {model.bestInstallment.count} cuotas sin interés de{" "}
                     {fmtARS(model.bestInstallment.amount)}
+                    {/* La mejor financiación puede ser de otra tienda que el mejor contado. Sin
+                        esto, la línea se leía como si las cuotas fueran de la tienda de arriba. */}
+                    {model.bestInstallment.storeName !== model.bestListing?.store.name &&
+                      ` en ${model.bestInstallment.storeName}`}
                   </span>
                 ) : (
                   <span className="text-slate-500">

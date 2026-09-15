@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { createModel, getAdminModels, slugify } from "@/lib/adminData";
 import { invalidarCatalogo } from "@/lib/revalidar";
 
+/** Texto recortado, o `null` si viene vacío. */
+const opcional = (v: unknown): string | null => {
+  const t = String(v ?? "").trim();
+  return t || null;
+};
+
 /**
  * Crea un modelo canónico nuevo (típicamente desde una publicación scrapeada
  * que no matcheaba ninguno). Genera id/slug únicos, lo inserta en `models` y,
@@ -46,19 +52,21 @@ export async function POST(req: Request) {
       cpu,
       cpu_family: String(b.cpuFamily ?? "").trim(),
       ram_gb: Math.round(ramGb),
-      ram_type: String(b.ramType ?? "DDR4"),
+      // Lo que el formulario deja vacío se guarda vacío. Antes caía en DDR4 / SSD / 15,6" FHD
+      // IPS 60 Hz / Windows 11 Home, y la ficha lo publicaba como dato (ver src/lib/specs.ts).
+      ram_type: opcional(b.ramType),
       storage_gb: Math.round(storageGb),
-      storage_type: String(b.storageType ?? "SSD"),
-      screen_size_in: Number(b.screenSizeIn) || 15.6,
-      screen_resolution: String(b.screenResolution ?? "1920x1080 (FHD)"),
-      screen_panel: String(b.screenPanel ?? "IPS"),
-      screen_refresh_hz: Number(b.screenRefreshHz) || 60,
+      storage_type: opcional(b.storageType),
+      screen_size_in: Number(b.screenSizeIn) || null,
+      screen_resolution: opcional(b.screenResolution),
+      screen_panel: opcional(b.screenPanel),
+      screen_refresh_hz: Number(b.screenRefreshHz) || null,
       gpu: String(b.gpu ?? (gpuType === "integrada" ? "Integrada" : "")).trim(),
       gpu_type: gpuType,
-      os: String(b.os ?? "Windows 11 Home"),
-      weight_kg: Number(b.weightKg) || 0,
-      battery_wh: Math.round(Number(b.batteryWh) || 0),
-      release_year: Number(b.releaseYear) || new Date().getFullYear(),
+      os: opcional(b.os),
+      weight_kg: Number(b.weightKg) || null,
+      battery_wh: Math.round(Number(b.batteryWh)) || null,
+      release_year: Number(b.releaseYear) || null,
       use_cases: Array.isArray(b.useCases) ? b.useCases : [],
       image_url: String(b.imageUrl ?? "").trim() || null,
       source: "manual",

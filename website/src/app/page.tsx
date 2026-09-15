@@ -50,7 +50,17 @@ export default async function Home() {
     getBrands(),
   ]);
   const deals = allDeals.slice(0, 4);
-  const popular = allModels.filter((m) => m.listings.length > 0).slice(0, 4);
+  // Antes: los cuatro primeros en el orden en que Supabase devuelve las filas (sin `order`), bajo
+  // el título "Los más comparados esta semana", que no medía nada. Ahora son los que más tiendas
+  // tienen en stock, y el título dice eso.
+  const popular = allModels
+    .filter((m) => m.listings.some((l) => l.inStock))
+    .sort(
+      (a, b) =>
+        b.listings.filter((l) => l.inStock).length - a.listings.filter((l) => l.inStock).length ||
+        a.bestPrice - b.bestPrice,
+    )
+    .slice(0, 4);
   const stats = {
     models: allModels.length,
     stores: stores.length,
@@ -89,11 +99,25 @@ export default async function Home() {
             Ver todas las ofertas →
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {deals.map((m) => (
-            <ModelCard key={m.id} model={m} />
-          ))}
-        </div>
+        {/* Sin ofertas verificadas —que es lo esperable con el scraper parado, o con un
+            historial corto— la sección quedaba con el título y una grilla vacía. Mismo criterio
+            que la fila de "más vendidos" de Córdoba Notebooks (doc 101): la fila no sale vacía. */}
+        {deals.length ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {deals.map((m) => (
+              <ModelCard key={m.id} model={m} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-600">
+            Hoy no hay ningún modelo claramente debajo de su promedio de 90 días. Cuando baje alguno,
+            aparece acá; mientras, mirá{" "}
+            <Link href="/notebooks" className="font-semibold text-brand-blue hover:underline">
+              el catálogo completo
+            </Link>
+            .
+          </p>
+        )}
       </section>
 
       {/* Vistos recientemente (client, solo si hay historial) */}
@@ -126,7 +150,7 @@ export default async function Home() {
             {
               n: "1",
               t: "Indexamos todas las tiendas",
-              d: `Relevamos los catálogos de ${stores.length} tiendas argentinas varias veces por día y agrupamos las publicaciones del mismo modelo en una sola ficha.`,
+              d: `Relevamos los catálogos de ${stores.length} tiendas argentinas todos los días y agrupamos las publicaciones del mismo modelo en una sola ficha.`,
             },
             {
               n: "2",
@@ -154,7 +178,7 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-5 flex items-baseline justify-between">
           <h2 className="text-xl font-extrabold tracking-tight">
-            Los más comparados esta semana
+            Los que están en más tiendas
           </h2>
           <Link href="/notebooks" className="text-sm font-semibold text-brand-blue hover:underline">
             Ver todos →

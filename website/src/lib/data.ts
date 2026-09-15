@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { supabase } from "./supabaseServer";
+import { sinInventar } from "./specs";
 import { ramBucket, storageBucket, screenBucket } from "./specFilters";
 import { cleanModelName } from "./format";
 import type {
@@ -49,7 +50,9 @@ function mapStore(r: Row): Store {
   };
 }
 
-function mapModel(r: Row): NotebookModel {
+function mapModel(fila: Row): NotebookModel {
+  // Los modelos que creó `bulk-review` traen specs de relleno que nadie verificó. Ver `specs.ts`.
+  const r = sinInventar(fila);
   return {
     id: r.id as string,
     brand: r.brand as string,
@@ -140,7 +143,7 @@ export const TAG_CATALOGO = "catalogo";
  * Supabase). Sin este techo, un aviso perdido deja el sitio con precios viejos hasta el
  * próximo deploy, y en un comparador eso no es un cache viejo: es un precio equivocado.
  *
- * Cinco minutos es corto para lo que cambia "varias veces por día" y suficiente para que
+ * Cinco minutos es corto para lo que cambia el catálogo y suficiente para que
  * una ráfaga de visitas no se traduzca en una ráfaga de consultas.
  */
 const SEGUNDOS_CATALOGO = 300;

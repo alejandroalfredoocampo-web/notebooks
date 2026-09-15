@@ -156,6 +156,14 @@ async function humo() {
 }
 
 let _ficha = null;
+/** Las primeras `n` fichas del sitemap, como rutas. */
+async function fichasDelSitemap(n) {
+  const { texto } = await pedir("/sitemap.xml");
+  return [...texto.matchAll(/<loc>([^<]*\/notebooks\/[^<]+\/[^<]+)<\/loc>/g)]
+    .slice(0, n)
+    .map((m) => new URL(m[1]).pathname);
+}
+
 async function primeraFicha() {
   if (_ficha !== null) return _ficha;
   const { texto } = await pedir("/sitemap.xml");
@@ -219,12 +227,33 @@ async function regresion() {
   });
 
   await prueba("la ficha declara una oferta por tienda con su seller resuelto", async () => {
-    const ficha = await primeraFicha();
-    debe(ficha, "no hay ficha");
-    const { texto } = await pedir(ficha);
+    // Desde el 15-sep el `Product` sale sólo si hay ofertas vistas en los últimos 7 días
+    // (`productoLd`). Se recorren fichas hasta encontrar una con ofertas vigentes; y la
+    // primera sin ofertas vigentes se usa para verificar lo contrario: que no declare un
+    // `Product` sin `offers`, que es un error de Search Console en cada ficha.
+    const fichas = await fichasDelSitemap(20);
+    debe(fichas.length, "no hay fichas en el sitemap");
+    let texto = null;
+    let sinVigentes = null;
+    for (const f of fichas) {
+      const r = await pedir(f);
+      const n = Number(/data-ofertas-vigentes="(\d+)"/.exec(r.texto)?.[1] ?? NaN);
+      debe(Number.isFinite(n), `${f} no expone data-ofertas-vigentes`);
+      if (n > 0 && !texto) texto = r.texto;
+      if (n === 0 && !sinVigentes) sinVigentes = { f, texto: r.texto };
+      if (texto && sinVigentes) break;
+    }
+    if (sinVigentes) {
+      const p = leerJsonLd(sinVigentes.texto).find((n) => n["@type"] === "Product");
+      debe(!p, `${sinVigentes.f} no tiene ofertas vigentes y declara un Product igual`);
+    }
+    // Que ninguna de las primeras 20 fichas tenga un precio de la última semana no es un
+    // problema del schema: es el scraper parado. Falla igual, porque el sitio está mostrando
+    // precios viejos, y lo dice.
+    debe(texto, `ninguna de ${fichas.length} fichas tiene precios vistos en los últimos 7 días: ¿corre el scraper?`);
     const nodos = leerJsonLd(texto);
     const producto = nodos.find((n) => n["@type"] === "Product");
-    debe(producto, "no hay nodo Product");
+    debe(producto, "hay ofertas vigentes y no hay nodo Product");
     const ofertas = [].concat(producto.offers ?? []);
     const agregado = ofertas.find((o) => o["@type"] === "AggregateOffer");
     const porTienda = ofertas.filter((o) => o["@type"] === "Offer");
@@ -307,6 +336,32 @@ async function regresion() {
       debe(sm.includes(buscada), `${ruta} no está en el sitemap`);
     }
     return `${urls} URLs, ${RUTAS.length} rutas verificadas`;
+  });
+
+  await prueba("cada grupo de robots.txt bloquea lo mismo que el de *", async () => {
+    // Por RFC 9309 un crawler obedece sólo el grupo más específico que lo nombra. Hasta el
+    // 15-sep el de GPTBot/ClaudeBot tenía una lista más corta y esos bots no respetaban las
+    // facetas ni /baja. Se parsean los grupos del archivo servido, no el código.
+    const { texto } = await pedir("/robots.txt");
+    const grupos = [];
+    let actual = null;
+    for (const linea of texto.split("\n").map((l) => l.trim())) {
+      const [k, ...v] = linea.split(":");
+      const valor = v.join(":").trim();
+      if (/^user-agent$/i.test(k)) {
+        if (!actual || actual.reglas.length) grupos.push((actual = { agentes: [], reglas: [] }));
+        actual.agentes.push(valor);
+      } else if (/^disallow$/i.test(k) && actual) {
+        actual.reglas.push(valor);
+      }
+    }
+    const general = grupos.find((g) => g.agentes.includes("*"));
+    debe(general, "no hay grupo para *");
+    const esperado = [...general.reglas].sort().join("|");
+    for (const g of grupos) {
+      debe([...g.reglas].sort().join("|") === esperado, `${g.agentes.join(", ")} no bloquea lo mismo que *`);
+    }
+    return `${grupos.length} grupos, ${general.reglas.length} reglas`;
   });
 
   await prueba("un host que no es el canónico sale con noindex", async () => {

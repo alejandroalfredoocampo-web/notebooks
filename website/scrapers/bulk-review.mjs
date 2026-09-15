@@ -205,12 +205,15 @@ async function doReview() {
         || g.rep.title_raw.match(/ryzen\s*[3579]\s*\w*/i)?.[0] || CPU_LABEL[g.fam] || g.fam;
       const { error } = await sb.from("models").insert({
         id, brand: g.brand.name, brand_slug: g.brand.slug, name, slug: slugify(name),
-        cpu: String(cpuRaw).trim(), cpu_family: g.fam, ram_gb: g.ram, ram_type: "DDR4",
-        storage_gb: g.storage, storage_type: "SSD", screen_size_in: 15.6,
-        screen_resolution: "1920x1080 (FHD)", screen_panel: "IPS", screen_refresh_hz: 60,
+        // Sólo lo que sale del título. Lo que no se sabe va en null: antes esto escribía
+        // DDR4, 15,6" FHD IPS 60 Hz, Windows 11 Home y 0 kg para todos, y eso terminaba
+        // declarado en el JSON-LD y filtrando guías. Ver src/lib/specs.ts.
+        cpu: String(cpuRaw).trim(), cpu_family: g.fam, ram_gb: g.ram, ram_type: null,
+        storage_gb: g.storage, storage_type: /\bssd\b/i.test(g.rep.title_raw) ? "SSD" : /\bhdd\b/i.test(g.rep.title_raw) ? "HDD" : null,
+        screen_size_in: null, screen_resolution: null, screen_panel: null, screen_refresh_hz: null,
         gpu: g.gpu.label, gpu_type: g.gpu.dedicated ? "dedicada" : "integrada",
-        os: "Windows 11 Home", weight_kg: 0, battery_wh: 0,
-        release_year: new Date().getFullYear(), use_cases: [], image_url: g.rep.image || null, source: "auto",
+        os: null, weight_kg: null, battery_wh: null,
+        release_year: null, use_cases: [], image_url: g.rep.image || null, source: "auto",
       });
       if (error) { console.error(`  ✗ ${name}: ${error.message}`); continue; }
       created++; modelId = id;

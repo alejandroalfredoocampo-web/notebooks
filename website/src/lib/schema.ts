@@ -1,6 +1,7 @@
 import { DESCRIPCION_SITIO, NOMBRE_SITIO, SITE_URL, urlAbsoluta } from "@/lib/site";
 import { recortar } from "@/lib/seo";
 import type { ModelWithOffers, Store } from "@/lib/types";
+import { mpnVerificable, ofertaVigente } from "@/lib/specs";
 
 /**
  * Datos estructurados (schema.org / JSON-LD).
@@ -144,13 +145,24 @@ function validaHasta(desde: string): string {
  * - **`hasMerchantReturnPolicy` / `shippingDetails`.** Son de cada tienda y no los
  *   conocemos por publicación. Un valor inventado acá es una promesa que después incumple
  *   un tercero.
- * - **`gtin`.** El catálogo tiene `partNumber`, que va como `mpn`. Cuando haya códigos de
- *   barra cargados se agrega `gtin`; hoy emitirlo sería declarar un identificador nulo.
+ * - **`gtin`.** No hay códigos de barra cargados; emitirlo sería declarar un identificador
+ *   nulo. El `mpn` va sólo si una tienda lo muestra (ver `mpnVerificable`).
+ *
+ * ## Cuándo no hay `Product`
+ *
+ * Devuelve `null` si no queda ninguna oferta vigente: un modelo "próximamente" o uno cuyas
+ * publicaciones el scraper no ve hace más de 7 días. Google exige `offers`, `review` o
+ * `aggregateRating` para el fragmento de producto, así que un `Product` sin ofertas no es
+ * "menos rico": es un error en Search Console repetido en cada ficha de ese tipo. La ficha
+ * sigue emitiendo la miga de pan.
  */
 export function productoLd(model: ModelWithOffers, opciones?: { descripcion?: string }) {
   const url = urlAbsoluta(`/notebooks/${model.brandSlug}/${model.slug}`);
-  const activas = model.listings.filter((l) => l.inStock);
-  const conPrecio = activas.length ? activas : model.listings;
+  const vigentes = model.listings.filter((l) => ofertaVigente(l.lastSeenAt));
+  if (!vigentes.length) return null;
+  const activas = vigentes.filter((l) => l.inStock);
+  const conPrecio = activas.length ? activas : vigentes;
+  const mpn = mpnVerificable(model.partNumber, model.listings.map((l) => l.titleRaw));
 
   const ofertas = conPrecio.map((l) => ({
     "@type": "Offer",
@@ -172,14 +184,14 @@ export function productoLd(model: ModelWithOffers, opciones?: { descripcion?: st
     "@id": `${url}#producto`,
     name: `${model.brand} ${model.name}`,
     url,
-    ...(model.partNumber ? { mpn: model.partNumber } : {}),
+    ...(mpn ? { mpn } : {}),
     brand: { "@type": "Brand", name: model.brand },
     ...(model.imageUrl ? { image: [model.imageUrl] } : {}),
     description: recortar(
       opciones?.descripcion ??
         `${model.brand} ${model.name}: ${[model.cpu, model.ramGb ? `${model.ramGb} GB RAM` : "", model.storageGb ? `${model.storageGb} GB ${model.storageType}` : "", model.gpu]
           .filter(Boolean)
-          .join(", ")}. Comparado en ${model.listings.length} ${model.listings.length === 1 ? "tienda" : "tiendas"} de Argentina.`,
+          .join(", ")}. Comparado en ${vigentes.length} ${vigentes.length === 1 ? "publicación" : "publicaciones"} de tiendas de Argentina.`,
       300,
     ),
     // Las specs como propiedades legibles por máquina. Es lo que permite filtrar por
