@@ -11,7 +11,7 @@ export default function PrivacidadPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-3xl font-extrabold tracking-tight">Política de privacidad</h1>
-      <p className="mt-2 text-sm text-slate-500">Última actualización: agosto 2026</p>
+      <p className="mt-2 text-sm text-slate-500">Última actualización: 15 de septiembre de 2026</p>
 
       <div className="mt-6 space-y-6 text-[15px] leading-relaxed text-slate-700">
         <p>
@@ -46,8 +46,9 @@ export default function PrivacidadPage() {
         <section>
           <h2 className="text-lg font-extrabold text-slate-900">Alertas de precio</h2>
           <p className="mt-2">
-            Si dejás tu email para una alerta de precio, lo guardamos únicamente para avisarte cuando el
-            modelo baje. Podés pedir la baja en cualquier momento escribiéndonos.
+            Si dejás tu email para una alerta de precio o para que te avisemos cuando un modelo esté
+            disponible, lo guardamos únicamente para eso. Cada mail de alerta trae un link para darte
+            de baja con un clic, sin tener que ingresar ni escribirnos.
           </p>
         </section>
 
@@ -70,11 +71,12 @@ export default function PrivacidadPage() {
         <section>
           <h2 className="text-lg font-extrabold text-slate-900">Cuenta y recomendaciones</h2>
           <p className="mt-2">
-            Si creás una cuenta (con email y contraseña o con Google), guardamos tu email y tus
-            preferencias (usos, marcas y presupuesto) para guardar tus favoritos y, si lo activás,
-            enviarte recomendaciones por mail. Podés desactivar las recomendaciones desde tus
-            preferencias o darte de baja en cualquier momento. La autenticación la maneja Supabase; si
-            entrás con Google, solo recibimos tu email (no tu contraseña).
+            Si creás una cuenta (con email y contraseña o con Google), guardamos tu email, tus
+            favoritos y tus preferencias (usos, marcas y presupuesto). Los favoritos se guardan en
+            nuestra base, asociados a tu cuenta, para que los veas desde cualquier dispositivo. Las
+            preferencias incluyen si querés recibir recomendaciones por mail; <b>hoy todavía no
+            enviamos esos mails</b>, y cuando empecemos lo vamos a decir acá. La autenticación la
+            maneja Supabase; si entrás con Google, solo recibimos tu email (no tu contraseña).
           </p>
         </section>
 
@@ -117,10 +119,56 @@ export default function PrivacidadPage() {
             campaña trajo la visita.
           </p>
           <p className="mt-2">
-            Aparte de las cookies, tu navegador guarda en su propia memoria (<i>localStorage</i>) los
-            modelos que viste hace poco y tus favoritos. Eso no sale nunca de tu dispositivo y se borra
-            limpiando los datos del sitio.
+            Aparte de las cookies, tu navegador guarda en su propia memoria (<i>localStorage</i>) dos
+            cosas: los modelos que viste hace poco, que no salen nunca de tu dispositivo, y —si
+            ingresaste a tu cuenta— la sesión, que es lo que te mantiene conectado. A diferencia de
+            las cookies de arriba, la sesión sí la puede leer el código de la página. Las dos se borran
+            cerrando la sesión o limpiando los datos del sitio.
           </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-extrabold text-slate-900">Pedidos corporativos</h2>
+          <p className="mt-2">
+            Si pedís un presupuesto por volumen, tu pedido —con la empresa, el CUIT si lo cargaste y tus
+            datos de contacto— lo pueden ver <b>todas las tiendas vinculadas al comparador</b> mientras
+            esté abierto, para que te puedan cotizar. Es el servicio que pedís, pero conviene que lo
+            sepas antes de mandarlo: no elegís a qué tienda le llega.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-extrabold text-slate-900">Protección contra abuso</h2>
+          <p className="mt-2">
+            Para que nadie use los formularios para mandar miles de altas, contamos cuántos envíos llegan
+            desde cada dirección IP en una ventana de tiempo. Ese contador guarda la IP y se borra solo
+            cuando vence la ventana, a más tardar al día siguiente.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-extrabold text-slate-900">Quiénes procesan los datos</h2>
+          <p className="mt-2">
+            No le vendemos ni le cedemos datos a nadie. Para funcionar usamos estos proveedores, que los
+            procesan por cuenta nuestra:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>
+              <b>Supabase</b> — la base de datos y el ingreso a las cuentas.
+            </li>
+            <li>
+              <b>Vercel</b> — donde corre el sitio. Como cualquier servidor, registra las visitas
+              (dirección IP, página pedida, navegador) en sus logs.
+            </li>
+            <li>
+              <b>Resend</b> — el envío de los mails de alertas: recibe tu dirección y el contenido del
+              aviso.
+            </li>
+            <li>
+              <b>GitHub</b> — donde corren los procesos automáticos que actualizan precios y mandan las
+              alertas.
+            </li>
+          </ul>
         </section>
 
         <section>
