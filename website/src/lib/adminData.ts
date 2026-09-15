@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabaseAdmin";
 import type { Store, NotebookModel } from "./types";
 import { cleanModelName } from "./format";
+import { todasLasFilas } from "./paginado";
 
 /**
  * Capa de datos del admin sobre Supabase (service_role → ve todo, escribe todo).
@@ -123,7 +124,9 @@ export async function getAllListings(): Promise<AdminListing[]> {
     .from("listings")
     .select("*")
     .order("last_seen_at", { ascending: false })
-    .limit(2000);
+    // Pedía 2.000 y PostgREST devuelve 1.000 como mucho, sin avisar. Queda en 1.000 explícito
+    // (la tabla del admin pagina en el cliente) para que el número no prometa lo que no llega.
+    .limit(1000);
   if (error) throw new Error(`listings: ${error.message}`);
   return joinListings(data ?? []);
 }
@@ -346,13 +349,30 @@ export async function setSetting(key: string, value: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Click-outs por tienda desde una fecha (ISO). Cuenta en JS (volumen modesto). */
+/**
+ * Click-outs **facturables** por tienda desde una fecha (ISO).
+ *
+ * Dos arreglos del 15-sep, los dos sobre la cifra que se le cobra a cada tienda:
+ *
+ *  - **Sin bots.** `/salir` guarda los clicks de crawlers, monitores y `curl` marcados con
+ *    `bot = true` justamente para no cobrarlos, y acá se contaban igual. Incluía los de la
+ *    sonda de `npm run chequear`, que pide un `/salir` real en cada corrida (Córdoba Notebooks
+ *    tuvo el mismo problema con su sonda llenando una casilla real: fe22615f).
+ *  - **Todas las filas.** El `.limit(100000)` no hace nada contra el `max-rows` de PostgREST,
+ *    que corta en 1.000: una tienda con 1.500 clicks en el mes figuraba con 1.000.
+ *
+ * Necesita la columna `bot` de la migración 0014.
+ */
 export async function getClickCounts(sinceIso: string): Promise<Map<string, number>> {
-  const { data, error } = await supabaseAdmin()
-    .from("click_outs")
-    .select("store_id")
-    .gte("created_at", sinceIso)
-    .limit(100000);
+  const { data, error } = await todasLasFilas((d, h) =>
+    supabaseAdmin()
+      .from("click_outs")
+      .select("id, store_id", { count: "exact" })
+      .gte("created_at", sinceIso)
+      .eq("bot", false)
+      .order("id")
+      .range(d, h),
+  );
   if (error) throw new Error(`click_outs: ${error.message}`);
   const map = new Map<string, number>();
   for (const r of data ?? []) {
@@ -364,7 +384,9 @@ export async function getClickCounts(sinceIso: string): Promise<Map<string, numb
 
 /** Cotizaciones (leads RFQ) por tienda — para facturar leads (spec 11 Parte B). */
 export async function getQuoteCounts(): Promise<Map<string, number>> {
-  const { data, error } = await supabaseAdmin().from("bulk_quotes").select("store_id").limit(100000);
+  const { data, error } = await todasLasFilas((d, h) =>
+    supabaseAdmin().from("bulk_quotes").select("id, store_id", { count: "exact" }).order("id").range(d, h),
+  );
   if (error) throw new Error(`bulk_quotes: ${error.message}`);
   const map = new Map<string, number>();
   for (const r of data ?? []) {
