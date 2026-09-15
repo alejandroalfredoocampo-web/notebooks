@@ -45,7 +45,18 @@ export default async function GuiaPage({ params }: { params: Params }) {
   const guia = guiaPorSlug(params.slug);
   if (!guia) notFound();
 
-  const todos = await getModels();
+  // La prosa y las FAQ son lo que se cita, y no necesitan la base. Si el catálogo no carga, la
+  // guía se sirve igual sin la lista de modelos, en vez de dar 500 como el resto del sitio
+  // (medido el 15-sep con Supabase sin resolver). `sinDatos` existe para no decir "no hay
+  // modelos que cumplan", que sería falso: no es que no haya, es que no se pudo preguntar.
+  let todos: Awaited<ReturnType<typeof getModels>> = [];
+  let sinDatos = false;
+  try {
+    todos = await getModels();
+  } catch (e) {
+    console.error("[guia] no se pudo cargar el catálogo", e);
+    sinDatos = true;
+  }
   const cumplen = todos
     .filter((m) => m.listings.length > 0)
     .filter(guia.filtro)
@@ -72,7 +83,7 @@ export default async function GuiaPage({ params }: { params: Params }) {
        */}
       <JsonLd
         data={grafo(
-          coleccionLd({
+          sinDatos ? null : coleccionLd({
             path: `/guias/${guia.slug}`,
             nombre: guia.titulo,
             descripcion: guia.respuesta,
@@ -171,6 +182,15 @@ export default async function GuiaPage({ params }: { params: Params }) {
               </Link>
             )}
           </>
+        ) : sinDatos ? (
+          <p className="mt-4 rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500">
+            No pudimos cargar los modelos en este momento. El criterio de arriba vale igual; probá
+            recargar en un rato o{" "}
+            <Link href="/notebooks" className="font-semibold text-brand-blue hover:underline">
+              ir al catálogo
+            </Link>
+            .
+          </p>
         ) : (
           <p className="mt-4 rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500">
             Ahora mismo no hay modelos indexados que cumplan todo el criterio. Podés{" "}
