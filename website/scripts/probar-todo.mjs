@@ -83,6 +83,14 @@ function puertoLibre() {
   });
 }
 
+/**
+ * Espera a que el **servidor** conteste, no la base.
+ *
+ * Se consulta `/robots.txt`, que no lee Supabase. Hasta el 15-sep se consultaba la home, y ese día
+ * la base no resolvía DNS: la home tardaba 7 s en dar 500, el sondeo cortaba a los 3 s, y la suite
+ * reportó "el servidor no levantó en 90s" con el servidor levantado. Un diagnóstico falso que
+ * además salteaba las etapas 5 y 6, que son justamente las que habrían dicho qué estaba roto.
+ */
 async function esperarQueLevante(url, timeoutMs = 90_000) {
   const hasta = Date.now() + timeoutMs;
   while (Date.now() < hasta) {
@@ -151,7 +159,7 @@ async function main() {
       stdio: "ignore",
       detached: true, // grupo propio, para poder bajarlo entero
     });
-    const arriba = await esperarQueLevante(base);
+    const arriba = await esperarQueLevante(`${base}/robots.txt`);
     if (!arriba) {
       etapas.push({ nombre: "Servidor", ok: false, seg: "—" });
       console.log("\x1b[31m✗ el servidor no levantó en 90s\x1b[0m");
