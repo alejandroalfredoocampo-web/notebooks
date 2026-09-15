@@ -5,7 +5,16 @@
  * (el worker, al ver skipped, tampoco marca como notificado → nada se pierde).
  */
 const { RESEND_API_KEY, EMAIL_FROM } = process.env;
-const FROM = EMAIL_FROM || "Notebooks.com.ar <onboarding@resend.dev>";
+
+// Sin EMAIL_FROM, antes caía en `onboarding@resend.dev`, el remitente de prueba de Resend, que
+// **sólo entrega a la casilla del dueño de la cuenta**: el script decía "envío ACTIVO" y las
+// alertas no le llegaban a nadie más. Córdoba Notebooks lo encontró en la noche del cutover
+// (doc 66). Con la key cargada y sin remitente, no se manda nada y se dice por qué.
+if (RESEND_API_KEY && !EMAIL_FROM) {
+  console.error("❌ Hay RESEND_API_KEY pero falta EMAIL_FROM (ej. \"Notebooks.com.ar <avisos@notebooks.com.ar>\").");
+  process.exit(1);
+}
+const FROM = EMAIL_FROM;
 
 export const emailConfigured = Boolean(RESEND_API_KEY);
 

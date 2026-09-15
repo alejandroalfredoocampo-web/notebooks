@@ -10,6 +10,11 @@ on:
     # - cron: "0 23 * * *"  # 20:00 ART
   workflow_dispatch: {}
 
+# Dos corridas a la vez (el cron y un dispatch a mano) escriben el mismo historial del día.
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -25,8 +30,29 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - run: npm ci
+      # Antes de todo, y con la lista entera: el 9-sep este workflow falló adentro del script con
+      # un mensaje de Supabase ("fetch failed") que no decía que el problema era el secreto.
+      - name: Faltan secretos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+        run: |
+          faltan=""
+          [ -z "$SUPABASE_URL" ] && faltan="$faltan SUPABASE_URL"
+          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && faltan="$faltan SUPABASE_SERVICE_ROLE_KEY"
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan secretos del repo:$faltan (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          [ -z "$REVALIDATE_SECRET" ] && echo "::warning::Falta REVALIDATE_SECRET: el sitio toma los precios nuevos recién en ≤5 min."
+          true
       - name: Scrapear y cargar a Supabase
         run: node scrapers/run.mjs
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Sin estos dos, el aviso al sitio para que tire la caché nunca se mandaba desde CI:
+          # `run.mjs` lo informaba como "ℹ️" y seguía. El sitio vivía del techo de 5 minutos.
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://notebooks-tan.vercel.app' }}

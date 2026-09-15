@@ -12,7 +12,7 @@
  * (así, cuando se configure el envío, nada quedó perdido).
  */
 import crypto from "crypto";
-import { requireServiceRole } from "./lib.mjs";
+import { requireServiceRole, todasLasFilas } from "./lib.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail, layout, emailConfigured, BASE } from "./email.mjs";
 
@@ -29,8 +29,11 @@ export function unsubToken(id) {
 
 async function loadContext() {
   const [modelsR, listingsR] = await Promise.all([
-    sb.from("models").select("id,brand,name,slug,brand_slug"),
-    sb.from("listings").select("model_id,price_cash,in_stock").eq("match_status", "confirmed"),
+    // Paginado: con más de mil publicaciones, el "mejor precio" de las alertas salía de las
+    // primeras mil, y un aviso de baja podía mandarse con un precio que no es el mejor.
+    todasLasFilas((d, h) => sb.from("models").select("id,brand,name,slug,brand_slug", { count: "exact" }).order("id").range(d, h)),
+    todasLasFilas((d, h) =>
+      sb.from("listings").select("model_id,price_cash,in_stock", { count: "exact" }).eq("match_status", "confirmed").order("id").range(d, h)),
   ]);
   if (modelsR.error) throw new Error(modelsR.error.message);
   if (listingsR.error) throw new Error(listingsR.error.message);
@@ -51,7 +54,8 @@ async function loadContext() {
 }
 
 async function runPriceAlerts({ models, bestPrice }) {
-  const { data: alerts, error } = await sb.from("price_alerts").select("*").eq("active", true);
+  const { data: alerts, error } = await todasLasFilas((d, h) =>
+    sb.from("price_alerts").select("*", { count: "exact" }).eq("active", true).order("id").range(d, h));
   if (error) throw new Error(error.message);
   let sent = 0,
     baselined = 0;
@@ -102,7 +106,8 @@ async function runPriceAlerts({ models, bestPrice }) {
 }
 
 async function runAvailability({ models, bestPrice }) {
-  const { data: rows, error } = await sb.from("model_notify").select("*").is("notified_at", null);
+  const { data: rows, error } = await todasLasFilas((d, h) =>
+    sb.from("model_notify").select("*", { count: "exact" }).is("notified_at", null).order("id").range(d, h));
   if (error) throw new Error(error.message);
   let sent = 0;
 

@@ -131,7 +131,9 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
       <div className="mx-auto max-w-6xl px-4">
         <Breadcrumbs items={migas} />
       </div>
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-7 md:grid-cols-[250px_1fr]">
+      {/* `data-listado` es el marcador del vigía (`scripts/vigilar-sitio.mjs`): sólo existe si
+          la página se dibujó con el catálogo. No cambiarlo sin cambiar `CHEQUEOS` allá. */}
+    <div data-listado="catalogo" className="mx-auto grid max-w-6xl gap-6 px-4 py-7 md:grid-cols-[250px_1fr]">
       <Suspense>
         <Filters />
       </Suspense>

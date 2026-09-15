@@ -34,6 +34,8 @@
  *    una hora y dejaría el sitio sin formularios. Va detrás de `--incluir-rate-limit`.
  */
 
+import { CHEQUEOS as MARCADORES_DEL_VIGIA } from "./vigilar-sitio.mjs";
+
 const ORIGEN = (process.argv.find((a) => a.startsWith("http")) || "http://localhost:3000").replace(/\/+$/, "");
 const INCLUIR_RATE_LIMIT = process.argv.includes("--incluir-rate-limit");
 
@@ -138,6 +140,17 @@ async function humo() {
       return `${(texto.length / 1024).toFixed(0)} KB`;
     });
   }
+
+  await prueba("los marcadores del vigía siguen en las páginas que vigila", async () => {
+    // El vigía horario declara "caído" si no encuentra estos textos. Si alguien cambia el copy
+    // de la home sin tocar `scripts/vigilar-sitio.mjs`, el vigía abre un issue de caída con el
+    // sitio andando. Esta prueba lo agarra antes (Córdoba Notebooks: doc 101 §6.1).
+    for (const { ruta, marcador } of MARCADORES_DEL_VIGIA) {
+      const { estado, texto } = await pedir(ruta);
+      debe(estado === 200 && texto.includes(marcador), `${ruta} ya no tiene "${marcador}"`);
+    }
+    return `${MARCADORES_DEL_VIGIA.length} rutas`;
+  });
 
   await prueba("una ficha de producto renderiza con precio", async () => {
     const ficha = await primeraFicha();

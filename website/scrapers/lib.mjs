@@ -82,3 +82,34 @@ export function parseSpecsFromTitle(title) {
   const screenSizeIn = Number(t.match(/(\d{2}[.,]?\d?)\s*(?:"|”|PULG)/)?.[1]?.replace(",", ".")) || null;
   return { cpu, ramGb, storageGb: storage, screenSizeIn };
 }
+
+/**
+ * Todas las filas de una consulta, y no las primeras mil.
+ *
+ * PostgREST corta cada respuesta en `max-rows` (1.000 por defecto en Supabase) sin error. En el
+ * scraper eso no es un dato de menos, es una corrida rota: si `listings` existentes vuelve
+ * truncado, las publicaciones que no entraron parecen nuevas, el insert choca con la clave
+ * primaria y el scrape entero falla. Y el snapshot de `price_history` se calcularía sobre las
+ * primeras mil confirmadas. Misma función que `todasLasFilas` en `src/lib/data.ts`.
+ *
+ *   const { data, error } = await todasLasFilas((d, h) =>
+ *     sb.from("listings").select("id", { count: "exact" }).order("id").range(d, h));
+ *
+ * La consulta tiene que pedir `count: "exact"` y tener un orden estable.
+ */
+export async function todasLasFilas(consulta) {
+  const PAGINA = 1000;
+  const filas = [];
+  let total = Infinity;
+  while (filas.length < total) {
+    const { data, error, count } = await consulta(filas.length, filas.length + PAGINA - 1);
+    if (error) return { data: null, error };
+    if (count != null) total = count;
+    if (!data?.length) break;
+    filas.push(...data);
+  }
+  if (Number.isFinite(total) && filas.length < total) {
+    return { data: null, error: { message: `lectura incompleta: ${filas.length} de ${total} filas` } };
+  }
+  return { data: filas, error: null };
+}

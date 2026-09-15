@@ -14,7 +14,7 @@
  * Escribe también data/listings.raw.json para inspección/debug.
  */
 import { readFile, writeFile } from "fs/promises";
-import { requireServiceRole } from "./lib.mjs";
+import { requireServiceRole, todasLasFilas } from "./lib.mjs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
@@ -52,12 +52,21 @@ async function main() {
   const raw = [...results.values()].flat();
   await writeFile(RAW, JSON.stringify(raw, null, 2));
   console.log(`\n${raw.length} publicaciones scrapeadas`);
-  if (!raw.length) return;
+  // Cero publicaciones no es "no hubo cambios": es que no anduvo ninguna tienda. Antes esto
+  // hacía `return` y el workflow terminaba en verde, así que el sitio podía pasar semanas con
+  // precios viejos sin que nadie se enterara. Es la lección de Córdoba Notebooks (a1d5809b,
+  // chequear-copy): "no pude preguntarle" y "cero resultados" no pueden verse como un éxito.
+  if (!raw.length) {
+    console.error("❌ Ninguna tienda devolvió publicaciones. No se escribe nada.");
+    process.exit(1);
+  }
+  const fallidas = toRun.length - results.size;
 
   // --- 2. Matching contra los modelos de la DB -----------------------------
-  const { data: modelRows, error: mErr } = await sb
-    .from("models")
-    .select("id,brand,name,part_number,cpu_family,ram_gb,storage_gb,gpu_type,gpu");
+  const { data: modelRows, error: mErr } = await todasLasFilas((d, h) =>
+    sb.from("models")
+      .select("id,brand,name,part_number,cpu_family,ram_gb,storage_gb,gpu_type,gpu", { count: "exact" })
+      .order("id").range(d, h));
   if (mErr) throw new Error(`models: ${mErr.message}`);
   const models = (modelRows ?? []).map((r) => ({
     id: r.id, brand: r.brand, name: r.name, partNumber: r.part_number,
@@ -83,7 +92,8 @@ async function main() {
 
   // --- 3. Upsert (preservando decisiones del operador) ---------------------
   const storeIds = [...new Set(raw.map((l) => l.storeId))];
-  const { data: existRows, error: eErr } = await sb.from("listings").select("id").in("store_id", storeIds);
+  const { data: existRows, error: eErr } = await todasLasFilas((d, h) =>
+    sb.from("listings").select("id", { count: "exact" }).in("store_id", storeIds).order("id").range(d, h));
   if (eErr) throw new Error(`listings existentes: ${eErr.message}`);
   const existingIds = new Set((existRows ?? []).map((r) => r.id));
 
@@ -101,8 +111,9 @@ async function main() {
   console.log(`Upsert: ${newRows.length} nuevas · ${seenRows.length} actualizadas (precio/stock)`);
 
   // --- 4. Snapshot de historial (mejor precio por modelo, 1 punto/día) -----
-  const { data: confirmed, error: cErr } = await sb
-    .from("listings").select("model_id,price_cash,in_stock").eq("match_status", "confirmed");
+  const { data: confirmed, error: cErr } = await todasLasFilas((d, h) =>
+    sb.from("listings").select("model_id,price_cash,in_stock", { count: "exact" })
+      .eq("match_status", "confirmed").order("id").range(d, h));
   if (cErr) throw new Error(`confirmadas: ${cErr.message}`);
   const bestByModel = new Map();
   for (const l of confirmed ?? []) {
@@ -122,6 +133,51 @@ async function main() {
   }
 
   await avisarAlSitio();
+  const baseOk = await mantenimiento();
+
+  // Se escribió lo que anduvo, pero si falló la mitad de las tiendas o más, la corrida es una
+  // falla: el workflow tiene que quedar en rojo, que es el único aviso que existe.
+  if (fallidas > 0 && fallidas * 2 >= toRun.length) {
+    console.error(`❌ Fallaron ${fallidas} de ${toRun.length} tiendas.`);
+    process.exit(1);
+  }
+  if (!baseOk) process.exit(1);
+}
+
+/**
+ * Mantenimiento de la base, una vez por corrida.
+ *
+ * 1. **Borra las ventanas vencidas del rate limit.** `purge_rate_limits()` existía desde la
+ *    0013 y no la llamaba nadie, así que `rate_limits` guardaba una IP por ventana para
+ *    siempre. `/privacidad` promete que se borran a más tardar al día siguiente.
+ * 2. **Mira el tamaño de la base.** Córdoba Notebooks estuvo 78 minutos caído el 5-sep porque
+ *    se llenó el disco de Postgres y nadie miraba (doc 107); la recomendación que quedó fue
+ *    avisar al 70 %. Acá el aviso es que el workflow falle.
+ *
+ * Devuelve `false` sólo si la base pasó el umbral. Que falte la función (`tamano_base` es de la
+ * 0016) es un aviso, no una falla: la migración puede no estar corrida todavía.
+ */
+async function mantenimiento() {
+  const { error: pErr } = await sb.rpc("purge_rate_limits");
+  if (pErr) console.warn(`⚠️  No se pudieron borrar las ventanas vencidas del rate limit: ${pErr.message}`);
+  else console.log("🧹 Ventanas vencidas del rate limit borradas.");
+
+  const limiteMb = Number(process.env.SUPABASE_LIMITE_MB || 500);
+  const { data, error } = await sb.rpc("tamano_base");
+  if (error) {
+    console.warn(`⚠️  No se pudo medir la base (${error.message}). ¿Está corrida la 0016?`);
+    return true;
+  }
+  const mb = Number(data) / 1024 / 1024;
+  const pct = Math.round((mb / limiteMb) * 100);
+  if (pct >= 70) {
+    const msg = `La base ocupa ${mb.toFixed(0)} MB, el ${pct} % de ${limiteMb} MB. Revisar price_history, click_outs y rate_limits, o subir el plan.`;
+    console.error(`❌ ${msg}`);
+    if (process.env.GITHUB_ACTIONS) console.log(`::error::${msg}`);
+    return false;
+  }
+  console.log(`📦 Base: ${mb.toFixed(0)} MB (${pct} % de ${limiteMb} MB).`);
+  return true;
 }
 
 /**
@@ -141,6 +197,10 @@ async function avisarAlSitio() {
   const token = process.env.REVALIDATE_SECRET;
   if (!token) {
     console.log("ℹ️  Sin REVALIDATE_SECRET: el sitio va a tomar los precios nuevos en ≤5 min.");
+    // En CI no es informativo: es un mecanismo que parece andar y no anda. Córdoba Notebooks
+    // encontró lo mismo con la cola de revalidación de OpenNext (b9597b3d): el 28 % de los
+    // eventos fallaban y el ISR nunca regeneraba, sin que nada lo mostrara.
+    if (process.env.GITHUB_ACTIONS) console.log("::warning::Falta REVALIDATE_SECRET en el workflow: el aviso al sitio no se manda.");
     return;
   }
   try {
