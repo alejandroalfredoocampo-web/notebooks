@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
+import { mensajeDeAuth } from "@/lib/mensajeAuth";
 
 export default function IngresarPage() {
   const router = useRouter();
@@ -43,7 +44,8 @@ export default function IngresarPage() {
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo completar. Probá de nuevo.");
+      console.error("[ingresar]", err);
+      setError(mensajeDeAuth(err));
     } finally {
       setBusy(false);
     }
@@ -53,7 +55,10 @@ export default function IngresarPage() {
     setError(null);
     const redirectTo = `${window.location.origin}/ingresar`;
     const { error } = await sb!.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
-    if (error) setError(error.message);
+    if (error) {
+      console.error("[ingresar] google", error);
+      setError(mensajeDeAuth(error));
+    }
   }
 
   const field =

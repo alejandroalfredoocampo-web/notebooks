@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { unsubToken } from "@/lib/unsubToken";
+import { tokenDeBajaValido } from "@/lib/unsubToken";
 import { metaPrivada } from "@/lib/seo";
 
 // `follow: true` a propósito: la página no se indexa pero sus links al catálogo sí se
@@ -14,7 +14,7 @@ export default function BajaPage({
   searchParams: { id?: string; t?: string; ok?: string; err?: string };
 }) {
   const { id, t, ok, err } = searchParams;
-  const valid = id && t && t === unsubToken(id);
+  const valid = tokenDeBajaValido(id, t);
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center">

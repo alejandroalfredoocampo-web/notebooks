@@ -141,7 +141,13 @@ async function cabeceras() {
   if (!perm) falla("permissions-policy", "ausente");
   else if (!/camera=\(\)/.test(perm) || !/geolocation=\(\)/.test(perm))
     falla("permissions-policy", "no apaga cámara o geolocalización");
-  else ok("permissions-policy");
+  // El chequeo al revés, que es el que faltaba: una Permissions-Policy también puede apagar una
+  // función PROPIA. `microphone=()` le prohíbe el micrófono al mismo sitio y la búsqueda por voz
+  // de la home muere sin ningún error. Así estuvo desde el 22-ago hasta el 15-sep, con este
+  // chequeo en verde. Se lee la lista del micrófono y se exige que incluya `self`.
+  else if (!/(^|[,\s])microphone=\([^)]*\bself\b[^)]*\)/.test(perm))
+    falla("permissions-policy", `el micrófono no incluye self: la búsqueda por voz no puede andar (${/microphone=\([^)]*\)/.exec(perm)?.[0] ?? "sin directiva"})`);
+  else ok("permissions-policy", "cámara y geolocalización apagadas; micrófono sólo para el sitio");
 }
 
 /* ---------------------------------------------------------------------------

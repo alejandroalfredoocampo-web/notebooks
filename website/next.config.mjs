@@ -93,10 +93,16 @@ const headersDeSeguridad = [
   // siguen viendo que el visitante vino de notebooks.com.ar — que es información que
   // queremos que tengan, porque es la prueba del tráfico que se les manda.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // `microphone=(self)` y no `()`: la lista vacía prohíbe el micrófono **también al propio
+  // sitio**, y la búsqueda por voz de la home (`HeroSearch`) quedaba muerta sin ningún error
+  // visible. Medido el 15-sep en el preview: `document.featurePolicy.allowsFeature('microphone')`
+  // daba `false`. Es la lección de Córdoba Notebooks con la CSP en enforce (d0c15357, aa288d44):
+  // una cabecera de seguridad apaga una función en silencio, y el chequeo tiene que probar la
+  // función, no la palabra.
   {
     key: "Permissions-Policy",
     value:
-      "camera=(), microphone=(), geolocation=(), usb=(), payment=(), interest-cohort=()",
+      "camera=(), microphone=(self), geolocation=(), usb=(), payment=(), interest-cohort=()",
   },
   // Dos años y con preload: el valor que pide la lista de HSTS. Ojo que es difícil de
   // revertir — una vez que un navegador lo vio, no vuelve a hablar HTTP con este dominio

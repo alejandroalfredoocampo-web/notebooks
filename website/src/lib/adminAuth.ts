@@ -68,3 +68,68 @@ const PREVISIBLES = new Set([
 export const contrasenaDebil =
   !!ADMIN_PASSWORD &&
   (ADMIN_PASSWORD.length < 16 || PREVISIBLES.has(ADMIN_PASSWORD.toLowerCase()));
+
+/* ---------------------------------------------------------------------------
+ * La cookie de sesión
+ * ------------------------------------------------------------------------- */
+
+/** Ocho horas: una jornada. Pasado eso, se vuelve a pedir la contraseña. */
+export const DURACION_SESION_ADMIN = 60 * 60 * 8;
+
+/**
+ * El valor de la cookie: `<vence>.<hmac>`.
+ *
+ * ## Por qué ya no es el `ADMIN_SESSION_TOKEN` a secas
+ *
+ * Hasta el 15-sep la cookie **era** la variable: el mismo string para todas las sesiones y
+ * para siempre. Las 8 horas de `maxAge` las respetaba sólo el navegador; una cookie copiada
+ * —de un log, de una extensión, de una máquina compartida— entraba hasta que alguien rotara la
+ * variable, y el logout la borraba del navegador sin invalidarla en ningún lado.
+ *
+ * Ahora cada sesión lleva su vencimiento firmado. El servidor verifica firma y fecha, así que
+ * las 8 horas son del servidor y no del navegador. Rotar `ADMIN_SESSION_TOKEN` sigue siendo el
+ * botón para cerrar todas las sesiones de golpe.
+ *
+ * Es la mitad sin costo de lo que Córdoba Notebooks hizo con la sesión del admin (doc 77 §3):
+ * vencimiento del lado del servidor. No hay revocación por sesión porque no hay usuarios; eso
+ * llega con las cuentas de Supabase que se anotan arriba.
+ *
+ * Web Crypto y no `node:crypto`, porque lo verifica el middleware en el runtime edge.
+ */
+export async function firmarSesionAdmin(
+  secreto: string,
+  ahora = Date.now(),
+  duracion = DURACION_SESION_ADMIN,
+): Promise<string> {
+  const vence = Math.floor(ahora / 1000) + duracion;
+  return `${vence}.${await hmacHex(secreto, `admin:${vence}`)}`;
+}
+
+export async function sesionAdminValida(
+  cookie: string | undefined,
+  secreto: string,
+  ahora = Date.now(),
+): Promise<boolean> {
+  if (!cookie || !secreto) return false;
+  const m = /^(\d{1,12})\.([0-9a-f]{64})$/.exec(cookie);
+  if (!m) return false;
+  const vence = Number(m[1]);
+  const seg = Math.floor(ahora / 1000);
+  // Vencida, o con un vencimiento más lejos de lo que el login emite (una firma robada del
+  // secreto no alcanza para fabricar una sesión eterna sin que se note acá).
+  if (vence <= seg || vence > seg + DURACION_SESION_ADMIN + 60) return false;
+  return igualEnTiempoConstante(m[2], await hmacHex(secreto, `admin:${vence}`));
+}
+
+async function hmacHex(secreto: string, dato: string): Promise<string> {
+  const enc = new TextEncoder();
+  const clave = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secreto),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const firma = new Uint8Array(await crypto.subtle.sign("HMAC", clave, enc.encode(dato)));
+  return Array.from(firma, (b) => b.toString(16).padStart(2, "0")).join("");
+}

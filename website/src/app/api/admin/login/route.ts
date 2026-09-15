@@ -3,7 +3,9 @@ import {
   ADMIN_COOKIE,
   ADMIN_PASSWORD,
   ADMIN_SESSION_TOKEN,
+  DURACION_SESION_ADMIN,
   adminSinConfigurar,
+  firmarSesionAdmin,
   igualEnTiempoConstante,
 } from "@/lib/adminAuth";
 import { LIMITES, chequearLimite, respuesta429 } from "@/lib/limites";
@@ -45,14 +47,15 @@ export async function POST(req: Request) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, ADMIN_SESSION_TOKEN, {
+  // La cookie lleva su vencimiento firmado: ver `firmarSesionAdmin`.
+  res.cookies.set(ADMIN_COOKIE, await firmarSesionAdmin(ADMIN_SESSION_TOKEN), {
     httpOnly: true,
     // En desarrollo sobre HTTP una cookie `secure` no se guarda y el login "no anda" sin
     // ningún error visible. Por eso se ata al entorno y no a un literal.
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 h
+    maxAge: DURACION_SESION_ADMIN,
   });
   return res;
 }

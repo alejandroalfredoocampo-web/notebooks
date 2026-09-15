@@ -31,14 +31,11 @@ body {
  * cualquier input nuevo que alguien agregue mañana lo tendría igual.
  */
 @media (max-width: 767px) {
-  input[type="text"],
-  input[type="email"],
-  input[type="search"],
-  input[type="tel"],
-  input[type="url"],
-  input[type="number"],
-  input[type="password"],
-  input[type="date"],
+  /* Por exclusión y no por lista: un `<input>` sin atributo `type` (que es texto) no
+     coincidía con ninguna de las ocho reglas `input[type="…"]` que había, y así quedaban
+     afuera el formulario corporativo y siete campos del alta de tienda. Mismo arreglo que
+     Córdoba Notebooks (doc 93 §4). La especificidad (0,2,1) le gana a `.text-sm`. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="hidden"]),
   select,
   textarea {
     font-size: 16px;

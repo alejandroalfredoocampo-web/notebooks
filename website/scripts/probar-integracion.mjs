@@ -459,6 +459,16 @@ async function integracion() {
     debe([302, 307, 308].includes(estado), `entró con el token viejo del repo (${estado})`);
   });
 
+  await prueba("una cookie con forma de sesión y firma inventada no entra", async () => {
+    // Desde el 15-sep la cookie es `<vence>.<hmac>`. Una con el formato correcto, vencimiento
+    // en el futuro y firma de ceros prueba que se verifica la firma y no sólo la forma.
+    const vence = Math.floor(Date.now() / 1000) + 3600;
+    const { estado } = await pedir("/admin", {
+      headers: { cookie: `admin_session=${vence}.${"0".repeat(64)}` },
+    });
+    debe([302, 307, 308].includes(estado), `entró con una firma inventada (${estado})`);
+  });
+
   await prueba("/api/portal/insights exige token de miembro", async () => {
     const sinToken = await pedir("/api/portal/insights?storeId=cualquiera");
     debe(sinToken.estado === 401, `sin token devolvió ${sinToken.estado}`);
