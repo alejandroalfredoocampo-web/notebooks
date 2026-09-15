@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { metaPrivada, metaRuta } from "@/lib/seo";
 import { Suspense } from "react";
 import Link from "next/link";
-import { filterModels } from "@/lib/data";
+import { filterModels, getBrands, getModels } from "@/lib/data";
+import { ETIQUETAS_CPU } from "../../../scrapers/cpu.mjs";
 import { parseQuery } from "@/lib/parseQuery";
 import ModelCard from "@/components/ModelCard";
 import Filters from "@/components/Filters";
@@ -96,6 +97,14 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
     sort: typeof searchParams.sort === "string" ? searchParams.sort : undefined,
   });
 
+  // Las opciones de marca y procesador salen del catálogo, no de una lista escrita a mano.
+  const [marcas, todos] = await Promise.all([getBrands(), getModels()]);
+  const familias = new Set(todos.filter((m) => m.listings.length > 0).map((m) => m.cpuFamily));
+  const opcionesCpu = Object.entries(ETIQUETAS_CPU)
+    .filter(([valor]) => familias.has(valor))
+    .map(([value, label]) => ({ value, label }));
+  const opcionesMarca = marcas.map((b) => ({ value: b.slug, label: b.name }));
+
   const totalOffers = models.reduce((s, m) => s + m.listings.length, 0);
   const filtrado = hayFiltros(searchParams);
 
@@ -135,7 +144,7 @@ export default async function NotebooksPage({ searchParams }: { searchParams: SP
           la página se dibujó con el catálogo. No cambiarlo sin cambiar `CHEQUEOS` allá. */}
     <div data-listado="catalogo" className="mx-auto grid max-w-6xl gap-6 px-4 py-7 md:grid-cols-[250px_1fr]">
       <Suspense>
-        <Filters />
+        <Filters marcas={opcionesMarca} cpus={opcionesCpu} />
       </Suspense>
       <div>
         <div className="mb-4">

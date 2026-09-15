@@ -3,38 +3,17 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 
-const GROUPS: {
-  param: string;
-  title: string;
-  options: { value: string; label: string }[];
-}[] = [
-  {
-    param: "brand",
-    title: "Marca",
-    options: [
-      { value: "lenovo", label: "Lenovo" },
-      { value: "hp", label: "HP" },
-      { value: "asus", label: "Asus" },
-      { value: "dell", label: "Dell" },
-      { value: "acer", label: "Acer" },
-      { value: "apple", label: "Apple" },
-      { value: "samsung", label: "Samsung" },
-    ],
-  },
-  {
-    param: "cpu",
-    title: "Procesador",
-    options: [
-      { value: "i3", label: "Intel Core i3" },
-      { value: "i5", label: "Intel Core i5" },
-      { value: "i7", label: "Intel Core i7" },
-      { value: "i9", label: "Intel Core i9" },
-      { value: "ultra9", label: "Intel Core Ultra" },
-      { value: "ryzen7", label: "AMD Ryzen 7" },
-      { value: "apple-m", label: "Apple M" },
-      { value: "intel-n", label: "Intel N" },
-    ],
-  },
+type Opcion = { value: string; label: string };
+type Grupo = { param: string; title: string; options: Opcion[] };
+
+/**
+ * Los grupos fijos. Marca y procesador **no** están acá: vienen del catálogo (ver `Filters`).
+ *
+ * Eran listas escritas a mano y no coincidían con los datos: "Intel Core Ultra" filtraba sólo
+ * `ultra9` (un Core Ultra 7 no aparecía nunca), Ryzen 5 y 9 no tenían opción, y había siete
+ * marcas fijas contra las que el catálogo tuviera. Ver `scrapers/cpu.mjs`.
+ */
+const GROUPS_FIJOS: Grupo[] = [
   {
     param: "ram",
     title: "Memoria RAM",
@@ -114,10 +93,25 @@ const GROUPS: {
   },
 ];
 
-export default function Filters() {
+export default function Filters({ marcas, cpus }: { marcas: Opcion[]; cpus: Opcion[] }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [open, setOpen] = useState(false);
+
+  // Lo que está marcado en la URL se muestra aunque hoy no haya modelos con ese valor: si no,
+  // una casilla tildada desaparece y no hay forma de destildarla.
+  const conMarcadas = (param: string, opciones: Opcion[]) => [
+    ...opciones,
+    ...sp
+      .getAll(param)
+      .filter((v) => !opciones.some((o) => o.value === v))
+      .map((v) => ({ value: v, label: v })),
+  ];
+  const GROUPS: Grupo[] = [
+    { param: "brand", title: "Marca", options: conMarcadas("brand", marcas) },
+    { param: "cpu", title: "Procesador", options: conMarcadas("cpu", cpus) },
+    ...GROUPS_FIJOS,
+  ];
 
   // Cantidad de filtros activos (para el botón en mobile)
   const activeCount = GROUPS.reduce((n, g) => n + sp.getAll(g.param).length, 0);

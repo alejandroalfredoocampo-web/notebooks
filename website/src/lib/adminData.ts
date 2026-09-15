@@ -2,6 +2,7 @@ import { supabaseAdmin } from "./supabaseAdmin";
 import type { Store, NotebookModel } from "./types";
 import { cleanModelName } from "./format";
 import { todasLasFilas } from "./paginado";
+import { familiaDeCpu } from "../../scrapers/cpu.mjs";
 
 /**
  * Capa de datos del admin sobre Supabase (service_role → ve todo, escribe todo).
@@ -506,18 +507,9 @@ export const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+/** Ver `scrapers/cpu.mjs`: antes esta era una tercera copia, sin Core Ultra 5/7 ni "Core 7". */
 export function cpuFamilyFrom(text: string): string {
-  const t = text.toLowerCase();
-  if (/ultra\s*9/.test(t)) return "ultra9";
-  if (/\bi9\b|core\s*i9/.test(t)) return "i9";
-  if (/\bi7\b|core\s*i7/.test(t)) return "i7";
-  if (/\bi5\b|core\s*i5|core\s*5\b/.test(t)) return "i5";
-  if (/\bi3\b|core\s*i3/.test(t)) return "i3";
-  if (/ryzen\s*9/.test(t)) return "ryzen9";
-  if (/ryzen\s*7/.test(t)) return "ryzen7";
-  if (/ryzen\s*5/.test(t)) return "ryzen5";
-  if (/\bm[1-4]\b|apple\s*m/.test(t)) return "apple-m";
-  return "";
+  return familiaDeCpu(text) ?? "";
 }
 
 export type ModelPrefill = {

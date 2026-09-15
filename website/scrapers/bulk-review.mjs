@@ -15,6 +15,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { requireServiceRole } from "./lib.mjs";
+import { familiaDeCpu } from "./cpu.mjs";
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const APPLY = process.argv.includes("--apply");
@@ -40,23 +41,8 @@ function detectBrand(text) {
   return null;
 }
 
-function cpuFamily(t) {
-  t = strip(t);
-  if (/ultra\s*9/.test(t)) return "ultra9";
-  if (/ultra\s*7/.test(t)) return "ultra7";
-  if (/ultra\s*5/.test(t)) return "ultra5";
-  if (/\bi9\b|core\s*i9|core\s*9\b/.test(t)) return "i9";
-  if (/\bi7\b|core\s*i7|core\s*7\b/.test(t)) return "i7";
-  if (/\bi5\b|core\s*i5|core\s*5\b/.test(t)) return "i5";
-  if (/\bi3\b|core\s*i3|core\s*3\b/.test(t)) return "i3";
-  if (/ryzen\s*9/.test(t)) return "ryzen9";
-  if (/ryzen\s*7/.test(t)) return "ryzen7";
-  if (/ryzen\s*5/.test(t)) return "ryzen5";
-  if (/ryzen\s*3/.test(t)) return "ryzen3";
-  if (/\bm[1-4]\b|apple\s*m/.test(t)) return "apple-m";
-  if (/celeron|pentium|\bn\d{3,4}\b/.test(t)) return "intel-n";
-  return null;
-}
+// La familia de procesador vive en `cpu.mjs`, compartida con matching, el admin y el filtro.
+const cpuFamily = familiaDeCpu;
 const CPU_LABEL = {
   ultra9: "Core Ultra 9", ultra7: "Core Ultra 7", ultra5: "Core Ultra 5",
   i9: "Core i9", i7: "Core i7", i5: "Core i5", i3: "Core i3",
