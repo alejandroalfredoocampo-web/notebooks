@@ -130,12 +130,26 @@ const TOPES: Partial<Record<keyof Toque, number>> = {
  * El caso real: una campaña mal configurada manda `utm_campaign={{campaign.name}}` literal.
  * Guardarlo contamina el reporte con una fila que parece una campaña y no es ninguna, y esa
  * fila después hay que explicarla cada vez que alguien mira el tablero.
+ *
+ * ## Lo que se descarta es la macro entera, no cualquier corchete
+ *
+ * La primera versión tiraba todo valor que **empezara** con `[` o `{` o **terminara** con `]`
+ * o `}`. Eso barre la macro, y también barre el dato bueno: `[TOF] Notebooks` y
+ * `Victus [video]` son nombres de campaña reales, y los perdía enteros — quedaban como
+ * "sin campaña", que es la fila que después nadie sabe explicar. Es el mismo error que
+ * Córdoba Notebooks corrigió el 22/09 (`a70b5c9e`) con esta misma función, que es de donde
+ * salió.
+ *
+ * Ahora se descarta sólo lo que **es** una macro: cualquier cosa con `{{`/`}}` (Meta,
+ * HubSpot), y un valor que sea exactamente `{keyword}` (Google) o `[SITE_SOURCE_NAME]`
+ * (Meta) y nada más.
  */
 export function limpio(v: string | null | undefined): string | undefined {
   if (!v) return undefined;
   const t = v.trim();
   if (!t) return undefined;
-  if (/^[[{]|[\]}]$/.test(t) || t.includes("{{")) return undefined;
+  if (t.includes("{{") || t.includes("}}")) return undefined;
+  if (/^\{[A-Za-z0-9_.:]+\}$/.test(t) || /^\[[A-Z0-9_]+\]$/.test(t)) return undefined;
   return t;
 }
 

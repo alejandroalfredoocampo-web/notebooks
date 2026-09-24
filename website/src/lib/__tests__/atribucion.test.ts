@@ -17,9 +17,20 @@ test("descarta plantillas de campaña sin resolver", () => {
   // El caso real: una campaña mal configurada manda el literal. Guardarlo mete en el
   // reporte una fila que parece una campaña y no es ninguna.
   assert.equal(limpio("{{campaign.name}}"), undefined);
-  assert.equal(limpio("[campaign]"), undefined);
+  assert.equal(limpio("{{ad.name}} - copia"), undefined);
+  assert.equal(limpio("{keyword}"), undefined);
+  assert.equal(limpio("[SITE_SOURCE_NAME]"), undefined);
   assert.equal(limpio("  "), undefined);
   assert.equal(limpio("black-friday"), "black-friday");
+});
+
+test("conserva nombres de campaña reales que llevan corchetes", () => {
+  // La versión anterior descartaba todo valor que empezara con corchete o terminara con
+  // corchete, así que se comía nombres buenos y los dejaba como "sin campaña". Se cambió
+  // a propósito: lo que se descarta es la macro entera, no el corchete.
+  assert.equal(limpio("[TOF] Notebooks"), "[TOF] Notebooks");
+  assert.equal(limpio("Victus [video]"), "Victus [video]");
+  assert.equal(limpio("G-4-2 // A: Problema distribuidor // Estatico"), "G-4-2 // A: Problema distribuidor // Estatico");
 });
 
 test("del referrer guarda sólo el origen, y descarta el propio", () => {
