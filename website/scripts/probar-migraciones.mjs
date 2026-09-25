@@ -183,6 +183,12 @@ const PROHIBIDAS = [
   ["utm_source", "nuestro costo de adquisición"],
   ["click_id", "el id de click de la plataforma"],
   ["first_touch_at", "cuándo nos descubrió"],
+  // Las de la 0017. Van acá el mismo día que la migración, no después: el `grant` de la 0015
+  // es columna por columna, así que una columna nueva nace sin permiso — pero eso vale
+  // mientras nadie escriba un `grant` de más. Esta lista es lo que lo vigila.
+  ["utm_content", "la variante del aviso; con Meta es lo que separa el link de la bio de un anuncio pago"],
+  ["utm_term", "la palabra que se pagó"],
+  ["click_plataforma", "qué plataforma nos mandó el click"],
 ];
 
 for (const [col, porque] of PROHIBIDAS) {
