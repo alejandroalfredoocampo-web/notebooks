@@ -189,5 +189,5 @@ export function makeQloudScraper({ storeId, base, categoryPaths = [], listAll = 
     return listings;
   }
 
-  return { storeId, fetchListings };
+  return { storeId, base, fetchListings };
 }

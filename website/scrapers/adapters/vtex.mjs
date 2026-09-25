@@ -115,5 +115,5 @@ export function makeVtexScraper({ storeId, base, categoryPaths, categoryPath, ft
     return [...byId.values()];
   }
 
-  return { storeId, fetchListings };
+  return { storeId, base, fetchListings };
 }

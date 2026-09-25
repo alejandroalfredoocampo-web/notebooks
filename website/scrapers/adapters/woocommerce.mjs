@@ -85,5 +85,5 @@ export function makeWooScraper({ storeId, base, category, maxPages = 20 }) {
     return listings;
   }
 
-  return { storeId, fetchListings };
+  return { storeId, base, fetchListings };
 }

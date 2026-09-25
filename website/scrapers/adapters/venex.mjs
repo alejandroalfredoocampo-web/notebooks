@@ -131,5 +131,5 @@ export function makeVenexScraper({
     return listings;
   }
 
-  return { storeId, fetchListings };
+  return { storeId, base, fetchListings };
 }

@@ -48,7 +48,7 @@ jobs:
           [ -z "$REVALIDATE_SECRET" ] && echo "::warning::Falta REVALIDATE_SECRET: el sitio toma los precios nuevos recién en ≤5 min."
           true
       - name: Scrapear y cargar a Supabase
-        run: node scrapers/run.mjs
+        run: npm run scrape
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

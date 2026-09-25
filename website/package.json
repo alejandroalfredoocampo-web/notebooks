@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "scrape": "node scrapers/run.mjs",
+    "scrape": "node --experimental-strip-types scrapers/run.mjs",
     "emails": "node scrapers/notify.mjs",
     "seed:blog": "node scrapers/seed-blog.mjs",
     "seed:supabase": "node scrapers/seed-supabase.mjs",
@@ -19,6 +19,7 @@
     "test": "node --test --experimental-strip-types 'src/lib/__tests__/*.test.ts'",
     "chequear": "node scripts/chequear-sitio.mjs",
     "chequear:copy": "node scripts/chequear-copy.mjs",
+    "chequear:destinos": "node --experimental-strip-types scripts/chequear-destinos.mjs",
     "probar": "node scripts/probar-todo.mjs",
     "probar:integracion": "node scripts/probar-integracion.mjs",
     "probar:migraciones": "node scripts/probar-migraciones.mjs"

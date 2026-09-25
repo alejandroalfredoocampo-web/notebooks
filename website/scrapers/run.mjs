@@ -15,6 +15,12 @@
  */
 import { readFile, writeFile } from "fs/promises";
 import { requireServiceRole, todasLasFilas } from "./lib.mjs";
+// La MISMA regla que aplica `/salir` al redirigir, importada y no recopiada: si las dos
+// capas no comparten la definición de "el dominio de la tienda", el scrape va a guardar
+// publicaciones que después el sitio frena, y el click perdido no lo va a explicar nadie.
+// Es un `.ts`, así que el proceso necesita el stripping de tipos de Node — por eso el
+// scrape se invoca por `npm run scrape`, que lleva el flag.
+import { filtrarPorDominio } from "../src/lib/destinoSaliente.ts";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
@@ -43,8 +49,27 @@ async function main() {
     const t0 = Date.now();
     try {
       const listings = await scraper.fetchListings();
-      results.set(scraper.storeId, listings);
-      console.log(`✅ ${scraper.storeId}: ${listings.length} publicaciones (${Date.now() - t0} ms)`);
+      // La URL de la publicación la escribe el servidor de la tienda —`p.permalink` de
+      // WooCommerce, `p.link` de VTEX, `it.url` de Qloud— y termina en un `Location:` con
+      // nuestro dominio adelante cuando alguien toca "Ir a la tienda". Una que apunte a otro
+      // dominio convierte a `/salir` en un redirector a cualquier lado: la misma clase de
+      // agujero que Córdoba Notebooks cerró en su botón de WhatsApp (`5de3ba20`).
+      //
+      // `/salir` también lo valida (`src/lib/destinoSaliente.ts`) y eso es a propósito: dos
+      // capas que dicen lo mismo, así ninguna sola tiene que ser perfecta. La diferencia es
+      // que acá se **ve**: allá la publicación mala cuesta un click en silencio, acá queda
+      // una línea en el log del scrape con el nombre de la tienda que la publicó.
+      const { buenas, descartadas } = filtrarPorDominio(listings, scraper.base);
+      results.set(scraper.storeId, buenas);
+      console.log(`✅ ${scraper.storeId}: ${buenas.length} publicaciones (${Date.now() - t0} ms)`);
+      if (descartadas.length) {
+        console.error(
+          `⚠️  ${scraper.storeId}: ${descartadas.length} publicación(es) descartadas por apuntar ` +
+            `fuera de ${scraper.base}:`,
+        );
+        for (const d of descartadas.slice(0, 5)) console.error(`      ${d.id} → ${d.url}`);
+        if (descartadas.length > 5) console.error(`      … y ${descartadas.length - 5} más.`);
+      }
     } catch (e) {
       console.error(`❌ ${scraper.storeId}: ${e.message} — se conservan los datos anteriores en la DB`);
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getListing, getStore } from "@/lib/data";
 import { clienteDeEscritura } from "@/lib/supabaseAdmin";
 import { COOKIE_ORIGEN, COOKIE_VISITANTE, decodificar, ultimoToque } from "@/lib/atribucion";
+import { destinoSaliente } from "@/lib/destinoSaliente";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export const dynamic = "force-dynamic";
  *    guardan marcados.
  * 3. **Validación del destino.** `listing.url` viene de un scraper sobre HTML ajeno. Un
  *    valor raro en esa columna convertía este endpoint en un redirector a cualquier lado.
+ *    Desde el 24-sep no alcanza con que sea `http`/`https`: tiene que ser del dominio de su
+ *    tienda. Ver `lib/destinoSaliente.ts`.
  */
 
 /**
@@ -44,15 +47,25 @@ export async function GET(
     return NextResponse.redirect(new URL("/notebooks", req.url), 302);
   }
 
-  const destino = destinoSeguro(listing.url);
-  if (!destino) {
+  const store = await getStore(listing.storeId);
+
+  const validado = destinoSaliente(listing.url, store?.url);
+  if (!validado.ok) {
     // La publicación existe pero su URL no es utilizable. Es un problema de datos, no del
     // visitante: se lo manda al catálogo.
-    console.error("[salir] URL inválida en la publicación", { listingId: listing.id });
+    //
+    // `otro-dominio` se loguea distinto porque no es lo mismo: una URL rota es un scraper que
+    // leyó mal, y un destino fuera del dominio de la tienda es una URL que alguien escribió
+    // en el catálogo ajeno para que la repitiéramos nosotros. Si aparece, hay que mirarla.
+    console.error(
+      validado.motivo === "otro-dominio"
+        ? "[salir] la publicación apunta fuera del dominio de su tienda — no se redirige"
+        : "[salir] URL inválida en la publicación",
+      { listingId: listing.id, storeId: listing.storeId, motivo: validado.motivo },
+    );
     return NextResponse.redirect(new URL("/notebooks", req.url), 302);
   }
-
-  const store = await getStore(listing.storeId);
+  const destino = validado.url;
   const ua = req.headers.get("user-agent") ?? "";
   const esBot = !ua || RE_BOT.test(ua);
 
@@ -148,26 +161,6 @@ export async function GET(
     // intermediario es un click que ocurre y no se cuenta.
     headers: { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" },
   });
-}
-
-/**
- * El destino, sólo si es `http`/`https`.
- *
- * La URL sale de un scraper sobre el HTML de otra empresa, así que no es un dato de
- * confianza. Sin este filtro, un `javascript:` o un `data:` guardado en la columna hace que
- * el sitio emita un `Location:` con ese esquema. Los navegadores modernos lo ignoran, pero
- * "el navegador lo tapa" no es una defensa: el que decide qué esquemas emite este endpoint
- * tiene que ser este endpoint.
- */
-function destinoSeguro(raw: string): string | null {
-  if (!raw) return null;
-  try {
-    const u = new URL(raw);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    return u.toString();
-  } catch {
-    return null;
-  }
 }
 
 function esMobile(req: NextRequest): boolean {
