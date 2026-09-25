@@ -8,6 +8,30 @@ Todo esto requiere la `service_role` o acceso a dashboards → lo hacés vos, no
 
 ---
 
+## 🚨 Estado al 2026-09-24: quince días caído, y el vigía está en una rama
+
+Vuelto a medir el 24-sep: **sin cambios**. `notebooks-tan.vercel.app` sigue en 500 y
+`itisgcfxvryxyvolxjvs.supabase.co` sigue en NXDOMAIN. Los cuatro workflows fallaron hoy otra
+vez; van quince días desde el 9-sep. El sitio, además, lleva dos semanas y media sin scrapear:
+los precios que muestre cuando la base vuelva son del 8 de septiembre.
+
+**Por qué nadie se enteró, que es lo nuevo de esta ronda.** Los dos workflows que existen
+justamente para avisar de esto no están en `main`:
+
+```
+main:                detectar-paridad, emails, scrape, verificar
+paridad-2026-09-15:  … + vigilar, avisar-fallas      ← sin mergear
+```
+
+La ronda del 15-sep escribió el vigía y lo dejó donde no corre. **Mergear
+`paridad-2026-09-15` aunque sea sólo por esos dos archivos** es lo que hay que hacer primero,
+antes incluso de arreglar la base: mientras no estén en `main`, la caída siguiente —incluida la
+que provoque un deploy— también va a pasar inadvertida.
+
+Los pasos para la base, abajo, siguen valiendo tal cual.
+
+---
+
 ## 🚨 Estado al 2026-09-15: el sitio está caído y la causa no es código
 
 Medido el 15-sep: `notebooks-tan.vercel.app` contesta **500** en `/`, `/notebooks` y `/llms.txt`.
@@ -22,6 +46,57 @@ El host de la base, **`itisgcfxvryxyvolxjvs.supabase.co`, no resuelve DNS** (NXD
 3. Aparte, y desde el 9-sep: los cuatro workflows fallan porque el repo nuevo nació **sin
    secretos**. El script para cargarlos está en la rama `arreglo/cutover-secrets-y-paridad`
    (sin mergear). Sumarle `REVALIDATE_SECRET` antes de usarlo: ahora `scrape.yml` lo pasa.
+
+---
+
+## ⚠️ Antes de desplegar la ronda de paridad del 2026-09-24
+
+Rama `paridad-2026-09-24`. Detalle en `paridad/2026-09-24.md`. Va **encima** de
+`paridad-2026-09-15`, así que todo lo de la sección de abajo sigue valiendo y esto se le suma.
+
+### 1. Una medición que bloquea el deploy
+
+```bash
+cd website && npm run chequear:destinos
+```
+
+Sólo lectura, con la base arriba. `/salir` ahora frena el destino que no es del dominio de su
+tienda, y frenar significa mandar a la persona al catálogo en vez de a la tienda: **un click
+que no se factura**. Si en `listings` hubiera publicaciones legítimas con otro dominio —una
+tienda que migró, una con el perfil en `.com` y el catálogo en `.com.ar`— este cambio les corta
+tráfico real el día que se despliegue.
+
+El script sale con código 1 y lista las filas. Cada una es una decisión: o la tienda tiene otro
+dominio legítimo, o la publicación estaba mal y el freno hizo su trabajo. **No desplegar sin
+que salga limpio.** No se pudo correr en la ronda (la base no responde).
+
+### 2. Una migración más, y va antes del deploy
+
+El orden queda: **0012–0015 → 0017 → deploy → 0016**.
+
+La `0017` agrega `utm_content`, `utm_term` y `click_plataforma` a `click_outs`, y el código
+nuevo de `/salir` las nombra. Si la migración queda atrás, el `insert` se degrada solo al
+subconjunto de la 0001 y deja el aviso en el log —o sea que se siguen registrando los clicks,
+sin atribución, en vez de perderlos todos— pero eso es la red, no el plan.
+
+Las tres columnas **no** se le abren a la tienda: el `grant` de la 0015 es columna por columna.
+Verificado contra Postgres en `probar-migraciones.mjs` (48 pruebas).
+
+### 3. El scrape se invoca distinto
+
+`scrape.yml` pasa de `node scrapers/run.mjs` a `npm run scrape`, porque el scraper importa la
+regla de dominios desde un `.ts` y necesita el stripping de tipos de Node. Si alguien lo corre
+a mano, ahora es `npm run scrape -- fravega`.
+
+### 4. Verificación después del deploy
+
+```bash
+cd website && npm run probar -- --url https://notebooks-tan.vercel.app
+npm run chequear:destinos
+```
+
+Y mirar el log de `/salir` buscando `apunta fuera del dominio de su tienda`: si aparece, hay
+una publicación que el scrape dejó pasar antes de este cambio.
 
 ---
 
