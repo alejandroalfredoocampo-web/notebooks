@@ -108,6 +108,9 @@ export async function GET(
       // no se escribe el día del click no se reconstruye después. Ver migración 0017.
       utm_content: toque?.utm_content ?? null,
       utm_term: toque?.utm_term ?? null,
+      // El id de la campaña, que sobrevive a que la renombren — el nombre no. Ver migración
+      // 0018 y el arreglo de los corchetes en `utm_campaign` de la ronda del 24-sep.
+      campana_id: toque?.campana_id ?? null,
       click_id: toque?.click_id ?? null,
       click_plataforma: toque?.click_plataforma ?? null,
       first_touch_at: guardado.primero?.contacto ?? null,
@@ -116,8 +119,8 @@ export async function GET(
   } catch (e) {
     // Una columna que todavía no existe no puede costar el click.
     //
-    // Este endpoint es lo que se factura, y su `insert` nombra columnas de tres migraciones
-    // (0001, 0014, 0017). Si el código llega antes que la migración —que es el orden normal
+    // Este endpoint es lo que se factura, y su `insert` nombra columnas de cuatro migraciones
+    // (0001, 0014, 0017, 0018). Si el código llega antes que la migración —que es el orden normal
     // de un deploy, y el que este proyecto tiene pendiente desde el 15-sep— la base rechaza
     // el insert **entero** y se deja de registrar *todo*: no se pierde la atribución, se
     // pierde la facturación, y en silencio, porque la persona llega a la tienda igual.
@@ -129,7 +132,7 @@ export async function GET(
     if (esColumnaQueFalta(e)) {
       console.error(
         "[salir] la base no conoce alguna columna del click: falta correr una migración " +
-          "(0014 / 0017). Se guarda el click sin atribución — el informe por campaña queda " +
+          "(0014 / 0017 / 0018). Se guarda el click sin atribución — el informe por campaña queda " +
           "incompleto hasta que se aplique.",
         e,
       );

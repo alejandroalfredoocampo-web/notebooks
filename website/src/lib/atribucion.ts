@@ -75,6 +75,19 @@ export type Toque = {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  /**
+   * `utm_id`: el **id** de la campaña, no su nombre.
+   *
+   * Portado de Córdoba Notebooks (2046e18b), donde la plantilla de UTMs de la agencia lo
+   * mandaba y el toque lo tiraba. Acá cierra una rotura ya pagada: hasta la semana pasada un
+   * `utm_campaign` con corchetes se perdía entero y la fila quedaba como "sin campaña". El
+   * nombre es texto que alguien escribe —y reescribe, y rompe al parsearlo—; el id no cambia
+   * cuando renombran la campaña y no tiene nada que escapar. Es el único corte que sobrevive a
+   * que le cambien el nombre a la campaña a mitad de mes.
+   *
+   * Lo mandan tanto Google Ads como Meta, así que no es de una plataforma.
+   */
+  campana_id?: string;
   click_id?: string;
   click_plataforma?: Plataforma;
   referrer?: string;
@@ -98,6 +111,7 @@ const CORTA: Record<keyof Toque, string> = {
   utm_campaign: "c",
   utm_content: "ct",
   utm_term: "t",
+  campana_id: "ui",
   click_id: "ci",
   click_plataforma: "cp",
   referrer: "r",
@@ -120,6 +134,7 @@ const TOPES: Partial<Record<keyof Toque, number>> = {
   utm_campaign: 120,
   utm_content: 120,
   utm_term: 120,
+  campana_id: 60,
   click_id: 200,
   referrer: 120,
 };
@@ -195,6 +210,7 @@ export function toqueDeParametros(
     utm_campaign: limpio(q.get("utm_campaign")),
     utm_content: limpio(q.get("utm_content")),
     utm_term: limpio(q.get("utm_term")),
+    campana_id: limpio(q.get("utm_id")),
     ...(click ?? {}),
     referrer: referrerExterno(referer, hostPropio),
   };
@@ -338,6 +354,7 @@ export type Atribucion = {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  campana_id?: string;
   click_id?: string;
   click_plataforma?: Plataforma;
   referrer?: string;

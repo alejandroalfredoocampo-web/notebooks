@@ -126,3 +126,64 @@ test("los valores se recortan: una URL armada a mano no llena la cookie", () => 
   const t = toqueDeParametros(new URLSearchParams(`utm_campaign=${largo}`), null, "x", AHORA);
   assert.equal(t?.utm_campaign?.length, 120);
 });
+
+test("guarda el id de la campaña (utm_id), no sólo su nombre", () => {
+  // Portado de Córdoba Notebooks (2046e18b): la plantilla de la agencia mandaba `utm_id` y el
+  // toque lo tiraba. Acá el nombre de la campaña ya costó una rotura — los corchetes — y el id
+  // es el único corte que sobrevive a que la renombren a mitad de mes.
+  const t = toqueDeParametros(
+    new URLSearchParams(
+      "utm_source=facebook&utm_medium=paid_social&utm_campaign=Notebooks+gamer+octubre" +
+        "&utm_id=120240609390170683&utm_content=Victus+%5Bvideo%5D&fbclid=IwAR0abc",
+    ),
+    null,
+    "www.notebooks.com.ar",
+    AHORA,
+  );
+  assert.equal(t?.campana_id, "120240609390170683");
+  // Y no se mezcla con el nombre, que es el otro corte y sigue estando.
+  assert.equal(t?.utm_campaign, "Notebooks gamer octubre");
+  assert.equal(t?.utm_content, "Victus [video]");
+  assert.equal(t?.click_plataforma, "meta");
+});
+
+test("un utm_id que es una macro sin resolver se descarta", () => {
+  const t = toqueDeParametros(
+    new URLSearchParams("utm_source=facebook&utm_id={{campaign.id}}"),
+    null,
+    "www.notebooks.com.ar",
+    AHORA,
+  );
+  assert.equal(t?.campana_id, undefined);
+});
+
+test("el id de la campaña sobrevive al viaje por la cookie", () => {
+  const t = toqueDeParametros(
+    new URLSearchParams("utm_source=google&utm_id=22334455&gclid=abc"),
+    null,
+    "www.notebooks.com.ar",
+    AHORA,
+  );
+  const g: Guardado = { primero: t!, ultimo: t! };
+  assert.equal(decodificar(codificar(g)).primero?.campana_id, "22334455");
+});
+
+test("con todos los campos llenos, dos toques siguen lejos del techo de la cookie", () => {
+  // El techo del navegador son 4 kB y lo que se pasa se descarta **sin avisar**. Es la prueba
+  // que Córdoba Notebooks agregó al sumar campos, y la razón de las claves cortas.
+  const toque = {
+    utm_source: "facebook",
+    utm_medium: "paid_social",
+    utm_campaign: "Notebooks gamer octubre - [TOF] intereses tecnologia 25-45",
+    utm_content: "Victus 15 [video] 1080x1920 v3",
+    utm_term: "[TOF] Notebooks - intereses tecnologia 25-45",
+    campana_id: "120240609390170683",
+    click_id: "IwAR" + "a".repeat(190),
+    click_plataforma: "meta" as const,
+    referrer: "https://l.instagram.com",
+    contacto: AHORA.toISOString(),
+  };
+  const valor = codificar({ primero: toque, ultimo: { ...toque, utm_content: "otra" } });
+  assert.ok(valor.length < 1500, `la cookie mide ${valor.length} bytes`);
+  assert.deepEqual(decodificar(valor).primero, toque);
+});
