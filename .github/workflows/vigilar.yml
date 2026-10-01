@@ -10,6 +10,13 @@ name: Vigía
 #  - el aviso dice la causa probable (Vercel o Supabase);
 #  - un aviso por caída, no uno por hora: el issue se abre una vez, se actualiza sin comentar
 #    mientras siga caído, y se comenta y cierra cuando vuelve;
+#  - ...pero con un **recordatorio espaciado** mientras siga caído (`RECORDATORIO_CADA_CORRIDAS`,
+#    12 corridas = 12 horas). Córdoba Notebooks lo aprendió el 21-sep (6d6e33e8): su ficha de
+#    producto estuvo 625 minutos en 500 y el monitor mandó **un solo mail**, que se perdió en la
+#    bandeja. "Una vez por caída" seguía siendo lo correcto para no silenciar el canal; lo que
+#    faltaba era un recordatorio, que no es lo mismo que gritar cada hora. Acá el agujero era
+#    peor: GitHub **no notifica la edición del cuerpo** de un issue, así que después del primer
+#    aviso no quedaba ninguna señal — y el sitio lleva 22 días caído;
 #  - sin secretos: sobrevive a una migración de cuenta, que es lo que dejó a los otros cuatro
 #    workflows sin credenciales el 8-sep.
 #
@@ -66,6 +73,9 @@ jobs:
         uses: actions/github-script@v7
         env:
           ESTADO: ${{ steps.mirar.outputs.estado }}
+          # Cada cuántas corridas se repite el aviso mientras siga caído. Con el cron horario,
+          # 12 son 12 horas. `0` lo apaga.
+          RECORDATORIO_CADA_CORRIDAS: ${{ vars.RECORDATORIO_CADA_CORRIDAS || '12' }}
         with:
           script: |
             const fs = require('fs');
@@ -89,10 +99,13 @@ jobs:
 
             const detalle = d.resultados.map((r) => `- \`${r.ruta}\` — ${r.ok ? 'ok' : r.motivo} (${r.ms} ms)`).join('\n');
             const desde = issue ? (/<!-- desde:(.*?) -->/.exec(issue.body)?.[1] ?? new Date().toISOString()) : new Date().toISOString();
+            // Cuántas corridas seguidas lleva caído, contando la que abrió el issue.
+            const corridas = issue ? Number(/<!-- corridas:(\d+) -->/.exec(issue.body)?.[1] ?? 1) + 1 : 1;
+            const horas = Math.round((Date.now() - Date.parse(desde)) / 36e5);
             const cuerpo = [
-              MARCA, `<!-- desde:${desde} -->`, '',
+              MARCA, `<!-- desde:${desde} -->`, `<!-- corridas:${corridas} -->`, '',
               `**${d.origen}** no está respondiendo como debe (confirmado con dos intentos a 90 s).`, '',
-              `Caído desde: ${desde.slice(0, 16).replace('T', ' ')} UTC · última verificación: ${corrida}`, '',
+              `Caído desde: ${desde.slice(0, 16).replace('T', ' ')} UTC (~${horas} h) · última verificación: ${corrida}`, '',
               detalle, '',
               d.diagnostico ? `**Causa probable:** ${d.diagnostico}` : '',
               '', '---',
@@ -102,8 +115,31 @@ jobs:
             if (!issue) {
               const n = await github.rest.issues.create({ owner, repo, title: 'El sitio está caído', body: cuerpo });
               core.setFailed(`Sitio caído: abierto #${n.data.number}.`);
+              return;
+            }
+
+            // Sin comentario en cada corrida: un aviso por hora que repite lo mismo entrena a
+            // ignorar el hilo. Pero **sí** un recordatorio espaciado, porque editar el cuerpo
+            // de un issue no manda ninguna notificación: sin esto, después del aviso que lo
+            // abrió no vuelve a salir nada nunca más. Es lo que dejó esta caída 22 días sin que
+            // nadie se enterara, y la misma lección que Córdoba Notebooks sacó del 21-sep
+            // (6d6e33e8), donde un solo mail cubrió diez horas de ficha caída.
+            await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: cuerpo });
+
+            const cada = Number(process.env.RECORDATORIO_CADA_CORRIDAS || 0);
+            if (cada > 0 && (corridas - 1) % cada === 0) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: [
+                  `**SIGUE caído** — van ~${horas} h (${corridas} corridas del vigía).`, '',
+                  detalle, '',
+                  d.diagnostico ? `**Causa probable:** ${d.diagnostico}` : '',
+                  '',
+                  'Este es un recordatorio: el aviso original ya salió y nadie lo resolvió todavía.',
+                  'Qué hacer: `DEPLOY-CHECKLIST.md`.',
+                ].join('\n'),
+              });
+              core.setFailed(`Sigue caído hace ~${horas} h (#${issue.number}): recordatorio comentado.`);
             } else {
-              // Sin comentario: un aviso por hora que repite lo mismo entrena a ignorar el hilo.
-              await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: cuerpo });
-              core.setFailed(`Sigue caído (#${issue.number}).`);
+              core.setFailed(`Sigue caído hace ~${horas} h (#${issue.number}).`);
             }
