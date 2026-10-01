@@ -1,27 +1,34 @@
 {
   "_lea_esto": "Estado de la revisión semanal de paridad con Córdoba Notebooks. Lo actualiza la tarea programada 'paridad-cordoba-notebooks-semanal' (~/.claude/scheduled-tasks/). El procedimiento está en 07-runbook-paridad-semanal.md.",
   "ultimaRevision": {
-    "fecha": "2026-09-24",
-    "commitCN": "6dbf468f",
-    "asuntoCN": "Rollback del formulario antes de WhatsApp (tandas 86 y 87) a pedido de Ale: storefront vuelto a 01273623 y su codigo sacado de main; default formularioWhatsapp apagado; estado-deploy, doc 71 y doc 129",
-    "comentario": "Semana chica: 7 revisiones de CN, 4 temas portados en 4 commits, todos sobre el click saliente y la cookie de atribucion. El hallazgo propio es el de la ronda pasada agravado y por fin explicado: el sitio lleva quince dias caido y nadie se entero porque vigilar.yml y avisar-fallas.yml estan en paridad-2026-09-15, sin mergear, o sea que el vigia no corre. Se encontro ademas un open redirect en /salir: validaba el esquema pero no el dominio, y la URL de la publicacion la escribe el servidor de la tienda scrapeada. Las 28 fallas de la suite son la base caida y son identicas antes y despues de portar. Ver paridad/2026-09-24.md.",
-    "revisionesPortadas": 4,
+    "fecha": "2026-10-01",
+    "commitCN": "ed51fed7",
+    "asuntoCN": "Tanda 101 DEPLOYADA: backend fa7c03fc desde b67e3b4 (reabrir vuelve la aceptacion a cero; editar datos del ticket)",
+    "comentario": "15 revisiones de CN, 6 temas portados en 5 commits. El hallazgo de la semana lo trajo el port: el vigia no solo esta en una rama sin mergear, ademas avisaba UNA sola vez por caida — los dos workflows abren el issue y despues solo editan el cuerpo, y GitHub no notifica la edicion del cuerpo. O sea que aun mergeado no habria avisado de esta caida mas de una vez. Es el mismo error que CN pago el 21-sep con 625 minutos de ficha en 500 y un solo mail (6d6e33e8). Ahora los dos insisten cada 12 corridas (medido: 6 avisos en 72 h donde habia 1) y el vigia mira la ficha, que es donde esta el click que se factura. El otro port grande es de paginacion: los adaptadores VTEX y Woo tomaban una pagina vacia, corta o un error de red en el medio como fin del catalogo, y aca eso no se nota en ninguna parte porque run.mjs no borra lo que no volvio a aparecer — deja un pedazo de la tienda con el precio de ayer y la corrida en verde (tandas 94 y 95 de CN, doc 141). Escribiendo sus tests aparecio un caso que no estaba en el doc: Number(null) es 0, asi que 'sin total declarado' se registraba como total cero y cualquier catalogo pasaba como completo. El sitio sigue caido, ahora hace 22 dias, y main sigue en el merge del 24-AGO. Las 28 fallas de la suite son la base caida y son identicas antes y despues de portar. Ver paridad/2026-10-01.md.",
+    "revisionesPortadas": 6,
     "revisionesDescartadas": [
-      "Formulario de nombre y telefono antes de WhatsApp, sus eventos de dataLayer y el rollback (a33f58f3, 2c3c6f1c, 6dbf468f): captacion de leads para cerrar por chat, y GTM/GA4. Aca no hay chat ni terceros de medicion. Ademas CN lo revirtio a los 45 minutos: no hay nada estable para portar.",
-      "El click a WhatsApp atado al visitante (feaf982c): comercio. Su mitad transversal —guardar el click aunque falte el campo nuevo— si se porto.",
-      "La mitad de latencia de 5de3ba20 (302 primero, registro en waitUntil): dudosa. Aca el insert se espera antes de redirigir, asi que es latencia en el unico CTA que se factura, pero hacerlo mal en serverless congela la funcion y pierde el click. Requiere medir y un waitUntil de verdad.",
-      "Script para medir el rate limit real de Dux (251b38f6): no hay ninguna API de terceros con cupo aca. El unico limite del scraper (politeFetch, 1 req/s) es una cortesia conservadora a proposito, no un numero adivinado que convenga subir.",
-      "Doc 127, el LEFT JOIN a order_summary que multiplicaba filas e inflaba cuatro reportes: es de Medusa v2. Se chequeo igual el equivalente aca y no existe: data.ts no hace joins en SQL (trae las tablas y cruza con Map en JS) y price_history tiene unique (model_id, captured_on).",
-      "Docs 113, 124, 125, 126, 128 (HubSpot, facturacion desde Medusa, matriz de analytics, garantias): comercio. Del 125 salio el pedido que origino a70b5c9e, que si se porto."
+      "Garantias y aceptacion del cliente por WhatsApp (2cebf74f, b67e3b4, 2cacef0; tandas 99 a 101, docs 120 y 144): comercio puro. De 4690ce3f si se porto la mitad transversal, el piso del catalogo del monitor.",
+      "Formulario previo a WhatsApp, su embudo y su medicion (da91f520, 5bd7d9f8, c8fdeb71, doc 129): captacion de leads para cerrar por chat; aca no hay chat. Ya descartado el 24-sep por lo mismo, y CN lo prendio y apago dos veces mas esta semana.",
+      "WhatsApp directo a web.whatsapp.com en computadora (7599ad67, tanda 96): no hay WhatsApp aca.",
+      "Filtro de ruido de Sentry (b57349ef): no hay Sentry (decision sobre terceros con costo recurrente, sigue). A diferencia de otras rondas, aca NO hay mitad gratis: el commit es solo configuracion del beforeSend.",
+      "Los cuatro fb_* de la plantilla de Meta (otra mitad de 2046e18b): salen de la plantilla concreta de una agencia que pautea; aca no hay campanas de Meta ni agencia y son parametros de una plataforma. Si se porto utm_id y se honro la decision de diseno: los campos nuevos no entran en la clasificacion de canal.",
+      "La mitad de reportes de la tanda 97 (16218036): admin de Medusa y columnas de click_whatsapp. Se porto la leccion, que es la que valia (el panel decia 'visitas' contando clics).",
+      "Deploy a los dos remotos y copia del contexto en el repo (94d143a5, doc 140): es de la situacion de CN (dos remotos tras la migracion del repo viejo). Aca hay un solo remoto.",
+      "empujar-a-remotos.sh y el refspec de zsh (ee8b2d13): VERIFICADO que no hay nada que arreglar. Este repo no tiene ningun script .sh ni ningun git push con refspec armado con variables.",
+      "Tanda 88, la venta asistida que le presta la atribucion del navegador del vendedor al pedido (8408f035, 5ac6ff60): la mitad de comercio no aplica. La mitad transversal se reviso y MEDIDO que aca no existe: PublicationsTable.tsx del admin linkea directo a la URL de la tienda, no a /salir/, asi que ningun camino del admin genera un click facturable."
     ],
     "pendienteDeUnaPersona": [
-      "URGENTE: el sitio lleva quince dias caido. itisgcfxvryxyvolxjvs.supabase.co no resuelve DNS y notebooks-tan.vercel.app da 500. Ver DEPLOY-CHECKLIST.md.",
-      "URGENTE: mergear paridad-2026-09-15 aunque sea solo por los workflows. vigilar.yml y avisar-fallas.yml estan ahi y por eso nadie se entero de la caida; mientras no esten en main no hay nada mirando.",
-      "Cargar los secretos de GitHub (rama arreglo/cutover-secrets-y-paridad, sin mergear; sumarle REVALIDATE_SECRET). Cuatro workflows fallando hace quince dias.",
-      "Correr `npm run chequear:destinos` (solo lectura, con la base arriba) ANTES de desplegar esta rama: el freno del destino ajeno manda al catalogo en vez de a la tienda, y si hay publicaciones legitimas con otro dominio les corta trafico real.",
-      "Orden de despliegue, ahora con una migracion mas: 0012-0015, 0017, deploy, 0016.",
+      "URGENTE: el sitio lleva 22 dias caido. itisgcfxvryxyvolxjvs.supabase.co no resuelve DNS y notebooks-tan.vercel.app da 500. Tercer informe seguido diciendo esto. Ver DEPLOY-CHECKLIST.md.",
+      "URGENTE: mergear paridad-2026-09-15 aunque sea solo por los workflows. vigilar.yml y avisar-fallas.yml estan ahi; mientras no esten en main no hay nada mirando. Con esta rama ademas ya insisten.",
+      "main sigue en 85d7e35, el merge de la revision del 24-AGO: cinco semanas y media sin que entre nada, y tres ramas de paridad sin mergear. Es el riesgo que el runbook dice que hay que evitar y ya esta pasando.",
+      "Cargar los secretos de GitHub (rama arreglo/cutover-secrets-y-paridad, sin mergear; sumarle REVALIDATE_SECRET). Cuatro workflows fallando a diario desde el 9-sep.",
+      "Correr `npm run chequear:destinos` (solo lectura, con la base arriba) ANTES de desplegar: el freno del destino ajeno manda al catalogo en vez de a la tienda.",
+      "Orden de despliegue, ahora con una migracion mas: 0012-0015, 0017, 0018, deploy, 0016. La 0018 es aditiva y puede ir en cualquier punto antes del deploy.",
+      "Mirar el log del primer scrape despues del deploy: NO esta medido que VTEX y WooCommerce manden de verdad las cabeceras `resources` y `X-WP-Total` en las tiendas de sources.mjs. Si no las mandan, el comportamiento es el de antes (se confia en lo que llego): el cambio no empeora nada pero tampoco mejora hasta confirmarlo.",
+      "Decidir si el panel de la tienda debe contar visitas en vez de clics. No es de una linea: store_click_outs no le da el visitor_id a proposito (0015, dato de la persona), asi que la deduplicacion la tendria que hacer el servidor con service_role. Y antes hay que MEDIR si la inflacion existe aca (CN tenia 32 % de clicks a menos de 10 s del anterior, pero su mecanismo era un boton flotante, no un link que navega).",
+      "El click del navegador propio: medido que el admin no pasa por /salir/, asi que el agujero de CN no existe. Lo que queda es incidental — si navegas el sitio publico y tocas 'Ir a la tienda' para probar, es un click facturable con tu cookie. Hoy solo se filtra por User-Agent. Si se quiere cerrar, lo barato es una cookie de opt-out que /salir ya podria leer.",
       "Decidir si el registro del click va en waitUntil. Hay que medir primero cuanto tarda hoy el insert dentro de /salir.",
-      "Backup de la base: sigue sin existir ninguno, y con el proyecto de Supabase inaccesible hace quince dias dejo de ser higiene. Necesita el secreto SUPABASE_DB_URL.",
+      "Backup de la base: sigue sin existir ninguno, y con el proyecto de Supabase inaccesible hace 22 dias dejo de ser higiene. Necesita el secreto SUPABASE_DB_URL.",
       "Inscripcion AAIP (Ley 25.326) y revision de /privacidad por un abogado (sigue). /privacidad dice 'escribinos' sin ninguna direccion de contacto.",
       "Opt-out de atribucion: interfaz o solo declarado? (sigue).",
       "Pedidos corporativos: todas las tiendas vinculadas leen empresa, CUIT y contacto.",
@@ -31,6 +38,36 @@
     ]
   },
   "historial": [
+    {
+      "fecha": "2026-09-24",
+      "commitCN": "6dbf468f",
+      "asuntoCN": "Rollback del formulario antes de WhatsApp (tandas 86 y 87) a pedido de Ale: storefront vuelto a 01273623 y su codigo sacado de main; default formularioWhatsapp apagado; estado-deploy, doc 71 y doc 129",
+      "comentario": "Semana chica: 7 revisiones de CN, 4 temas portados en 4 commits, todos sobre el click saliente y la cookie de atribucion. El hallazgo propio es el de la ronda pasada agravado y por fin explicado: el sitio lleva quince dias caido y nadie se entero porque vigilar.yml y avisar-fallas.yml estan en paridad-2026-09-15, sin mergear, o sea que el vigia no corre. Se encontro ademas un open redirect en /salir: validaba el esquema pero no el dominio, y la URL de la publicacion la escribe el servidor de la tienda scrapeada. Las 28 fallas de la suite son la base caida y son identicas antes y despues de portar. Ver paridad/2026-09-24.md.",
+      "revisionesPortadas": 4,
+      "revisionesDescartadas": [
+        "Formulario de nombre y telefono antes de WhatsApp, sus eventos de dataLayer y el rollback (a33f58f3, 2c3c6f1c, 6dbf468f): captacion de leads para cerrar por chat, y GTM/GA4. Aca no hay chat ni terceros de medicion. Ademas CN lo revirtio a los 45 minutos: no hay nada estable para portar.",
+        "El click a WhatsApp atado al visitante (feaf982c): comercio. Su mitad transversal —guardar el click aunque falte el campo nuevo— si se porto.",
+        "La mitad de latencia de 5de3ba20 (302 primero, registro en waitUntil): dudosa. Aca el insert se espera antes de redirigir, asi que es latencia en el unico CTA que se factura, pero hacerlo mal en serverless congela la funcion y pierde el click. Requiere medir y un waitUntil de verdad.",
+        "Script para medir el rate limit real de Dux (251b38f6): no hay ninguna API de terceros con cupo aca. El unico limite del scraper (politeFetch, 1 req/s) es una cortesia conservadora a proposito, no un numero adivinado que convenga subir.",
+        "Doc 127, el LEFT JOIN a order_summary que multiplicaba filas e inflaba cuatro reportes: es de Medusa v2. Se chequeo igual el equivalente aca y no existe: data.ts no hace joins en SQL (trae las tablas y cruza con Map en JS) y price_history tiene unique (model_id, captured_on).",
+        "Docs 113, 124, 125, 126, 128 (HubSpot, facturacion desde Medusa, matriz de analytics, garantias): comercio. Del 125 salio el pedido que origino a70b5c9e, que si se porto."
+      ],
+      "pendienteDeUnaPersona": [
+        "URGENTE: el sitio lleva quince dias caido. itisgcfxvryxyvolxjvs.supabase.co no resuelve DNS y notebooks-tan.vercel.app da 500. Ver DEPLOY-CHECKLIST.md.",
+        "URGENTE: mergear paridad-2026-09-15 aunque sea solo por los workflows. vigilar.yml y avisar-fallas.yml estan ahi y por eso nadie se entero de la caida; mientras no esten en main no hay nada mirando.",
+        "Cargar los secretos de GitHub (rama arreglo/cutover-secrets-y-paridad, sin mergear; sumarle REVALIDATE_SECRET). Cuatro workflows fallando hace quince dias.",
+        "Correr `npm run chequear:destinos` (solo lectura, con la base arriba) ANTES de desplegar esta rama: el freno del destino ajeno manda al catalogo en vez de a la tienda, y si hay publicaciones legitimas con otro dominio les corta trafico real.",
+        "Orden de despliegue, ahora con una migracion mas: 0012-0015, 0017, deploy, 0016.",
+        "Decidir si el registro del click va en waitUntil. Hay que medir primero cuanto tarda hoy el insert dentro de /salir.",
+        "Backup de la base: sigue sin existir ninguno, y con el proyecto de Supabase inaccesible hace quince dias dejo de ser higiene. Necesita el secreto SUPABASE_DB_URL.",
+        "Inscripcion AAIP (Ley 25.326) y revision de /privacidad por un abogado (sigue). /privacidad dice 'escribinos' sin ninguna direccion de contacto.",
+        "Opt-out de atribucion: interfaz o solo declarado? (sigue).",
+        "Pedidos corporativos: todas las tiendas vinculadas leen empresa, CUIT y contacto.",
+        "Landings indexables por procesador o placa (doc 112 de CN): decision de producto.",
+        "GTIN desde el ean de VTEX: columna nueva y verificar contra una tienda real.",
+        "CSP a enforce, JWT a cookie HttpOnly, Sentry o equivalente, Next 14 -> 15: siguen."
+      ]
+    },
     {
       "fecha": "2026-09-15",
       "commitCN": "048648fd",
