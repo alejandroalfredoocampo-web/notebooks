@@ -1,7 +1,11 @@
-import { DESCRIPCION_SITIO, NOMBRE_SITIO, SITE_URL, urlAbsoluta } from "@/lib/site";
-import { recortar } from "@/lib/seo";
-import type { ModelWithOffers, Store } from "@/lib/types";
-import { mpnVerificable, ofertaVigente } from "@/lib/specs";
+// Relativos y con extensión, y no `@/lib/...`, por el mismo motivo que `lib/seo.ts`: el
+// runner de `node --test` no conoce el alias `@/` del tsconfig ni resuelve extensiones al
+// hacer type stripping, y este módulo tiene tests unitarios
+// (`__tests__/schema-producto.test.ts`). Webpack acepta las dos formas.
+import { DESCRIPCION_SITIO, NOMBRE_SITIO, SITE_URL, urlAbsoluta } from "./site.ts";
+import { recortar } from "./seo.ts";
+import type { ModelWithOffers, Store } from "./types.ts";
+import { mpnVerificable, ofertaVigente } from "./specs.ts";
 
 /**
  * Datos estructurados (schema.org / JSON-LD).
@@ -185,7 +189,25 @@ export function productoLd(model: ModelWithOffers, opciones?: { descripcion?: st
     name: `${model.brand} ${model.name}`,
     url,
     ...(mpn ? { mpn } : {}),
-    brand: { "@type": "Brand", name: model.brand },
+    /**
+     * La marca, **sólo si está cargada**, por el mismo motivo que el `mpn` de arriba y el
+     * `gtin` que no se emite.
+     *
+     * Portado de Córdoba Notebooks (28328f67). Allá `brand` salía siempre y la marca llegaba
+     * como `String(md.marca || "")`, así que un producto sin marca no dejaba la propiedad
+     * afuera: emitía `brand` con el `name` vacío. Para Google eso no es un dato que falta sino
+     * un dato nulo declarado, y Search Console lo levantó el 12-sep-2026 como "Falta el campo
+     * name (en brand)".
+     *
+     * Acá `models.brand` es `not null`, pero `not null` no impide el string vacío y la columna
+     * la escribe el pipeline de ingesta. El riesgo es más chico que allá y el guardia cuesta
+     * una línea; lo que no se pudo hacer es confirmar si hoy existe algún modelo así, porque
+     * la base no responde. Queda como prevención y no como arreglo de un caso medido.
+     *
+     * Ojo: una marca vacía rompería antes que esto — `brandSlug` arma la URL canónica de la
+     * ficha. Si aparece, el problema no es el JSON-LD.
+     */
+    ...(model.brand ? { brand: { "@type": "Brand", name: model.brand } } : {}),
     ...(model.imageUrl ? { image: [model.imageUrl] } : {}),
     description: recortar(
       opciones?.descripcion ??
