@@ -283,7 +283,23 @@ export default function PortalPage() {
       {traffic && traffic.total > 0 && (
         <section className="mt-8">
           <h2 className="text-xl font-extrabold tracking-tight">Tu tráfico</h2>
-          <p className="mt-1 text-sm text-slate-500">Visitas que te enviamos desde el comparador (click-outs).</p>
+          {/*
+            Decía "Visitas que te enviamos". El número que está abajo cuenta **clics**, no
+            personas ni visitas: la misma visita puede hacer más de uno (vuelve con el botón
+            atrás, toca dos veces en el celular). Córdoba Notebooks midió esa diferencia en su
+            propio reporte el 28/09 (tanda 97, doc 142) y no era chica — 1081 clics eran 699
+            visitas, un 35 % de más — y la conclusión fue cambiar lo que el número dice que es.
+            Acá el número es además **la factura**, así que llamarlo "visitas" es prometer de más
+            sobre lo que se cobra.
+
+            Contar visitas distintas no se puede hacer desde esta pantalla, y a propósito: la
+            vista `store_click_outs` no le da a la tienda el `visitor_id` (migración 0015, es
+            dato de la persona). Queda anotado en el informe como lo que necesita una decisión.
+          */}
+          <p className="mt-1 text-sm text-slate-500">
+            Clics en “Ir a la tienda” desde el comparador. Cuenta clics, no personas: una misma
+            visita puede hacer más de uno.
+          </p>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-2xl font-extrabold tracking-tight">{traffic.total}</div>
@@ -300,6 +316,15 @@ export default function PortalPage() {
               (buscadores, vistas previas, monitores). No cuentan como tráfico ni se facturan.
             </p>
           )}
+          {/*
+            Lo que la pantalla no puede saber, dicho arriba y no en una nota al pie. Es la
+            lección 3 del doc 142 de Córdoba Notebooks: sin esta aclaración, la tienda compara
+            este número contra sus ventas y la diferencia parece un error del reporte.
+          */}
+          <p className="mt-2 text-[12px] text-slate-500">
+            No sabemos qué pasó después del clic: si la persona compró, ni si dos clics son la
+            misma persona. Es la demanda que te mandamos, no tus ventas.
+          </p>
           {traffic.top.length > 0 && (
             <div className="mt-3">
               <div className="mb-1 text-[12px] font-bold text-slate-500">Modelos con más clics</div>
