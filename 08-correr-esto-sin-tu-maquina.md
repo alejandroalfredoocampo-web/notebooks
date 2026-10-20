@@ -27,8 +27,8 @@ La parte A es la que más veces te va a salvar y no necesita nada de nadie.
 
 | Cosa | Estado |
 |---|---|
-| `Notebooks.com.ar` en GitHub | ✅ `alejandroalfredoocampo-web/notebooks`, al día |
-| **Córdoba Notebooks en GitHub** | ✅ `alejandroalfredoocampo-web/cordoba-notebooks`, al día |
+| `Notebooks.com.ar` en GitHub | ✅ `aocampo-cordobanotebooks/notebooks-com-ar`, al día (movido el 08/09/2026; antes era `alejandroalfredoocampo-web/notebooks`) |
+| **Córdoba Notebooks en GitHub** | ✅ `aocampo-cordobanotebooks/cordoba-notebooks`, al día (movido el 08/09/2026) |
 | GitHub Actions andando | ✅ ya corren el scrape diario y el worker de emails |
 | Secretos de Supabase cargados | ⚠️ están `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; **falta `SUPABASE_ANON_KEY`** |
 
@@ -118,7 +118,7 @@ generé el par de claves; sólo hay que pegarlas en dos lugares.
 
 **1. La pública, en Córdoba Notebooks** (le da acceso de lectura a ese repo, y a nada más):
 
-> GitHub → `alejandroalfredoocampo-web/cordoba-notebooks` → Settings → **Deploy keys** →
+> GitHub → `aocampo-cordobanotebooks/cordoba-notebooks` → Settings → **Deploy keys** →
 > Add deploy key
 > - **Title:** `notebooks CI (paridad, solo lectura)`
 > - **Key:** el contenido de `~/.ssh/notebooks_paridad_deploy.pub`
@@ -130,7 +130,7 @@ cat ~/.ssh/notebooks_paridad_deploy.pub | pbcopy   # queda en el portapapeles
 
 **2. La privada, como secreto en este repo:**
 
-> GitHub → `alejandroalfredoocampo-web/notebooks` → Settings → Secrets and variables →
+> GitHub → `aocampo-cordobanotebooks/notebooks-com-ar` → Settings → Secrets and variables →
 > Actions → New repository secret
 > - **Nombre:** `CN_DEPLOY_KEY`
 > - **Valor:** el contenido de `~/.ssh/notebooks_paridad_deploy` (la **sin** `.pub`)
