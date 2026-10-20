@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { supabase } from "./supabaseServer";
+import { sinInventar } from "./specs";
+import { todasLasFilas } from "./paginado";
 import { ramBucket, storageBucket, screenBucket } from "./specFilters";
 import { cleanModelName } from "./format";
 import type {
@@ -49,7 +51,9 @@ function mapStore(r: Row): Store {
   };
 }
 
-function mapModel(r: Row): NotebookModel {
+function mapModel(fila: Row): NotebookModel {
+  // Los modelos que creó `bulk-review` traen specs de relleno que nadie verificó. Ver `specs.ts`.
+  const r = sinInventar(fila);
   return {
     id: r.id as string,
     brand: r.brand as string,
@@ -140,7 +144,7 @@ export const TAG_CATALOGO = "catalogo";
  * Supabase). Sin este techo, un aviso perdido deja el sitio con precios viejos hasta el
  * próximo deploy, y en un comparador eso no es un cache viejo: es un precio equivocado.
  *
- * Cinco minutos es corto para lo que cambia "varias veces por día" y suficiente para que
+ * Cinco minutos es corto para lo que cambia el catálogo y suficiente para que
  * una ráfaga de visitas no se traduzca en una ráfaga de consultas.
  */
 const SEGUNDOS_CATALOGO = 300;
@@ -160,14 +164,19 @@ const traerCatalogo = unstable_cache(
       // — ver mapStore — y como las páginas públicas son server components, nunca llega
       // al navegador.
       supabase.from("stores").select("*"),
-      supabase.from("models").select("*"),
-      supabase.from("listings").select("*"),
-      supabase
-        .from("price_history")
-        .select("model_id,captured_on,best_price")
-        // Acotado a la ventana que el sitio dice usar. Ver `DIAS_HISTORIAL`.
-        .gte("captured_on", desdeCuando())
-        .order("captured_on", { ascending: true }),
+      // Orden estable: sin él, dos páginas de `range` pueden repetir o saltear filas.
+      todasLasFilas((d, h) => supabase.from("models").select("*", { count: "exact" }).order("id").range(d, h)),
+      todasLasFilas((d, h) => supabase.from("listings").select("*", { count: "exact" }).order("id").range(d, h)),
+      todasLasFilas((d, h) =>
+        supabase
+          .from("price_history")
+          .select("model_id,captured_on,best_price", { count: "exact" })
+          // Acotado a la ventana que el sitio dice usar. Ver `DIAS_HISTORIAL`.
+          .gte("captured_on", desdeCuando())
+          .order("captured_on", { ascending: true })
+          .order("model_id", { ascending: true })
+          .range(d, h),
+      ),
     ]);
 
     const firstErr = storesR.error || modelsR.error || listingsR.error || historyR.error;

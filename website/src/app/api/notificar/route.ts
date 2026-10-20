@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseServer";
+import { clienteDeEscritura } from "@/lib/supabaseAdmin";
 import { LIMITES, chequearLimite, respuesta429 } from "@/lib/limites";
 import { email, errorGuardando, esEmail, leerJson, texto } from "@/lib/entrada";
 
@@ -26,7 +26,9 @@ export async function POST(req: Request) {
   const modelId = texto(b.modelId, 100);
   if (!modelId) return NextResponse.json({ error: "Falta el modelo." }, { status: 400 });
 
-  const { error } = await supabase
+  const sb = clienteDeEscritura("notificar");
+  if (!sb) return errorGuardando("notificar", "falta SUPABASE_SERVICE_ROLE_KEY");
+  const { error } = await sb
     .from("model_notify")
     .upsert({ email: email(b.email), model_id: modelId }, { onConflict: "email,model_id", ignoreDuplicates: true });
   if (error) return errorGuardando("notificar", error);

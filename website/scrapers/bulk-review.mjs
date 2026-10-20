@@ -15,6 +15,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { requireServiceRole } from "./lib.mjs";
+import { familiaDeCpu } from "./cpu.mjs";
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = requireServiceRole();
 const APPLY = process.argv.includes("--apply");
@@ -40,23 +41,8 @@ function detectBrand(text) {
   return null;
 }
 
-function cpuFamily(t) {
-  t = strip(t);
-  if (/ultra\s*9/.test(t)) return "ultra9";
-  if (/ultra\s*7/.test(t)) return "ultra7";
-  if (/ultra\s*5/.test(t)) return "ultra5";
-  if (/\bi9\b|core\s*i9|core\s*9\b/.test(t)) return "i9";
-  if (/\bi7\b|core\s*i7|core\s*7\b/.test(t)) return "i7";
-  if (/\bi5\b|core\s*i5|core\s*5\b/.test(t)) return "i5";
-  if (/\bi3\b|core\s*i3|core\s*3\b/.test(t)) return "i3";
-  if (/ryzen\s*9/.test(t)) return "ryzen9";
-  if (/ryzen\s*7/.test(t)) return "ryzen7";
-  if (/ryzen\s*5/.test(t)) return "ryzen5";
-  if (/ryzen\s*3/.test(t)) return "ryzen3";
-  if (/\bm[1-4]\b|apple\s*m/.test(t)) return "apple-m";
-  if (/celeron|pentium|\bn\d{3,4}\b/.test(t)) return "intel-n";
-  return null;
-}
+// La familia de procesador vive en `cpu.mjs`, compartida con matching, el admin y el filtro.
+const cpuFamily = familiaDeCpu;
 const CPU_LABEL = {
   ultra9: "Core Ultra 9", ultra7: "Core Ultra 7", ultra5: "Core Ultra 5",
   i9: "Core i9", i7: "Core i7", i5: "Core i5", i3: "Core i3",
@@ -205,12 +191,15 @@ async function doReview() {
         || g.rep.title_raw.match(/ryzen\s*[3579]\s*\w*/i)?.[0] || CPU_LABEL[g.fam] || g.fam;
       const { error } = await sb.from("models").insert({
         id, brand: g.brand.name, brand_slug: g.brand.slug, name, slug: slugify(name),
-        cpu: String(cpuRaw).trim(), cpu_family: g.fam, ram_gb: g.ram, ram_type: "DDR4",
-        storage_gb: g.storage, storage_type: "SSD", screen_size_in: 15.6,
-        screen_resolution: "1920x1080 (FHD)", screen_panel: "IPS", screen_refresh_hz: 60,
+        // Sólo lo que sale del título. Lo que no se sabe va en null: antes esto escribía
+        // DDR4, 15,6" FHD IPS 60 Hz, Windows 11 Home y 0 kg para todos, y eso terminaba
+        // declarado en el JSON-LD y filtrando guías. Ver src/lib/specs.ts.
+        cpu: String(cpuRaw).trim(), cpu_family: g.fam, ram_gb: g.ram, ram_type: null,
+        storage_gb: g.storage, storage_type: /\bssd\b/i.test(g.rep.title_raw) ? "SSD" : /\bhdd\b/i.test(g.rep.title_raw) ? "HDD" : null,
+        screen_size_in: null, screen_resolution: null, screen_panel: null, screen_refresh_hz: null,
         gpu: g.gpu.label, gpu_type: g.gpu.dedicated ? "dedicada" : "integrada",
-        os: "Windows 11 Home", weight_kg: 0, battery_wh: 0,
-        release_year: new Date().getFullYear(), use_cases: [], image_url: g.rep.image || null, source: "auto",
+        os: null, weight_kg: null, battery_wh: null,
+        release_year: null, use_cases: [], image_url: g.rep.image || null, source: "auto",
       });
       if (error) { console.error(`  ✗ ${name}: ${error.message}`); continue; }
       created++; modelId = id;

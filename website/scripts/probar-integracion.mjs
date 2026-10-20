@@ -34,6 +34,8 @@
  *    una hora y dejaría el sitio sin formularios. Va detrás de `--incluir-rate-limit`.
  */
 
+import { CHEQUEOS as MARCADORES_DEL_VIGIA } from "./vigilar-sitio.mjs";
+
 const ORIGEN = (process.argv.find((a) => a.startsWith("http")) || "http://localhost:3000").replace(/\/+$/, "");
 const INCLUIR_RATE_LIMIT = process.argv.includes("--incluir-rate-limit");
 
@@ -139,6 +141,17 @@ async function humo() {
     });
   }
 
+  await prueba("los marcadores del vigía siguen en las páginas que vigila", async () => {
+    // El vigía horario declara "caído" si no encuentra estos textos. Si alguien cambia el copy
+    // de la home sin tocar `scripts/vigilar-sitio.mjs`, el vigía abre un issue de caída con el
+    // sitio andando. Esta prueba lo agarra antes (Córdoba Notebooks: doc 101 §6.1).
+    for (const { ruta, marcador } of MARCADORES_DEL_VIGIA) {
+      const { estado, texto } = await pedir(ruta);
+      debe(estado === 200 && texto.includes(marcador), `${ruta} ya no tiene "${marcador}"`);
+    }
+    return `${MARCADORES_DEL_VIGIA.length} rutas`;
+  });
+
   await prueba("una ficha de producto renderiza con precio", async () => {
     const ficha = await primeraFicha();
     debe(ficha, "no se encontró ninguna ficha en el sitemap");
@@ -153,9 +166,32 @@ async function humo() {
     const { estado } = await pedir("/esta-ruta-no-existe-jamas-12345");
     debe(estado === 404, `devolvió ${estado}`);
   });
+
+  await prueba("un modelo que ya no está va a su marca, temporal y con la query", async () => {
+    // Desde el 15-sep (Córdoba Notebooks, 4a9fa88d + 6a640c2d). 307 y no 308: el modelo puede
+    // volver con el mismo slug. Y la marca inventada sigue siendo 404.
+    const ficha = await primeraFicha();
+    debe(ficha, "no hay fichas en el sitemap");
+    const marca = ficha.split("/")[2];
+    const r = await pedir(`/notebooks/${marca}/modelo-que-no-existe-12345?utm_source=prueba&gclid=G1`);
+    debe(r.estado === 307, `devolvió ${r.estado}`);
+    const destino = r.headers.get("location") ?? "";
+    debe(destino.includes(`/marcas/${marca}`), `redirige a ${destino}`);
+    debe(destino.includes("utm_source=prueba") && destino.includes("gclid=G1"), `perdió la query: ${destino}`);
+    const inventada = await pedir("/notebooks/marca-que-no-existe-12345/x");
+    debe(inventada.estado === 404, `una marca inventada devolvió ${inventada.estado}`);
+  });
 }
 
 let _ficha = null;
+/** Las primeras `n` fichas del sitemap, como rutas. */
+async function fichasDelSitemap(n) {
+  const { texto } = await pedir("/sitemap.xml");
+  return [...texto.matchAll(/<loc>([^<]*\/notebooks\/[^<]+\/[^<]+)<\/loc>/g)]
+    .slice(0, n)
+    .map((m) => new URL(m[1]).pathname);
+}
+
 async function primeraFicha() {
   if (_ficha !== null) return _ficha;
   const { texto } = await pedir("/sitemap.xml");
@@ -219,12 +255,33 @@ async function regresion() {
   });
 
   await prueba("la ficha declara una oferta por tienda con su seller resuelto", async () => {
-    const ficha = await primeraFicha();
-    debe(ficha, "no hay ficha");
-    const { texto } = await pedir(ficha);
+    // Desde el 15-sep el `Product` sale sólo si hay ofertas vistas en los últimos 7 días
+    // (`productoLd`). Se recorren fichas hasta encontrar una con ofertas vigentes; y la
+    // primera sin ofertas vigentes se usa para verificar lo contrario: que no declare un
+    // `Product` sin `offers`, que es un error de Search Console en cada ficha.
+    const fichas = await fichasDelSitemap(20);
+    debe(fichas.length, "no hay fichas en el sitemap");
+    let texto = null;
+    let sinVigentes = null;
+    for (const f of fichas) {
+      const r = await pedir(f);
+      const n = Number(/data-ofertas-vigentes="(\d+)"/.exec(r.texto)?.[1] ?? NaN);
+      debe(Number.isFinite(n), `${f} no expone data-ofertas-vigentes`);
+      if (n > 0 && !texto) texto = r.texto;
+      if (n === 0 && !sinVigentes) sinVigentes = { f, texto: r.texto };
+      if (texto && sinVigentes) break;
+    }
+    if (sinVigentes) {
+      const p = leerJsonLd(sinVigentes.texto).find((n) => n["@type"] === "Product");
+      debe(!p, `${sinVigentes.f} no tiene ofertas vigentes y declara un Product igual`);
+    }
+    // Que ninguna de las primeras 20 fichas tenga un precio de la última semana no es un
+    // problema del schema: es el scraper parado. Falla igual, porque el sitio está mostrando
+    // precios viejos, y lo dice.
+    debe(texto, `ninguna de ${fichas.length} fichas tiene precios vistos en los últimos 7 días: ¿corre el scraper?`);
     const nodos = leerJsonLd(texto);
     const producto = nodos.find((n) => n["@type"] === "Product");
-    debe(producto, "no hay nodo Product");
+    debe(producto, "hay ofertas vigentes y no hay nodo Product");
     const ofertas = [].concat(producto.offers ?? []);
     const agregado = ofertas.find((o) => o["@type"] === "AggregateOffer");
     const porTienda = ofertas.filter((o) => o["@type"] === "Offer");
@@ -307,6 +364,32 @@ async function regresion() {
       debe(sm.includes(buscada), `${ruta} no está en el sitemap`);
     }
     return `${urls} URLs, ${RUTAS.length} rutas verificadas`;
+  });
+
+  await prueba("cada grupo de robots.txt bloquea lo mismo que el de *", async () => {
+    // Por RFC 9309 un crawler obedece sólo el grupo más específico que lo nombra. Hasta el
+    // 15-sep el de GPTBot/ClaudeBot tenía una lista más corta y esos bots no respetaban las
+    // facetas ni /baja. Se parsean los grupos del archivo servido, no el código.
+    const { texto } = await pedir("/robots.txt");
+    const grupos = [];
+    let actual = null;
+    for (const linea of texto.split("\n").map((l) => l.trim())) {
+      const [k, ...v] = linea.split(":");
+      const valor = v.join(":").trim();
+      if (/^user-agent$/i.test(k)) {
+        if (!actual || actual.reglas.length) grupos.push((actual = { agentes: [], reglas: [] }));
+        actual.agentes.push(valor);
+      } else if (/^disallow$/i.test(k) && actual) {
+        actual.reglas.push(valor);
+      }
+    }
+    const general = grupos.find((g) => g.agentes.includes("*"));
+    debe(general, "no hay grupo para *");
+    const esperado = [...general.reglas].sort().join("|");
+    for (const g of grupos) {
+      debe([...g.reglas].sort().join("|") === esperado, `${g.agentes.join(", ")} no bloquea lo mismo que *`);
+    }
+    return `${grupos.length} grupos, ${general.reglas.length} reglas`;
   });
 
   await prueba("un host que no es el canónico sale con noindex", async () => {
@@ -457,6 +540,16 @@ async function integracion() {
       headers: { cookie: "admin_session=dev-admin-session-token" },
     });
     debe([302, 307, 308].includes(estado), `entró con el token viejo del repo (${estado})`);
+  });
+
+  await prueba("una cookie con forma de sesión y firma inventada no entra", async () => {
+    // Desde el 15-sep la cookie es `<vence>.<hmac>`. Una con el formato correcto, vencimiento
+    // en el futuro y firma de ceros prueba que se verifica la firma y no sólo la forma.
+    const vence = Math.floor(Date.now() / 1000) + 3600;
+    const { estado } = await pedir("/admin", {
+      headers: { cookie: `admin_session=${vence}.${"0".repeat(64)}` },
+    });
+    debe([302, 307, 308].includes(estado), `entró con una firma inventada (${estado})`);
   });
 
   await prueba("/api/portal/insights exige token de miembro", async () => {

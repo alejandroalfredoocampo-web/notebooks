@@ -21,24 +21,29 @@ export default function SpecChips({
   compact?: boolean;
   linkify?: boolean;
 }) {
-  const chips: Chip[] = compact
+  const crudos: Chip[] = compact
     ? [
         { label: model.cpu.replace("Intel Core ", "").replace("AMD ", ""), axis: "cpu" },
-        { label: `${model.ramGb} GB`, axis: "ram" },
-        { label: `${model.storageGb >= 1000 ? "1 TB" : model.storageGb + " GB"} SSD`, axis: "storage" },
-        { label: `${model.screenSizeIn}"`, axis: "screen" },
+        { label: model.ramGb ? `${model.ramGb} GB` : "", axis: "ram" },
+        { label: model.storageGb ? `${model.storageGb >= 1000 ? "1 TB" : model.storageGb + " GB"} ${model.storageType}` : "", axis: "storage" },
+        { label: model.screenSizeIn ? `${model.screenSizeIn}"` : "", axis: "screen" },
       ]
     : [
         { label: model.cpu, axis: "cpu" },
-        { label: `${model.ramGb} GB ${model.ramType}`, axis: "ram" },
+        { label: model.ramGb ? `${model.ramGb} GB ${model.ramType}` : "", axis: "ram" },
         {
-          label: `${model.storageGb >= 1000 ? "1 TB" : model.storageGb + " GB"} ${model.storageType}`,
+          label: model.storageGb ? `${model.storageGb >= 1000 ? "1 TB" : model.storageGb + " GB"} ${model.storageType}` : "",
           axis: "storage",
         },
-        { label: `${model.screenSizeIn}" ${model.screenPanel}`, axis: "screen" },
+        { label: model.screenSizeIn ? `${model.screenSizeIn}" ${model.screenPanel}` : "", axis: "screen" },
         { label: model.gpu, axis: "gpu" },
         { label: model.os, axis: null },
       ];
+  const chips = crudos
+    // Un chip por dato que se sabe. Sin esto, un modelo sin pantalla cargada mostraba `0"`,
+    // y uno sin tipo de disco, "512 GB " con un espacio colgando.
+    .map((c) => ({ ...c, label: c.label.replace(/\s+/g, " ").trim() }))
+    .filter((c) => c.label && !/^0\b/.test(c.label) && c.label !== '"');
 
   const sizing = compact ? "px-1.5 py-0 text-[10px]" : "px-2.5 py-0.5 text-xs";
   const base = `rounded-full border border-brand-sky bg-blue-50 font-medium text-brand-deep ${sizing}`;

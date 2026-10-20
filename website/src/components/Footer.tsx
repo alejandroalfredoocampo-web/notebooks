@@ -46,7 +46,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-5 text-xs text-slate-500">
-          Los precios se actualizan varias veces al día y pueden variar en la
+          Los precios se relevan todos los días y pueden variar en la
           tienda. © 2026 Notebooks.com.ar
         </div>
       </div>

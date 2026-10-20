@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStoreBySlug, getStoreListings } from "@/lib/data";
 import { fmtARS } from "@/lib/format";
+import { hrefSeguro } from "@/lib/entrada";
 import StoreRating from "@/components/StoreRating";
 import StoreTierBadge from "@/components/StoreTierBadge";
 import EntityHero from "@/components/EntityHero";
@@ -110,7 +111,7 @@ export default async function StoreProfilePage({ params }: { params: Params }) {
           {store.shipsNationwide && <span>🚚 Envíos a todo el país</span>}
           {store.paymentMethods && <span>💳 {store.paymentMethods}</span>}
           <a
-            href={store.url}
+            href={hrefSeguro(store.url) ?? undefined}
             target="_blank"
             rel="noopener nofollow"
             className="font-semibold text-brand-blue hover:underline"
@@ -119,11 +120,11 @@ export default async function StoreProfilePage({ params }: { params: Params }) {
           </a>
           {store.socials &&
             Object.entries(store.socials)
-              .filter(([, v]) => v)
+              .filter(([, v]) => hrefSeguro(v))
               .map(([k, v]) => (
                 <a
                   key={k}
-                  href={v}
+                  href={hrefSeguro(v)!}
                   target="_blank"
                   rel="noopener nofollow"
                   className="text-slate-500 hover:text-brand-blue hover:underline"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useUser } from "@/lib/useUser";
 import { getSupabaseBrowser, authConfigured } from "@/lib/supabaseBrowser";
 import { fmtARS, fmtDate } from "@/lib/format";
+import { todasLasFilas } from "@/lib/paginado";
 
 type Membership = { storeId: string; storeName: string };
 type Request = {
@@ -26,7 +27,7 @@ type InsightRow = {
   totalStores: number; gapToBestPct: number; isCheapest: boolean;
 };
 type Insights = { kpis: { modelsSold: number; wins: number; avgGapPct: number }; rows: InsightRow[] };
-type Traffic = { total: number; last30: number; top: { modelId: string; count: number }[] };
+type Traffic = { total: number; last30: number; bots: number; top: { modelId: string; count: number }[] };
 
 /**
  * ID de la cotización.
@@ -95,8 +96,22 @@ export default function PortalPage() {
       // dos columnas; lo que cambia es que ahora la base tampoco deja pedir las otras — ver
       // la migración 0015, que además revoca el select por columna.
       (async () => {
-        const { data: clicks } = await sb.from("store_click_outs").select("model_id, created_at").eq("store_id", storeId).limit(100000);
-        const cl = (clicks ?? []) as { model_id: string | null; created_at: string }[];
+        //
+        // Dos arreglos del 15-sep. Se pagina: el `.limit(100000)` no pasaba el tope de 1.000
+        // filas de PostgREST, así que una tienda con más clicks veía 1.000. Y se separan los
+        // bots: la tienda veía como tráfico los clicks de crawlers, monitores y de nuestra
+        // propia sonda, que no se le facturan. Se muestran aparte y no se esconden, porque la
+        // diferencia entre lo registrado y lo facturado es algo que la tienda puede preguntar.
+        const { data: clicks } = await todasLasFilas((d, h) =>
+          sb
+            .from("store_click_outs")
+            .select("id, model_id, created_at, bot", { count: "exact" })
+            .eq("store_id", storeId)
+            .order("id")
+            .range(d, h),
+        );
+        const todos = (clicks ?? []) as { model_id: string | null; created_at: string; bot: boolean | null }[];
+        const cl = todos.filter((c) => c.bot !== true);
         const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
         const byModel = new Map<string, number>();
         let last30 = 0;
@@ -105,7 +120,7 @@ export default function PortalPage() {
           if (c.model_id) byModel.set(c.model_id, (byModel.get(c.model_id) ?? 0) + 1);
         }
         const top = [...byModel.entries()].map(([modelId, count]) => ({ modelId, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-        setTraffic({ total: cl.length, last30, top });
+        setTraffic({ total: cl.length, last30, bots: todos.length - cl.length, top });
         const need = top.map((t) => t.modelId);
         if (need.length) {
           const res = await fetch(`/api/models/summary?ids=${need.join(",")}`);
@@ -268,7 +283,23 @@ export default function PortalPage() {
       {traffic && traffic.total > 0 && (
         <section className="mt-8">
           <h2 className="text-xl font-extrabold tracking-tight">Tu tráfico</h2>
-          <p className="mt-1 text-sm text-slate-500">Visitas que te enviamos desde el comparador (click-outs).</p>
+          {/*
+            Decía "Visitas que te enviamos". El número que está abajo cuenta **clics**, no
+            personas ni visitas: la misma visita puede hacer más de uno (vuelve con el botón
+            atrás, toca dos veces en el celular). Córdoba Notebooks midió esa diferencia en su
+            propio reporte el 28/09 (tanda 97, doc 142) y no era chica — 1081 clics eran 699
+            visitas, un 35 % de más — y la conclusión fue cambiar lo que el número dice que es.
+            Acá el número es además **la factura**, así que llamarlo "visitas" es prometer de más
+            sobre lo que se cobra.
+
+            Contar visitas distintas no se puede hacer desde esta pantalla, y a propósito: la
+            vista `store_click_outs` no le da a la tienda el `visitor_id` (migración 0015, es
+            dato de la persona). Queda anotado en el informe como lo que necesita una decisión.
+          */}
+          <p className="mt-1 text-sm text-slate-500">
+            Clics en “Ir a la tienda” desde el comparador. Cuenta clics, no personas: una misma
+            visita puede hacer más de uno.
+          </p>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-2xl font-extrabold tracking-tight">{traffic.total}</div>
@@ -279,6 +310,21 @@ export default function PortalPage() {
               <div className="text-[12px] font-semibold text-slate-500">últimos 30 días</div>
             </div>
           </div>
+          {traffic.bots > 0 && (
+            <p className="mt-2 text-[12px] text-slate-500">
+              Además registramos {traffic.bots} {traffic.bots === 1 ? "clic" : "clics"} de robots
+              (buscadores, vistas previas, monitores). No cuentan como tráfico ni se facturan.
+            </p>
+          )}
+          {/*
+            Lo que la pantalla no puede saber, dicho arriba y no en una nota al pie. Es la
+            lección 3 del doc 142 de Córdoba Notebooks: sin esta aclaración, la tienda compara
+            este número contra sus ventas y la diferencia parece un error del reporte.
+          */}
+          <p className="mt-2 text-[12px] text-slate-500">
+            No sabemos qué pasó después del clic: si la persona compró, ni si dos clics son la
+            misma persona. Es la demanda que te mandamos, no tus ventas.
+          </p>
           {traffic.top.length > 0 && (
             <div className="mt-3">
               <div className="mb-1 text-[12px] font-bold text-slate-500">Modelos con más clics</div>

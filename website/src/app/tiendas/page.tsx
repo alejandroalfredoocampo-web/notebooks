@@ -81,7 +81,7 @@ export default async function TiendasPage() {
         Tiendas indexadas
       </h1>
       <p className="mt-1 max-w-2xl text-sm text-slate-500">
-        Monitoreamos estas tiendas varias veces por día. La indexación es
+        Relevamos estas tiendas todos los días. La indexación es
         gratuita: si tenés una tienda online de notebooks con stock y precios
         actualizados, escribinos y la sumamos.
       </p>

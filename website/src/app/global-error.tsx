@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { recargarPagina, recargarSiEsDeDeploy } from "@/lib/recarga-por-deploy";
 
 /**
  * La red de más abajo: se dibuja cuando lo que se rompe es el **layout raíz**.
@@ -26,12 +27,12 @@ import { useEffect } from "react";
  */
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
   useEffect(() => {
+    if (recargarSiEsDeDeploy(error)) return;
     console.error("[error-global]", error?.digest ?? "(sin digest)", error?.message);
   }, [error]);
 
@@ -77,11 +78,14 @@ export default function GlobalError({
               justifyContent: "center",
             }}
           >
+            {/* No `reset()`: acá lo roto es el layout raíz, y `reset()` lo vuelve a dibujar igual
+                de roto — el botón parecía no hacer nada. Córdoba Notebooks lo encontró así
+                (4be1489c). Recargar el documento sí sale. */}
             <button
-              onClick={reset}
+              onClick={recargarPagina}
               style={{ ...boton, background: "#336EFA", color: "#fff", border: "none" }}
             >
-              Reintentar
+              Recargar
             </button>
             <a
               href="/notebooks"

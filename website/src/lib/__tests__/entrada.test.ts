@@ -68,3 +68,20 @@ test("leerJson rechaza lo que no es un objeto", async () => {
   const roto = new Request("https://x/", { method: "POST", body: "{no json" });
   assert.equal(await leerJson(roto), null);
 });
+
+test("hrefSeguro deja pasar http, https y mailto", async () => {
+  const { hrefSeguro } = await import("../entrada.ts");
+  assert.equal(hrefSeguro("https://tienda.com.ar/x"), "https://tienda.com.ar/x");
+  assert.equal(hrefSeguro("http://tienda.com.ar"), "http://tienda.com.ar/");
+  assert.equal(hrefSeguro("mailto:ana@example.com"), "mailto:ana@example.com");
+});
+
+test("hrefSeguro rechaza javascript:, data: y basura", async () => {
+  const { hrefSeguro } = await import("../entrada.ts");
+  assert.equal(hrefSeguro("javascript:alert(1)"), null);
+  assert.equal(hrefSeguro(" JavaScript:alert(1)"), null);
+  assert.equal(hrefSeguro("data:text/html,<script>alert(1)</script>"), null);
+  assert.equal(hrefSeguro("tienda.com.ar"), null);
+  assert.equal(hrefSeguro(""), null);
+  assert.equal(hrefSeguro(null), null);
+});

@@ -141,7 +141,13 @@ async function cabeceras() {
   if (!perm) falla("permissions-policy", "ausente");
   else if (!/camera=\(\)/.test(perm) || !/geolocation=\(\)/.test(perm))
     falla("permissions-policy", "no apaga cámara o geolocalización");
-  else ok("permissions-policy");
+  // El chequeo al revés, que es el que faltaba: una Permissions-Policy también puede apagar una
+  // función PROPIA. `microphone=()` le prohíbe el micrófono al mismo sitio y la búsqueda por voz
+  // de la home muere sin ningún error. Así estuvo desde el 22-ago hasta el 15-sep, con este
+  // chequeo en verde. Se lee la lista del micrófono y se exige que incluya `self`.
+  else if (!/(^|[,\s])microphone=\([^)]*\bself\b[^)]*\)/.test(perm))
+    falla("permissions-policy", `el micrófono no incluye self: la búsqueda por voz no puede andar (${/microphone=\([^)]*\)/.exec(perm)?.[0] ?? "sin directiva"})`);
+  else ok("permissions-policy", "cámara y geolocalización apagadas; micrófono sólo para el sitio");
 }
 
 /* ---------------------------------------------------------------------------
@@ -369,13 +375,36 @@ async function estructurados() {
   }
 
   // La ficha de producto: que declare una oferta por tienda y no sólo el agregado.
+  //
+  // El `Product` sale sólo cuando hay ofertas vistas en los últimos 7 días (`productoLd`), y
+  // la ficha lo expone en `data-ofertas-vigentes`. Se busca la primera ficha que tenga, en vez
+  // de tomar la primera del sitemap: una "próximamente" daba "AggregateOffer ausente" en falso.
   const sm = await traer("/sitemap.xml");
-  const ficha = rutaDeLoc(sm.cuerpo);
-  if (!ficha) {
+  const candidatas = [...sm.cuerpo.matchAll(/<loc>([^<]*\/notebooks\/[^<]+\/[^<]+)<\/loc>/g)]
+    .slice(0, 20)
+    .map((m) => new URL(m[1]).pathname);
+  if (!candidatas.length) {
     aviso("JSON-LD de producto", "no se encontró ninguna ficha en el sitemap");
     return;
   }
-  const p = await traer(ficha);
+  let ficha = null;
+  let p = null;
+  for (const c of candidatas) {
+    const r = await traer(c);
+    const n = Number(/data-ofertas-vigentes="(\d+)"/.exec(r.cuerpo)?.[1] ?? 0);
+    if (n > 0) {
+      ficha = c;
+      p = r;
+      break;
+    }
+  }
+  if (!ficha) {
+    falla(
+      "JSON-LD de producto",
+      `ninguna de ${candidatas.length} fichas tiene precios vistos en los últimos 7 días: el scraper no está actualizando`,
+    );
+    return;
+  }
   const bloquesP = [...p.cuerpo.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)];
   let producto = null;
   const nodos = [];
@@ -449,6 +478,125 @@ async function puertas() {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * 8. El sitemap entero, URL por URL
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Qué datos estructurados tiene que traer cada tipo de página del sitemap.
+ *
+ * Portado de la sonda de Córdoba Notebooks (`regresion-staging.mjs`, 6fd6e443). Allá el deploy del
+ * 4-sep hizo rollback porque se agregaron las guías y la sonda no las conocía: **una URL que no
+ * coincide con ninguna regla es una falla**, no un "no aplica". Así, quien agrega un tipo de
+ * página nuevo tiene que decir acá qué declara, y nada entra al sitemap sin que alguien lo mire.
+ *
+ * `Organization` y `WebSite` salen del layout en todas las páginas, así que sólo se exigen en la
+ * home. El `Product` de la ficha depende del contenido (hay ofertas vigentes o no) y se exige
+ * mirando `data-ofertas-vigentes`, no por la URL: exigir un tipo que depende del dato fue el
+ * falso positivo que CN corrigió en c4b0d97.
+ */
+const ESPERADO = [
+  [/^\/$/, ["Organization", "WebSite"]],
+  [/^\/notebooks\/[^/]+\/[^/]+$/, ["BreadcrumbList"], "ficha"],
+  [/^\/(notebooks|ofertas|marcas|guias)$/, ["CollectionPage", "BreadcrumbList"]],
+  [/^\/tiendas$/, ["CollectionPage", "BreadcrumbList"]],
+  [/^\/marcas\/[^/]+$/, ["CollectionPage", "BreadcrumbList"], "muestra"],
+  [/^\/tiendas\/[^/]+$/, ["Organization", "CollectionPage", "BreadcrumbList"], "muestra"],
+  [/^\/guias\/[^/]+$/, ["Article", "FAQPage", "BreadcrumbList"]],
+  [/^\/blog$/, ["Blog"]],
+  [/^\/blog\/[^/]+$/, ["BlogPosting", "BreadcrumbList"], "muestra"],
+  [/^\/(comparar|corporativo|privacidad)$/, []],
+];
+
+/** Todos los `@type` de todos los bloques JSON-LD, recorriendo en profundidad. */
+function tiposDeJsonLd(html) {
+  const tipos = new Set();
+  const visitar = (n) => {
+    if (Array.isArray(n)) return n.forEach(visitar);
+    if (!n || typeof n !== "object") return;
+    for (const t of [].concat(n["@type"] ?? [])) tipos.add(t);
+    Object.values(n).forEach(visitar);
+  };
+  for (const m of html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)) {
+    try {
+      visitar(JSON.parse(m[1]));
+    } catch {
+      return null;
+    }
+  }
+  return tipos;
+}
+
+async function sitemapCompleto() {
+  seccion("El sitemap, URL por URL");
+  const sm = await traer("/sitemap.xml");
+  const rutas = [...sm.cuerpo.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+  if (!rutas.length) {
+    falla("sitemap completo", "el sitemap no tiene URLs");
+    return;
+  }
+
+  // Los listados, completos; de las páginas que son muchas del mismo molde, una muestra. Las
+  // fichas pueden ser miles, y la ficha ya tiene su chequeo propio más arriba.
+  const porMolde = new Map();
+  const aRevisar = [];
+  const sinRegla = [];
+  for (const r of rutas) {
+    const regla = ESPERADO.find(([re]) => re.test(r));
+    if (!regla) {
+      sinRegla.push(r);
+      continue;
+    }
+    const [re, , modo] = regla;
+    if (modo) {
+      const n = porMolde.get(re.source) ?? 0;
+      if (n >= 3) continue;
+      porMolde.set(re.source, n + 1);
+    }
+    aRevisar.push([r, regla]);
+  }
+  if (sinRegla.length) {
+    falla("sitemap: tipos de página sin clasificar", `${sinRegla.length}, ej. ${sinRegla.slice(0, 3).join(", ")} — agregar la regla en ESPERADO`);
+  }
+
+  let malas = 0;
+  for (const [ruta, [, requiere, modo]] of aRevisar) {
+    const { res, cuerpo, headers } = await traer(ruta, { redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      falla(`sitemap ${ruta}`, `redirige (${res.status} → ${headers.get("location")}): el sitemap sólo lleva URLs finales`);
+      malas++;
+      continue;
+    }
+    if (res.status !== 200) {
+      falla(`sitemap ${ruta}`, `${res.status}`);
+      malas++;
+      continue;
+    }
+    const meta = /<meta name="robots" content="([^"]+)"/.exec(cuerpo)?.[1] ?? "";
+    if (/noindex/i.test(meta)) {
+      falla(`sitemap ${ruta}`, `está en el sitemap y es noindex (${meta})`);
+      malas++;
+      continue;
+    }
+    const tipos = tiposDeJsonLd(cuerpo);
+    if (!tipos) {
+      falla(`sitemap ${ruta}`, "un bloque JSON-LD no parsea");
+      malas++;
+      continue;
+    }
+    const exigidos = [...requiere];
+    if (modo === "ficha" && Number(/data-ofertas-vigentes="(\d+)"/.exec(cuerpo)?.[1] ?? 0) > 0) {
+      exigidos.push("Product", "AggregateOffer", "Offer");
+    }
+    const faltan = exigidos.filter((t) => !tipos.has(t));
+    if (faltan.length) {
+      falla(`sitemap ${ruta}`, `le falta ${faltan.join(", ")}`);
+      malas++;
+    }
+  }
+  if (!malas) ok("sitemap completo", `${aRevisar.length} de ${rutas.length} URLs revisadas: sin redirects, sin noindex, JSON-LD completo`);
+}
+
 /* ------------------------------------------------------------------------- */
 
 console.log(`\nChequeando \x1b[1m${ORIGEN}\x1b[0m`);
@@ -461,6 +609,7 @@ try {
   await artefactos();
   await estructurados();
   await puertas();
+  await sitemapCompleto();
 } catch (e) {
   falla("el chequeo se cortó", e instanceof Error ? e.message : String(e));
 }

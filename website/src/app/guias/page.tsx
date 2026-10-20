@@ -18,7 +18,12 @@ export const metadata: Metadata = metaRuta("/guias", {
 export const dynamic = "force-dynamic";
 
 export default async function GuiasPage() {
-  const models = await getModels();
+  // Si el catálogo no carga, el índice de guías se sirve igual y sin conteos (sólo se muestran
+  // cuando son mayores que cero). Ver el comentario equivalente en `guias/[slug]/page.tsx`.
+  const models = await getModels().catch((e) => {
+    console.error("[guias] no se pudo cargar el catálogo", e);
+    return [];
+  });
   const conOferta = models.filter((m) => m.listings.length > 0);
 
   const migas: Miga[] = [

@@ -4,6 +4,7 @@
  * Los matches con confianza < THRESHOLD van a la cola de revisión manual.
  */
 import { parseSpecsFromTitle } from "./lib.mjs";
+import { familiaDeCpu } from "./cpu.mjs";
 
 export const CONFIDENCE_THRESHOLD = 0.8;
 
@@ -15,25 +16,8 @@ const norm = (s) =>
     .replace(/[^a-z0-9]/g, "");
 
 // Familia de CPU a partir de texto libre (título o atributo)
-function cpuFamily(text) {
-  const t = String(text).toLowerCase();
-  // Intel Core Ultra (Meteor Lake+)
-  if (/ultra\s*9/.test(t)) return "ultra9";
-  if (/ultra\s*7/.test(t)) return "ultra7";
-  if (/ultra\s*5/.test(t)) return "ultra5";
-  // Core clásico (i3/i5/i7/i9) y la nomenclatura nueva sin "i" (Core 3/5/7/9,
-  // ej. "Intel Core 7 150U"). Sin esto, "Core 7" no se detectaba y un Core 7
-  // podía auto-matchear contra un modelo Core 5.
-  if (/\bi9\b|core\s*i?9\b/.test(t)) return "i9";
-  if (/\bi7\b|core\s*i?7\b/.test(t)) return "i7";
-  if (/\bi5\b|core\s*i?5\b/.test(t)) return "i5";
-  if (/\bi3\b|core\s*i?3\b/.test(t)) return "i3";
-  if (/ryzen\s*9/.test(t)) return "ryzen9";
-  if (/ryzen\s*7/.test(t)) return "ryzen7";
-  if (/ryzen\s*5/.test(t)) return "ryzen5";
-  if (/\bm[1-4]\b|apple\s*m/.test(t)) return "apple-m";
-  return null;
-}
+// La familia de procesador vive en `cpu.mjs`, compartida con bulk-review, el admin y el filtro.
+const cpuFamily = familiaDeCpu;
 
 // Detecta GPU dedicada (RTX/GTX/Radeon RX) para distinguir gamer vs oficina
 function gpuKey(text) {

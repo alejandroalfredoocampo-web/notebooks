@@ -51,6 +51,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // un modelo puede citar. Prioridad alta a propósito.
     ...GUIAS.map((g) => ({
       url: urlAbsoluta(`/guias/${g.slug}`),
+      // La fecha del texto, que es honesta; la lista de modelos cambia a diario pero no es
+      // una edición de la guía.
+      lastModified: g.modificado,
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
@@ -79,7 +82,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: m.listings.length > 0 ? 0.8 : 0.4,
   }));
 
-  const marcas: MetadataRoute.Sitemap = brands.map((b) => {
+  // Sólo las marcas con algún modelo con ofertas: la página de una marca sin ofertas no se
+  // sirve (antes daba 404, desde el 15-sep redirige al catálogo), y una URL del sitemap que
+  // redirige o no existe le enseña a Google a desconfiar del sitemap entero. Es la regla que la
+  // sonda de Córdoba Notebooks aplica a cada URL (6fd6e443), y la que `chequear-sitio` ahora
+  // también aplica acá.
+  const conOfertas = brands.filter((b) => models.some((m) => m.brandSlug === b.slug && m.listings.length > 0));
+  const marcas: MetadataRoute.Sitemap = conOfertas.map((b) => {
     const suyos = models.filter((m) => m.brandSlug === b.slug);
     const fechas = suyos.map(ultimoPrecio).filter((d): d is Date => !!d);
     return {

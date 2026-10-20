@@ -1,0 +1,145 @@
+name: Vigía
+
+# ¿Está vivo el sitio? Cada hora, contra la URL pública, sin secretos.
+#
+# El 15-sep el sitio devolvía 500 en toda página que lee la base y no había nada mirando: la
+# verificación corre los lunes y su paso contra producción es informativo. Esto es la versión
+# gratuita del monitor de Córdoba Notebooks, con lo que allá se aprendió (8ea0c9b6, doc 119):
+#
+#  - no se avisa por una falla sola: se confirma con un segundo intento a los 90 segundos;
+#  - el aviso dice la causa probable (Vercel o Supabase);
+#  - un aviso por caída, no uno por hora: el issue se abre una vez, se actualiza sin comentar
+#    mientras siga caído, y se comenta y cierra cuando vuelve;
+#  - ...pero con un **recordatorio espaciado** mientras siga caído (`RECORDATORIO_CADA_CORRIDAS`,
+#    12 corridas = 12 horas). Córdoba Notebooks lo aprendió el 21-sep (6d6e33e8): su ficha de
+#    producto estuvo 625 minutos en 500 y el monitor mandó **un solo mail**, que se perdió en la
+#    bandeja. "Una vez por caída" seguía siendo lo correcto para no silenciar el canal; lo que
+#    faltaba era un recordatorio, que no es lo mismo que gritar cada hora. Acá el agujero era
+#    peor: GitHub **no notifica la edición del cuerpo** de un issue, así que después del primer
+#    aviso no quedaba ninguna señal — y el sitio lleva 22 días caído;
+#  - sin secretos: sobrevive a una migración de cuenta, que es lo que dejó a los otros cuatro
+#    workflows sin credenciales el 8-sep.
+#
+# El repo es público, así que los minutos de Actions no se cobran. El issue es público también:
+# no lleva nada que no esté ya en las cabeceras del sitio.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: vigilar
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      ORIGEN: ${{ vars.SITE_URL || 'https://notebooks-tan.vercel.app' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: website/scripts/vigilar-sitio.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Mirar el sitio (con confirmación)
+        id: mirar
+        run: |
+          if node website/scripts/vigilar-sitio.mjs "$ORIGEN" > "$RUNNER_TEMP/vigia.json"; then
+            echo "estado=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "Primera falla; se confirma en 90 s."
+            cat "$RUNNER_TEMP/vigia.json"
+            sleep 90
+            if node website/scripts/vigilar-sitio.mjs "$ORIGEN" > "$RUNNER_TEMP/vigia.json"; then
+              echo "estado=ok" >> "$GITHUB_OUTPUT"
+              echo "::notice::Falla pasajera: al segundo intento anduvo."
+            else
+              echo "estado=caido" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          cat "$RUNNER_TEMP/vigia.json"
+
+      - name: Mantener el aviso
+        uses: actions/github-script@v7
+        env:
+          ESTADO: ${{ steps.mirar.outputs.estado }}
+          # Cada cuántas corridas se repite el aviso mientras siga caído. Con el cron horario,
+          # 12 son 12 horas. `0` lo apaga.
+          RECORDATORIO_CADA_CORRIDAS: ${{ vars.RECORDATORIO_CADA_CORRIDAS || '12' }}
+        with:
+          script: |
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/vigia.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const MARCA = '<!-- vigia:sitio-caido -->';
+            const corrida = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const abiertos = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+            const issue = abiertos.find((i) => (i.body || '').includes(MARCA));
+
+            if (process.env.ESTADO === 'ok') {
+              if (issue) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: issue.number,
+                  body: `Volvió a andar. Última verificación: ${corrida}` });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed' });
+                core.notice(`Sitio arriba: cerrado #${issue.number}.`);
+              }
+              return;
+            }
+
+            const detalle = d.resultados.map((r) => `- \`${r.ruta}\` — ${r.ok ? 'ok' : r.motivo} (${r.ms} ms)`).join('\n');
+            const desde = issue ? (/<!-- desde:(.*?) -->/.exec(issue.body)?.[1] ?? new Date().toISOString()) : new Date().toISOString();
+            // Cuántas corridas seguidas lleva caído, contando la que abrió el issue.
+            const corridas = issue ? Number(/<!-- corridas:(\d+) -->/.exec(issue.body)?.[1] ?? 1) + 1 : 1;
+            const horas = Math.round((Date.now() - Date.parse(desde)) / 36e5);
+            const cuerpo = [
+              MARCA, `<!-- desde:${desde} -->`, `<!-- corridas:${corridas} -->`, '',
+              `**${d.origen}** no está respondiendo como debe (confirmado con dos intentos a 90 s).`, '',
+              `Caído desde: ${desde.slice(0, 16).replace('T', ' ')} UTC (~${horas} h) · última verificación: ${corrida}`, '',
+              detalle, '',
+              d.diagnostico ? `**Causa probable:** ${d.diagnostico}` : '',
+              '', '---',
+              '<sub>Generado por `vigilar.yml`. Se actualiza cada hora mientras siga caído y se cierra solo cuando vuelve.</sub>',
+            ].join('\n');
+
+            if (!issue) {
+              const n = await github.rest.issues.create({ owner, repo, title: 'El sitio está caído', body: cuerpo });
+              core.setFailed(`Sitio caído: abierto #${n.data.number}.`);
+              return;
+            }
+
+            // Sin comentario en cada corrida: un aviso por hora que repite lo mismo entrena a
+            // ignorar el hilo. Pero **sí** un recordatorio espaciado, porque editar el cuerpo
+            // de un issue no manda ninguna notificación: sin esto, después del aviso que lo
+            // abrió no vuelve a salir nada nunca más. Es lo que dejó esta caída 22 días sin que
+            // nadie se enterara, y la misma lección que Córdoba Notebooks sacó del 21-sep
+            // (6d6e33e8), donde un solo mail cubrió diez horas de ficha caída.
+            await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: cuerpo });
+
+            const cada = Number(process.env.RECORDATORIO_CADA_CORRIDAS || 0);
+            if (cada > 0 && (corridas - 1) % cada === 0) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: [
+                  `**SIGUE caído** — van ~${horas} h (${corridas} corridas del vigía).`, '',
+                  detalle, '',
+                  d.diagnostico ? `**Causa probable:** ${d.diagnostico}` : '',
+                  '',
+                  'Este es un recordatorio: el aviso original ya salió y nadie lo resolvió todavía.',
+                  'Qué hacer: `DEPLOY-CHECKLIST.md`.',
+                ].join('\n'),
+              });
+              core.setFailed(`Sigue caído hace ~${horas} h (#${issue.number}): recordatorio comentado.`);
+            } else {
+              core.setFailed(`Sigue caído hace ~${horas} h (#${issue.number}).`);
+            }

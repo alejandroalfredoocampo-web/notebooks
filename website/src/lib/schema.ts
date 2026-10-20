@@ -1,6 +1,11 @@
-import { DESCRIPCION_SITIO, NOMBRE_SITIO, SITE_URL, urlAbsoluta } from "@/lib/site";
-import { recortar } from "@/lib/seo";
-import type { ModelWithOffers, Store } from "@/lib/types";
+// Relativos y con extensión, y no `@/lib/...`, por el mismo motivo que `lib/seo.ts`: el
+// runner de `node --test` no conoce el alias `@/` del tsconfig ni resuelve extensiones al
+// hacer type stripping, y este módulo tiene tests unitarios
+// (`__tests__/schema-producto.test.ts`). Webpack acepta las dos formas.
+import { DESCRIPCION_SITIO, NOMBRE_SITIO, SITE_URL, urlAbsoluta } from "./site.ts";
+import { recortar } from "./seo.ts";
+import type { ModelWithOffers, Store } from "./types.ts";
+import { mpnVerificable, ofertaVigente } from "./specs.ts";
 
 /**
  * Datos estructurados (schema.org / JSON-LD).
@@ -144,13 +149,24 @@ function validaHasta(desde: string): string {
  * - **`hasMerchantReturnPolicy` / `shippingDetails`.** Son de cada tienda y no los
  *   conocemos por publicación. Un valor inventado acá es una promesa que después incumple
  *   un tercero.
- * - **`gtin`.** El catálogo tiene `partNumber`, que va como `mpn`. Cuando haya códigos de
- *   barra cargados se agrega `gtin`; hoy emitirlo sería declarar un identificador nulo.
+ * - **`gtin`.** No hay códigos de barra cargados; emitirlo sería declarar un identificador
+ *   nulo. El `mpn` va sólo si una tienda lo muestra (ver `mpnVerificable`).
+ *
+ * ## Cuándo no hay `Product`
+ *
+ * Devuelve `null` si no queda ninguna oferta vigente: un modelo "próximamente" o uno cuyas
+ * publicaciones el scraper no ve hace más de 7 días. Google exige `offers`, `review` o
+ * `aggregateRating` para el fragmento de producto, así que un `Product` sin ofertas no es
+ * "menos rico": es un error en Search Console repetido en cada ficha de ese tipo. La ficha
+ * sigue emitiendo la miga de pan.
  */
 export function productoLd(model: ModelWithOffers, opciones?: { descripcion?: string }) {
   const url = urlAbsoluta(`/notebooks/${model.brandSlug}/${model.slug}`);
-  const activas = model.listings.filter((l) => l.inStock);
-  const conPrecio = activas.length ? activas : model.listings;
+  const vigentes = model.listings.filter((l) => ofertaVigente(l.lastSeenAt));
+  if (!vigentes.length) return null;
+  const activas = vigentes.filter((l) => l.inStock);
+  const conPrecio = activas.length ? activas : vigentes;
+  const mpn = mpnVerificable(model.partNumber, model.listings.map((l) => l.titleRaw));
 
   const ofertas = conPrecio.map((l) => ({
     "@type": "Offer",
@@ -172,14 +188,32 @@ export function productoLd(model: ModelWithOffers, opciones?: { descripcion?: st
     "@id": `${url}#producto`,
     name: `${model.brand} ${model.name}`,
     url,
-    ...(model.partNumber ? { mpn: model.partNumber } : {}),
-    brand: { "@type": "Brand", name: model.brand },
+    ...(mpn ? { mpn } : {}),
+    /**
+     * La marca, **sólo si está cargada**, por el mismo motivo que el `mpn` de arriba y el
+     * `gtin` que no se emite.
+     *
+     * Portado de Córdoba Notebooks (28328f67). Allá `brand` salía siempre y la marca llegaba
+     * como `String(md.marca || "")`, así que un producto sin marca no dejaba la propiedad
+     * afuera: emitía `brand` con el `name` vacío. Para Google eso no es un dato que falta sino
+     * un dato nulo declarado, y Search Console lo levantó el 12-sep-2026 como "Falta el campo
+     * name (en brand)".
+     *
+     * Acá `models.brand` es `not null`, pero `not null` no impide el string vacío y la columna
+     * la escribe el pipeline de ingesta. El riesgo es más chico que allá y el guardia cuesta
+     * una línea; lo que no se pudo hacer es confirmar si hoy existe algún modelo así, porque
+     * la base no responde. Queda como prevención y no como arreglo de un caso medido.
+     *
+     * Ojo: una marca vacía rompería antes que esto — `brandSlug` arma la URL canónica de la
+     * ficha. Si aparece, el problema no es el JSON-LD.
+     */
+    ...(model.brand ? { brand: { "@type": "Brand", name: model.brand } } : {}),
     ...(model.imageUrl ? { image: [model.imageUrl] } : {}),
     description: recortar(
       opciones?.descripcion ??
         `${model.brand} ${model.name}: ${[model.cpu, model.ramGb ? `${model.ramGb} GB RAM` : "", model.storageGb ? `${model.storageGb} GB ${model.storageType}` : "", model.gpu]
           .filter(Boolean)
-          .join(", ")}. Comparado en ${model.listings.length} ${model.listings.length === 1 ? "tienda" : "tiendas"} de Argentina.`,
+          .join(", ")}. Comparado en ${vigentes.length} ${vigentes.length === 1 ? "publicación" : "publicaciones"} de tiendas de Argentina.`,
       300,
     ),
     // Las specs como propiedades legibles por máquina. Es lo que permite filtrar por
@@ -324,6 +358,34 @@ export function faqLd(items: { q: string; a: string }[]) {
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
     })),
+  };
+}
+
+/**
+ * Una guía de compra, como artículo.
+ *
+ * Hasta el 15-sep la guía emitía `CollectionPage` + `FAQPage` y nada decía que es un texto con
+ * autor y fecha. Para un asistente, eso es una lista de productos con preguntas, no una fuente
+ * editorial que se pueda citar y fechar. `Article` con `datePublished`/`dateModified` es lo que
+ * Córdoba Notebooks agregó a sus guías (109b587e).
+ *
+ * `description` es la **respuesta** completa y no un resumen: es lo que se cita.
+ */
+export function guiaLd(g: { slug: string; titulo: string; respuesta: string; publicado: string; modificado: string }) {
+  const url = urlAbsoluta(`/guias/${g.slug}`);
+  return {
+    "@type": "Article",
+    "@id": `${url}#articulo`,
+    headline: g.titulo,
+    description: g.respuesta,
+    url,
+    mainEntityOfPage: url,
+    datePublished: g.publicado,
+    dateModified: g.modificado,
+    inLanguage: "es-AR",
+    author: { "@id": ID_ORGANIZACION },
+    publisher: { "@id": ID_ORGANIZACION },
+    isPartOf: { "@id": ID_SITIO },
   };
 }
 

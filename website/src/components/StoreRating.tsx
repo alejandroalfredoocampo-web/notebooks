@@ -1,4 +1,5 @@
 import type { Store } from "@/lib/types";
+import { hrefSeguro } from "@/lib/entrada";
 
 /**
  * Resumen de reputación de una tienda (rating de Google). Se renderiza solo si hay
@@ -31,10 +32,11 @@ export default function StoreRating({
 
   const label = `${rating.toFixed(1)} de 5 en Google${count ? `, ${count} reseñas` : ""}`;
 
-  if (store.googleMapsUrl) {
+  const mapa = hrefSeguro(store.googleMapsUrl);
+  if (mapa) {
     return (
       <a
-        href={store.googleMapsUrl}
+        href={mapa}
         target="_blank"
         rel="noopener nofollow"
         title="Ver reseñas en Google"

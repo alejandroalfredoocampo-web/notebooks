@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { recargarPagina, recargarSiEsDeDeploy } from "@/lib/recarga-por-deploy";
 
 /**
  * Qué se ve cuando una ruta se rompe.
@@ -39,6 +40,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Una pestaña abierta desde antes de un deploy pide chunks que ya no existen. Eso no es un
+    // error de la página: se arregla solo recargando, y se recarga una vez sin mostrar nada.
+    if (recargarSiEsDeDeploy(error)) return;
     console.error("[error-de-ruta]", error?.digest ?? "(sin digest)", error?.message);
   }, [error]);
 
@@ -58,6 +62,14 @@ export default function Error({
           className="rounded-lg bg-brand-blue px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-darker"
         >
           Reintentar
+        </button>
+        {/* `reset()` re-dibuja el mismo árbol; si lo roto es un chunk o el layout, no sale de
+            ahí. Este sí recarga el documento. */}
+        <button
+          onClick={recargarPagina}
+          className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-bold text-slate-900 transition hover:border-brand-blue hover:text-brand-blue"
+        >
+          Recargar la página
         </button>
         <Link
           href="/notebooks"

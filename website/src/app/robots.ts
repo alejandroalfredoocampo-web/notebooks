@@ -19,38 +19,51 @@ import { urlAbsoluta } from "@/lib/site";
  * las páginas privadas también emiten `robots: noindex` por metadata (ver `metaPrivada` en
  * `lib/seo.ts`). Hacen falta los dos.
  */
+
+/**
+ * Lo que no se crawlea, para **todos** los grupos.
+ *
+ * Tiene que ser una constante compartida, y esto es lo que se arregló el 15-sep: por RFC 9309
+ * un crawler obedece **sólo** el grupo más específico que lo nombra, no la unión con `*`. El
+ * grupo de GPTBot/ClaudeBot/etc. tenía su propia lista, más corta, así que esos bots no
+ * respetaban las facetas (`/notebooks?`…), `/ingresar` ni `/baja`. Córdoba Notebooks encontró
+ * la misma familia de problema verificando el `robots.txt` servido con los User-Agent reales
+ * (5e95a1d6).
+ */
+const NO_CRAWLEAR = [
+  "/admin",
+  "/api/",
+  // El redirect saliente. No es contenido y multiplica por N las URLs del sitio
+  // (una por publicación). También emite `X-Robots-Tag` por las dudas.
+  "/salir/",
+  // Requieren sesión: lo que devuelven a un crawler es la pantalla de login.
+  "/cuenta",
+  "/favoritos",
+  "/portal",
+  "/ingresar",
+  // Se llega por link de un mail, nunca por búsqueda.
+  "/baja",
+  /**
+   * Las combinaciones de filtros.
+   *
+   * `/notebooks?marca=x&ram=16&orden=precio` genera una página distinta por cada
+   * combinación: son miles, todas con el mismo contenido reordenado. Es la trampa
+   * clásica de facetas — el crawler se pierde ahí adentro y no llega a las fichas.
+   * El listado sin parámetros sí se indexa, y las páginas de marca y de uso son las
+   * versiones canónicas de los cortes que sí valen la pena.
+   */
+  "/notebooks?",
+  "/ofertas?",
+  "/marcas/*?",
+];
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/admin",
-          "/api/",
-          // El redirect saliente. No es contenido y multiplica por N las URLs del sitio
-          // (una por publicación). También emite `X-Robots-Tag` por las dudas.
-          "/salir/",
-          // Requieren sesión: lo que devuelven a un crawler es la pantalla de login.
-          "/cuenta",
-          "/favoritos",
-          "/portal",
-          "/ingresar",
-          // Se llega por link de un mail, nunca por búsqueda.
-          "/baja",
-          /**
-           * Las combinaciones de filtros.
-           *
-           * `/notebooks?marca=x&ram=16&orden=precio` genera una página distinta por cada
-           * combinación: son miles, todas con el mismo contenido reordenado. Es la trampa
-           * clásica de facetas — el crawler se pierde ahí adentro y no llega a las fichas.
-           * El listado sin parámetros sí se indexa, y las páginas de marca y de uso son las
-           * versiones canónicas de los cortes que sí valen la pena.
-           */
-          "/notebooks?",
-          "/ofertas?",
-          "/marcas/*?",
-        ],
+        disallow: NO_CRAWLEAR,
       },
       /**
        * Los crawlers de modelos de lenguaje, permitidos explícitamente.
@@ -65,7 +78,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-User", "PerplexityBot", "Google-Extended"],
         allow: "/",
-        disallow: ["/admin", "/api/", "/salir/", "/cuenta", "/favoritos", "/portal"],
+        disallow: NO_CRAWLEAR,
       },
     ],
     sitemap: urlAbsoluta("/sitemap.xml"),

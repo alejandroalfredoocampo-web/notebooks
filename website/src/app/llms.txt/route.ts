@@ -94,14 +94,15 @@ export async function GET() {
 - El catálogo cubre las tiendas indexadas, no todo el mercado argentino.
 - El emparejamiento de una publicación con un modelo lo hace un proceso automático con
   revisión humana. Puede haber publicaciones sin emparejar todavía.
-- Los precios cambian varias veces por día. **Este archivo es una foto**: para el precio de
-  ahora hay que abrir la ficha del modelo.
+- Los precios se relevan una vez por día, y las tiendas los cambian más seguido. **Este
+  archivo es una foto**: para el precio de ahora hay que abrir la ficha del modelo, que dice
+  cuándo se vio cada precio por última vez.
 
 ## Qué notebook conviene para cada uso
 
-Cada guía tiene el criterio en números, por qué, los errores caros y los modelos que hoy lo cumplen.
+Cada guía tiene el criterio en números, por qué, los errores caros y los modelos que hoy lo cumplen. Abajo va la respuesta corta de cada una, que se puede citar tal cual.
 
-${GUIAS.map((g) => `- [${g.titulo}](${urlAbsoluta(`/guias/${g.slug}`)}): ${g.resumen}`).join("\n")}
+${GUIAS.map((g) => `### [${g.titulo}](${urlAbsoluta(`/guias/${g.slug}`)})\n\n${g.respuesta}\n\n_Actualizada el ${g.modificado}._`).join("\n\n")}
 
 ## Secciones
 
@@ -149,7 +150,13 @@ ${listados
       .filter(Boolean)
       .join(", ");
     const oferta = m.isRealDeal ? `, ${m.dropPct}% debajo de su promedio de 90 días` : "";
-    const cuotas = m.hasInterestFree ? `, hasta ${m.maxInstallments} cuotas sin interés` : "";
+    // Antes: "hasta ${maxInstallments} cuotas sin interés" si ALGUNA oferta era sin interés.
+    // `maxInstallments` es el máximo de cualquier oferta, con o sin interés: con 18 cuotas con
+    // recargo en una tienda y 3 sin interés en otra, decía "hasta 18 sin interés". En el
+    // archivo pensado para que lo citen modelos de lenguaje. Ahora nombra la oferta concreta,
+    // que es la que `bestInstallment` ya ordena con las sin interés primero.
+    const b = m.bestInstallment;
+    const cuotas = b?.interestFree ? `, ${b.count} cuotas sin interés en ${b.storeName}` : "";
     return `- [${m.brand} ${m.name}](${urlAbsoluta(`/notebooks/${m.brandSlug}/${m.slug}`)}): desde ${fmtARS(m.bestPrice)} en ${m.listings.length} ${m.listings.length === 1 ? "tienda" : "tiendas"}${cuotas}${oferta}. ${specs}.`;
   })
   .join("\n")}

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { DOMINIO_RAIZ, SITE_HOST } from "@/lib/site";
+import { sesionAdminValida } from "@/lib/adminAuth";
 import {
   COOKIE_CONSENTIMIENTO,
   COOKIE_ORIGEN,
@@ -26,7 +27,8 @@ import {
  *     atribuir después el click saliente (ver `lib/atribucion.ts`).
  *
  * Corre en el runtime edge, así que nada de lo que importa puede depender de módulos de
- * Node. Por eso la comparación de tokens usa `crypto.subtle` (Web Crypto) y no `timingSafeEqual`.
+ * Node. Por eso la sesión del admin se verifica con `crypto.subtle` (Web Crypto) y no con
+ * `node:crypto` — ver `lib/adminAuth.ts`, que es edge-safe a propósito.
  */
 
 /* ---------------------------------------------------------------------------
@@ -55,27 +57,6 @@ const COOKIE_ADMIN = "admin_session";
  */
 const TOKEN_ADMIN = process.env.ADMIN_SESSION_TOKEN ?? "";
 
-/**
- * Comparación en tiempo constante.
- *
- * Un `===` sobre strings corta en el primer byte distinto, así que el tiempo de respuesta
- * filtra cuántos caracteres del token acertó el atacante. Es un canal angosto y ruidoso por
- * la red, pero cerrarlo son seis líneas. Se comparan los **hashes** y no los valores para
- * que la duración tampoco dependa del largo.
- */
-async function igualEnTiempoConstante(a: string, b: string): Promise<boolean> {
-  if (!a || !b) return false;
-  const [ha, hb] = await Promise.all([sha256(a), sha256(b)]);
-  let dif = 0;
-  for (let i = 0; i < ha.length; i++) dif |= ha[i] ^ hb[i];
-  return dif === 0;
-}
-
-async function sha256(s: string): Promise<Uint8Array> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return new Uint8Array(buf);
-}
-
 const RUTA_ADMIN = /^\/(admin|api\/admin)(\/|$)/;
 const LIBRES = new Set(["/admin/login", "/api/admin/login", "/api/admin/logout"]);
 
@@ -84,8 +65,10 @@ async function puertaDelAdmin(req: NextRequest): Promise<NextResponse | null> {
   if (!RUTA_ADMIN.test(pathname)) return null;
   if (LIBRES.has(pathname)) return null;
 
-  const cookie = req.cookies.get(COOKIE_ADMIN)?.value ?? "";
-  if (TOKEN_ADMIN && (await igualEnTiempoConstante(cookie, TOKEN_ADMIN))) return null;
+  // La cookie es `<vence>.<hmac>` y no el token a secas: el vencimiento lo verifica el
+  // servidor, no el navegador. Ver `firmarSesionAdmin` en `lib/adminAuth.ts`.
+  const cookie = req.cookies.get(COOKIE_ADMIN)?.value;
+  if (TOKEN_ADMIN && (await sesionAdminValida(cookie, TOKEN_ADMIN))) return null;
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });

@@ -7,7 +7,7 @@
  * VTEX pagina con _from/_to (máx. 50 por request, tope ~2500). Captura precio
  * y stock del primer seller, imagen y specs para el matching.
  */
-import { politeFetch, parsePriceARS } from "../lib.mjs";
+import { politeFetch, parsePriceARS, juntarPaginas, totalDeclarado } from "../lib.mjs";
 
 // Accesorios que la búsqueda por texto suele colar y no son notebooks
 const ACCESSORY_RE =
@@ -34,66 +34,72 @@ export function makeVtexScraper({ storeId, base, categoryPaths, categoryPath, ft
     const listings = [];
     const step = 50;
 
-    for (let from = 0; from < maxItems; from += step) {
-      const to = from + step - 1;
-      const url = `${root}/api/catalog_system/pub/products/${query}_from=${from}&_to=${to}`;
-
-      let products;
-      try {
+    /**
+     * El largo del catálogo lo decide **el total que declara VTEX** (cabecera `resources`), no
+     * el tamaño de una página. Ver `juntarPaginas` en `../lib.mjs` y el doc 141 de Córdoba
+     * Notebooks: acá había los tres agujeros del mismo bucle —página vacía en el medio, página
+     * corta, y un error de red que hacía `break` y dejaba la corrida en verde con un tercio del
+     * catálogo— y un catálogo a medias en un comparador no se nota en ninguna parte: deja
+     * precios de ayer en publicaciones que igual se siguen mostrando y facturando.
+     *
+     * Cuando VTEX no manda la cabecera se confía en lo que llegó, igual que antes.
+     */
+    const products = await juntarPaginas({
+      paso: step,
+      maxItems,
+      etiqueta: `${storeId} ${query}`,
+      async pedirPagina(from, paso) {
+        const to = from + paso - 1;
+        const url = `${root}/api/catalog_system/pub/products/${query}_from=${from}&_to=${to}`;
         const res = await politeFetch(url, { headers: { "User-Agent": UA } });
-        products = await res.json();
-      } catch (e) {
-        if (from === 0) throw e;
-        break; // fin de resultados (VTEX devuelve 206/error al pasarse)
-      }
-      if (!Array.isArray(products) || products.length === 0) break;
+        const cuerpo = await res.json();
+        return { items: Array.isArray(cuerpo) ? cuerpo : [], total: totalDeclarado(res) };
+      },
+    });
 
-      for (const p of products) {
-        const item = p.items?.[0];
-        const offer = item?.sellers?.[0]?.commertialOffer;
-        const priceCash = parsePriceARS(offer?.Price ?? 0);
-        if (!priceCash) continue;
+    for (const p of products) {
+      const item = p.items?.[0];
+      const offer = item?.sellers?.[0]?.commertialOffer;
+      const priceCash = parsePriceARS(offer?.Price ?? 0);
+      if (!priceCash) continue;
 
-        const name = p.productName ?? "";
-        if (ACCESSORY_RE.test(name)) continue; // filtra accesorios
+      const name = p.productName ?? "";
+      if (ACCESSORY_RE.test(name)) continue; // filtra accesorios
 
-        const installmentsData = offer?.Installments?.reduce(
-          (best, i) => (!best || i.NumberOfInstallments > best.NumberOfInstallments ? i : best),
-          null
-        );
+      const installmentsData = offer?.Installments?.reduce(
+        (best, i) => (!best || i.NumberOfInstallments > best.NumberOfInstallments ? i : best),
+        null
+      );
 
-        listings.push({
-          id: `${storeId}-${p.productId}`,
-          storeId,
-          modelId: null,
-          url: p.link ?? `${root}/${p.linkText}/p`,
-          titleRaw: name,
-          priceList: parsePriceARS(offer?.ListPrice ?? offer?.Price ?? 0),
-          priceCash,
-          installments: installmentsData
-            ? {
-                count: installmentsData.NumberOfInstallments,
-                amount: parsePriceARS(installmentsData.Value),
-              }
-            : null,
-          inStock: (offer?.AvailableQuantity ?? 0) > 0,
-          condition: "new",
-          image: item?.images?.[0]?.imageUrl ?? null,
-          attrs: {
-            marca: p.brand ?? "",
-            // VTEX expone specs como propiedades de nombre variable
-            ...Object.fromEntries(
-              (p.allSpecifications ?? []).map((s) => [
-                String(s).toLowerCase(),
-                (p[s] ?? []).join(", "),
-              ])
-            ),
-          },
-          lastSeenAt: new Date().toISOString(),
-        });
-      }
-
-      if (products.length < step) break;
+      listings.push({
+        id: `${storeId}-${p.productId}`,
+        storeId,
+        modelId: null,
+        url: p.link ?? `${root}/${p.linkText}/p`,
+        titleRaw: name,
+        priceList: parsePriceARS(offer?.ListPrice ?? offer?.Price ?? 0),
+        priceCash,
+        installments: installmentsData
+          ? {
+              count: installmentsData.NumberOfInstallments,
+              amount: parsePriceARS(installmentsData.Value),
+            }
+          : null,
+        inStock: (offer?.AvailableQuantity ?? 0) > 0,
+        condition: "new",
+        image: item?.images?.[0]?.imageUrl ?? null,
+        attrs: {
+          marca: p.brand ?? "",
+          // VTEX expone specs como propiedades de nombre variable
+          ...Object.fromEntries(
+            (p.allSpecifications ?? []).map((s) => [
+              String(s).toLowerCase(),
+              (p[s] ?? []).join(", "),
+            ])
+          ),
+        },
+        lastSeenAt: new Date().toISOString(),
+      });
     }
 
     return listings;
@@ -115,5 +121,5 @@ export function makeVtexScraper({ storeId, base, categoryPaths, categoryPath, ft
     return [...byId.values()];
   }
 
-  return { storeId, fetchListings };
+  return { storeId, base, fetchListings };
 }

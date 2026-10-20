@@ -51,11 +51,12 @@ export default function CompareTool({ models, initialIds }: { models: CM[]; init
     { label: "Cuotas", render: (m) => cuotasLabel(m) },
     { label: "Tiendas", render: (m) => `${m.storeCount}` },
     { label: "Procesador", render: (m) => m.cpu },
-    { label: "Memoria RAM", render: (m) => `${m.ramGb} GB` },
+    { label: "Memoria RAM", render: (m) => (m.ramGb ? `${m.ramGb} GB` : "—") },
     { label: "Almacenamiento", render: (m) => storage(m.storageGb, m.storageType) },
     { label: "Placa de video", render: (m) => m.gpu },
-    { label: "Pantalla", render: (m) => `${m.screenSizeIn}" ${m.screenResolution}` },
-    { label: "Sistema operativo", render: (m) => m.os },
+    // "—" cuando no hay dato: antes un modelo sin pantalla cargada decía `0"`.
+    { label: "Pantalla", render: (m) => (m.screenSizeIn ? `${m.screenSizeIn}" ${m.screenResolution}`.trim() : "—") },
+    { label: "Sistema operativo", render: (m) => m.os || "—" },
     { label: "Recomendada para", render: (m) => m.useLabel },
   ];
 

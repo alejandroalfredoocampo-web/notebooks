@@ -28,3 +28,24 @@ export function supabaseAdmin(): SupabaseClient {
   });
   return client;
 }
+
+/**
+ * El cliente con el que escriben las rutas **públicas** (formularios, `/salir`, rate limit).
+ *
+ * Desde la migración 0016, `anon` ya no puede insertar en esas tablas: el único camino de
+ * escritura es la API del sitio, que es donde viven el rate limit, el honeypot y la
+ * validación. Antes cualquiera con la anon key —que es pública— los salteaba con un `curl`.
+ *
+ * Devuelve `null` en vez de tirar si falta la key, para que cada ruta decida su modo de
+ * falla: un formulario contesta el error genérico, y `/salir` redirige igual y pierde el
+ * registro. Tirar convertía un problema de configuración en un 500 del redirect que se
+ * factura.
+ */
+export function clienteDeEscritura(contexto: string): SupabaseClient | null {
+  try {
+    return supabaseAdmin();
+  } catch (e) {
+    console.error(`[${contexto}] sin cliente de escritura`, e);
+    return null;
+  }
+}

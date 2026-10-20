@@ -92,7 +92,7 @@ export default function MonetizationManager({
               <th className="px-3 py-2.5">Destacada</th>
               <th className="px-3 py-2.5">Hasta</th>
               <th className="px-3 py-2.5">CPC (override)</th>
-              <th className="px-3 py-2.5">Clicks {rangeLabel}</th>
+              <th className="px-3 py-2.5" title="Sin bots: son los que se facturan">Clicks facturables {rangeLabel}</th>
               <th className="px-3 py-2.5">A facturar</th>
               <th className="px-3 py-2.5">Leads RFQ</th>
               <th className="px-3 py-2.5" />

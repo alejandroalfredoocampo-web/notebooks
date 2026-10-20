@@ -2,11 +2,17 @@ name: Worker de emails
 
 # Envía alertas de precio y avisos de disponibilidad (scrapers/notify.mjs).
 # Corre después del scraper diario (que actualiza precios), y a mano si hace falta.
-# Sin RESEND_API_KEY corre en dry-run (no envía, no marca notificado).
+# Sin RESEND_API_KEY corre en dry-run (no envía, no marca notificado) — sólo a mano: en el cron
+# falla, porque un dry-run programado es un aviso que no le llega a nadie con el workflow en verde.
 on:
   schedule:
     - cron: "30 11 * * *" # 11:30 UTC = 08:30 ART (después del scrape de las 11:00)
   workflow_dispatch: {}
+
+# `notify.mjs` manda primero y marca después: dos corridas a la vez mandan el mismo aviso dos veces.
+concurrency:
+  group: emails
+  cancel-in-progress: false
 
 jobs:
   emails:
@@ -23,6 +29,27 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - run: npm ci
+      - name: Faltan secretos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          faltan=""
+          for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY RESEND_API_KEY EMAIL_FROM; do
+            [ -z "${!v}" ] && faltan="$faltan $v"
+          done
+          # En el cron, sin RESEND_API_KEY el script corría en dry-run y salía verde: alertas que
+          # no le llegaban a nadie con el workflow en verde. Sin EMAIL_FROM, Resend usa
+          # onboarding@resend.dev, que sólo entrega a la casilla del dueño de la cuenta (Córdoba
+          # Notebooks lo pagó en la noche del cutover, doc 66).
+          if [ -n "$faltan" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "::error::Faltan secretos del repo:$faltan (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          [ -n "$faltan" ] && echo "::warning::Faltan:$faltan. Corrida manual: sigue en dry-run."
+          true
       - name: Enviar emails
         run: node scrapers/notify.mjs
         env:

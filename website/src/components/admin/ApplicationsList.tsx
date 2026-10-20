@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { hrefSeguro } from "@/lib/entrada";
 
 type App = {
   id: number;
@@ -34,8 +35,11 @@ type App = {
   createdAt: string;
 };
 
-function Row({ label, value, href }: { label: string; value?: string | null; href?: string | null }) {
+function Row({ label, value, href: crudo }: { label: string; value?: string | null; href?: string | null }) {
   if (!value) return null;
+  // Estos datos los escribió alguien de afuera. El link se filtra acá, donde se dibuja,
+  // porque la validación de la API no cubre filas que entraron por otro camino.
+  const href = hrefSeguro(crudo);
   return (
     <div className="flex gap-2 text-[13px]">
       <span className="w-40 shrink-0 text-slate-400">{label}</span>
@@ -146,7 +150,7 @@ export default function ApplicationsList({ apps }: { apps: App[] }) {
                 <Row
                   label="Google"
                   value={a.googleRating != null ? `${a.googleRating} ★${a.googleReviewsCount ? ` (${a.googleReviewsCount} reseñas)` : ""}` : null}
-                  href={a.googleMapsUrl}
+                  href={hrefSeguro(a.googleMapsUrl) ?? undefined}
                 />
                 <Row label="Instagram" value={a.instagram} href={url(a.instagram, "https://instagram.com/")} />
                 <Row label="Facebook" value={a.facebook} href={url(a.facebook)} />

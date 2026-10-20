@@ -3,15 +3,37 @@ import { getStores } from "@/lib/data";
 import MobileMenu from "./MobileMenu";
 import AuthNav from "./AuthNav";
 
+/**
+ * El header va en el layout de **todas** las páginas, y lee la cantidad de tiendas de la base.
+ *
+ * Si esa lectura tira, el layout tira, y el sitio entero da 500: también `/privacidad`, `/guias`
+ * y el blog, que no necesitan la base para nada. Medido el 15-sep: con Supabase sin resolver,
+ * `notebooks-tan.vercel.app` contestaba 500 en `/privacidad`. Un número decorativo no puede
+ * tirar abajo las páginas que no dependen de él. Es lo que Córdoba Notebooks resolvió en la
+ * ficha (doc 96 G18): distinguir "el backend hipó" de "esto no existe", y degradar lo primero.
+ */
+async function contarTiendas(): Promise<number | null> {
+  try {
+    return (await getStores()).length;
+  } catch (e) {
+    console.error("[header] no se pudo contar las tiendas", e);
+    return null;
+  }
+}
+
 export default async function Header() {
-  const storeCount = (await getStores()).length;
+  const storeCount = await contarTiendas();
   return (
     <>
       {/* Barra de anuncio, estilo Córdoba Notebooks */}
       <div className="bg-brand-navy text-brand-sky text-xs font-medium tracking-wide">
         <div className="mx-auto max-w-6xl px-4 py-1.5 text-center">
-          Comparamos <b className="text-white">{storeCount} tiendas</b> de todo el país ·
-          Precios actualizados varias veces por día · <b className="text-white">100% gratis, sin registro</b>
+          {storeCount ? (
+            <>Comparamos <b className="text-white">{storeCount} tiendas</b> de todo el país ·</>
+          ) : (
+            <>Comparamos tiendas de todo el país ·</>
+          )}{" "}
+          Precios relevados todos los días · <b className="text-white">100% gratis, sin registro</b>
         </div>
       </div>
 

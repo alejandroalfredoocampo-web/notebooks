@@ -112,8 +112,14 @@ try {
   );
 }
 
-/** Sólo lo que puede afectarnos. El backend de comercio y el admin quedan afuera del diff. */
-const RUTAS_QUE_MIRAMOS = ["storefront/", "scripts/"];
+/**
+ * Sólo lo que puede afectarnos. El backend de comercio y el admin quedan afuera del diff.
+ *
+ * `monitor/` se sumó el 15-sep: ahí vive el monitor de uptime de Córdoba Notebooks, y la
+ * lección de septiembre (confirmar desde afuera antes de alertar, 8ea0c9b6) no tocó ni el
+ * storefront ni scripts — esta lista no la veía, y es la que dio origen al vigía de acá.
+ */
+const RUTAS_QUE_MIRAMOS = ["storefront/", "scripts/", "monitor/"];
 
 const crudo = git(
   "log",

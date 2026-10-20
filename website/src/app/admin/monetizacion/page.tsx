@@ -17,7 +17,8 @@ export default async function AdminMonetizacionPage() {
   } catch (e) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
-        No se pudo cargar monetización. ¿Corriste la migración <code>0011_store_tiers.sql</code>?
+        No se pudo cargar monetización. ¿Corriste las migraciones <code>0011_store_tiers.sql</code> y{" "}
+        <code>0014_clickout_atribucion.sql</code> (la columna <code>bot</code>)?
         <div className="mt-2 text-[12px] text-amber-700">{e instanceof Error ? e.message : String(e)}</div>
       </div>
     );

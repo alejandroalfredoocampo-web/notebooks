@@ -106,11 +106,14 @@ export async function chequearLimite(
   const k = clave(alcance, ip, limite.ventana, ahora);
 
   try {
-    // Import diferido a propósito: `supabaseServer` tira al importarse si faltan las
-    // variables de entorno, y eso volvía imposible testear las funciones puras de este
-    // módulo (`clave`, `ipDelRequest`, `reintentarEn`) sin levantar medio entorno.
-    const { supabase } = await import("./supabaseServer");
-    const { data, error } = await supabase.rpc("bump_rate_limit", {
+    // Import diferido a propósito: así las funciones puras de este módulo (`clave`,
+    // `ipDelRequest`, `reintentarEn`) se testean sin levantar medio entorno.
+    //
+    // Con `service_role` y no con la anon key: desde la 0016 `anon` no puede ejecutar
+    // `bump_rate_limit`. Antes cualquiera inflaba el contador `admin-login:<ip>` de otra IP
+    // y, como ese login falla cerrado, la dejaba afuera del admin.
+    const { supabaseAdmin } = await import("./supabaseAdmin");
+    const { data, error } = await supabaseAdmin().rpc("bump_rate_limit", {
       p_clave: k,
       p_segundos: limite.ventana + 60,
     });

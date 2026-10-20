@@ -8,7 +8,7 @@ del mismo tipo es agregar una línea, no escribir código.
 
 ```bash
 npm run scrape                 # todas las fuentes de sources.mjs
-node scrapers/run.mjs fravega  # una sola
+npm run scrape -- fravega      # una sola
 ```
 
 El runner ejecuta 4 etapas y escribe archivos **generados** (no pisan el seed

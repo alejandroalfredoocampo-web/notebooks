@@ -1,0 +1,106 @@
+name: Avisar fallas
+
+# Un issue por workflow caído, y no un mail que nadie lee.
+#
+# Desde el 9-sep, "Scrape diario", "Worker de emails", "Verificación" y "Detectar paridad"
+# fallaron **todos los días** porque la migración de cuenta del 8-sep llevó los commits y no los
+# secretos. El único aviso era el mail automático de GitHub, que llega a una sola casilla; el
+# comparador pasó una semana sin ingerir precios. Córdoba Notebooks lo encontró en su barrido del
+# 14-sep (doc 119) mirando el panel de Actions, no porque algo avisara.
+#
+# Este workflow no necesita secretos (usa el token del propio run) y por eso no se cae con los
+# demás. Un issue por workflow: se abre en la primera falla, se actualiza sin comentar mientras
+# siga fallando, y se comenta y cierra con la primera corrida verde.
+#
+# Con un **recordatorio espaciado** mientras siga fallando (`RECORDATORIO_CADA_CORRIDAS`, 12
+# corridas). Editar el cuerpo de un issue no manda notificación, así que sin esto el único aviso
+# era el de la primera falla: los cuatro workflows llevan 22 días fallando a diario. Es la misma
+# lección que Córdoba Notebooks sacó del 21-sep (6d6e33e8), donde un solo mail cubrió diez horas
+# de caída.
+on:
+  workflow_run:
+    workflows: ["Scrape diario", "Worker de emails", "Verificación", "Detectar paridad"]
+    types: [completed]
+
+permissions:
+  issues: write
+  actions: read
+
+jobs:
+  avisar:
+    # Sólo lo que corre solo. Un push que rompe la verificación ya lo ve quien pushea, en el PR.
+    if: github.event.workflow_run.event == 'schedule' && contains(fromJSON('["success","failure","timed_out"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          # Cada cuántas corridas fallidas seguidas se repite el aviso. `0` lo apaga.
+          RECORDATORIO_CADA_CORRIDAS: ${{ vars.RECORDATORIO_CADA_CORRIDAS || '12' }}
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const { owner, repo } = context.repo;
+            const MARCA = `<!-- workflow-caido:${run.name} -->`;
+            const abiertos = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+            const issue = abiertos.find((i) => (i.body || '').includes(MARCA));
+
+            if (run.conclusion === 'success') {
+              if (issue) {
+                const n = Number(/<!-- seguidas:(\d+) -->/.exec(issue.body)?.[1] ?? 0);
+                await github.rest.issues.createComment({ owner, repo, issue_number: issue.number,
+                  body: `Volvió a andar después de ${n} ${n === 1 ? 'corrida fallida' : 'corridas fallidas seguidas'}: ${run.html_url}` });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed' });
+              }
+              return;
+            }
+
+            const seguidas = issue ? Number(/<!-- seguidas:(\d+) -->/.exec(issue.body)?.[1] ?? 0) + 1 : 1;
+            const desde = issue ? (/<!-- desde:(.*?) -->/.exec(issue.body)?.[1] ?? run.created_at) : run.created_at;
+
+            // El primer error anotado del run, para que el issue diga algo sin abrir los logs.
+            let anotacion = '';
+            try {
+              const jobs = await github.rest.actions.listJobsForWorkflowRun({ owner, repo, run_id: run.id });
+              const fallido = jobs.data.jobs.find((j) => j.conclusion === 'failure');
+              if (fallido) {
+                const ann = await github.rest.checks.listAnnotations({ owner, repo, check_run_id: fallido.id });
+                const err = ann.data.find((a) => a.annotation_level === 'failure' && !/exit code/i.test(a.message));
+                if (err) anotacion = err.message.slice(0, 400);
+              }
+            } catch { /* sin permiso o sin anotaciones: el link alcanza */ }
+
+            const cuerpo = [
+              MARCA, `<!-- seguidas:${seguidas} -->`, `<!-- desde:${desde} -->`, '',
+              `**${run.name}** está fallando en sus corridas programadas.`, '',
+              `- Corridas fallidas seguidas: **${seguidas}**`,
+              `- Desde: ${desde.slice(0, 16).replace('T', ' ')} UTC`,
+              `- Última: ${run.html_url}`,
+              anotacion ? `\n> ${anotacion.replace(/\n/g, '\n> ')}` : '',
+              '', '---',
+              '<sub>Generado por `avisar-fallas.yml`. Se cierra solo con la primera corrida verde.</sub>',
+            ].join('\n');
+
+            if (!issue) {
+              await github.rest.issues.create({ owner, repo, title: `Falla: ${run.name}`, body: cuerpo });
+              return;
+            }
+
+            await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: cuerpo });
+
+            // El recordatorio: sin esto, la edición del cuerpo no avisa a nadie y la única señal
+            // que existió fue la de la primera falla.
+            const cada = Number(process.env.RECORDATORIO_CADA_CORRIDAS || 0);
+            if (cada > 0 && (seguidas - 1) % cada === 0) {
+              const dias = Math.round((Date.now() - Date.parse(desde)) / 864e5);
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: [
+                  `**${run.name}** SIGUE fallando: ${seguidas} corridas seguidas, ~${dias} día(s).`,
+                  `Última: ${run.html_url}`, '',
+                  anotacion ? `> ${anotacion.replace(/\n/g, '\n> ')}` : '',
+                  '',
+                  'Este es un recordatorio: el aviso original ya salió y nadie lo resolvió todavía.',
+                ].join('\n'),
+              });
+            }
