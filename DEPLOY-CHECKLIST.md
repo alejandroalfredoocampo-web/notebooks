@@ -44,6 +44,8 @@ la sesión de aocampo-cordobanotebooks en el navegador integrado:
   máquina responde), así que en CI esa tienda conserva los datos del último scrape local.
 - Suite completa contra producción: todo verde salvo los dos 429 de la cuota de alertas que la
   propia suite consume.
+- El proyecto duplicado de Vercel `notebooks-i87i` (28-jul, sin variables, build rojo en cada
+  push desde agosto) se **borró** el 21-oct a la tarde. Queda un solo proyecto, `notebooks`.
 
 **Lo que sigue pendiente:**
 
