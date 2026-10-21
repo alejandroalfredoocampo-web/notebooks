@@ -29,21 +29,33 @@ Hallazgo del scrape: `cordobanotebooks.com.ar/wp-json/wc/store/v1/products` da *
 es WooCommerce (migró a Medusa en agosto), así que el adaptador de `sources.mjs` para Córdoba
 Notebooks hay que reescribirlo. Las otras siete tiendas respondieron.
 
-**Lo que falta, y lo hace una persona:**
+**Cerrado el 21-oct a las 11:00**, con la CLI de Vercel autorizada por código de dispositivo y
+la sesión de aocampo-cordobanotebooks en el navegador integrado:
 
-1. **Vercel** (cuenta `aocampocordobanotebooks`, proyecto `notebooks`) → Environment Variables:
-   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `REVALIDATE_SECRET` (el mismo valor que el secreto de GitHub),
-   `ADMIN_PASSWORD`, `ADMIN_SESSION_TOKEN`, `NEXT_PUBLIC_SITE_URL`. Después, redeploy.
-2. **Push de `main`** (31 commits mergeados localmente, suite verde). Dispara el deploy.
-3. Correr **`0016`** en el SQL Editor una vez que el deploy nuevo esté arriba.
-4. **Rehabilitar los cuatro workflows** en GitHub → Actions (están "disabled manually"), y disparar
-   `Scrape diario` a mano para confirmar que escribe.
-5. Revisar las 669 publicaciones pendientes en `/admin/revision` (hasta ahí, el público ve las 32
-   confirmadas).
-6. Decidir qué repo queda: el viejo `alejandroalfredoocampo-web/notebooks` (donde apunta este
-   checkout y despliega Vercel) o el nuevo `aocampo-cordobanotebooks/notebooks-com-ar`, sin
-   commits desde el 9-sep.
+- Vercel (`notebooks`, equipo `aocampocordobanotebooks-2476s-projects`): las cinco variables de
+  Supabase reemplazadas y `REVALIDATE_SECRET` agregado, en Production y Preview. `ADMIN_PASSWORD`
+  y `ADMIN_SESSION_TOKEN` quedaron los de julio.
+- `main` pusheado (`fbf3b1a`): deploy automático, **`notebooks-tan.vercel.app` responde 200** en
+  portada, listado y sitemap, con precios de hoy.
+- `0016` corrida después del deploy. Verificado por la API: `anon` ya no inserta (401) y
+  `tamano_base()` responde.
+- Los seis workflows activos. `Scrape diario` disparado a mano desde Actions: escribe, invalida
+  la caché del sitio y termina en verde. Frávega devuelve **403 a las IPs de GitHub** (desde la
+  máquina responde), así que en CI esa tienda conserva los datos del último scrape local.
+- Suite completa contra producción: todo verde salvo los dos 429 de la cuota de alertas que la
+  propia suite consume.
+
+**Lo que sigue pendiente:**
+
+1. **DNS de notebooks.com.ar** (Fede tiene el NIC). Hasta entonces el sitemap y los canonical
+   apuntan a `www.notebooks.com.ar`, que no resuelve: el vigía va a informar ENOTFOUND en la
+   ficha en cada corrida, y el host de Vercel se sirve con `noindex`, como corresponde.
+2. Revisar las publicaciones pendientes en `/admin/revision` (el público ve las confirmadas).
+3. Reescribir el adaptador de Córdoba Notebooks en `sources.mjs` (la tienda ya no es Woo).
+4. Decidir qué repo queda (viejo `alejandroalfredoocampo-web/notebooks`, que es el que despliega,
+   o nuevo `aocampo-cordobanotebooks/notebooks-com-ar`), y arreglar la suite para que no consuma
+   su propia cuota de alertas.
+5. Backup de la base: sigue sin existir. Es lo que hizo irrecuperable el proyecto viejo.
 
 ---
 
