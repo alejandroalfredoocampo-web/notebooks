@@ -8,6 +8,105 @@ Todo esto requiere la `service_role` o acceso a dashboards → lo hacés vos, no
 
 ---
 
+## ✅ 2026-10-21: base nueva creada, migrada, sembrada y scrapeada
+
+El proyecto viejo se dio por borrado. Se creó uno nuevo desde el panel, con la sesión de
+**aocampo-cordobanotebooks**:
+
+| Qué | Valor |
+|---|---|
+| Organización | "Córdoba Notebooks" (`vhtgvdbpkicxldjsvpsz`), plan Free |
+| Proyecto | `notebooks-com-ar`, ref **`zllrgwogdjszekgaivhu`**, São Paulo (sa-east-1) |
+| URL | `https://zllrgwogdjszekgaivhu.supabase.co` |
+| Keys | publishable `sb_publishable_WIExAoSNdY7_qHuTwjMruA_6NCUO2Cm`; la service_role (JWT legacy) está en `website/.env.local` y en los secretos del repo, y en ningún otro lado |
+| Contraseña de la base | la generó Supabase y no se guardó: si hace falta `psql`, resetearla en Database → Settings |
+| Migraciones | `0001`–`0015`, `0017`, `0018` corridas por el SQL Editor (19 tablas, 1 vista, 20 policies, 2 funciones). **Falta `0016`**, que va después del deploy |
+| Datos | semilla (12 tiendas, 10 modelos, 30 publicaciones, 83 precios) + 5 reseñas + scrape del 21-oct: 671 publicaciones de 7 tiendas, **669 pendientes de revisión** en `/admin/revision` |
+| Secretos de GitHub | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `REVALIDATE_SECRET` y la variable `SITE_URL`, cargados en `alejandroalfredoocampo-web/notebooks` |
+| Suite local | etapas 1 a 5 en verde; en la 6 fallan sólo dos chequeos que reciben 429 porque la suite manda 8 altas de alerta contra una cuota de 5 por hora (defecto de la suite, no de la base) |
+
+Hallazgo del scrape: `cordobanotebooks.com.ar/wp-json/wc/store/v1/products` da **404**. La tienda ya no
+es WooCommerce (migró a Medusa en agosto), así que el adaptador de `sources.mjs` para Córdoba
+Notebooks hay que reescribirlo. Las otras siete tiendas respondieron.
+
+**Lo que falta, y lo hace una persona:**
+
+1. **Vercel** (cuenta `aocampocordobanotebooks`, proyecto `notebooks`) → Environment Variables:
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `REVALIDATE_SECRET` (el mismo valor que el secreto de GitHub),
+   `ADMIN_PASSWORD`, `ADMIN_SESSION_TOKEN`, `NEXT_PUBLIC_SITE_URL`. Después, redeploy.
+2. **Push de `main`** (31 commits mergeados localmente, suite verde). Dispara el deploy.
+3. Correr **`0016`** en el SQL Editor una vez que el deploy nuevo esté arriba.
+4. **Rehabilitar los cuatro workflows** en GitHub → Actions (están "disabled manually"), y disparar
+   `Scrape diario` a mano para confirmar que escribe.
+5. Revisar las 669 publicaciones pendientes en `/admin/revision` (hasta ahí, el público ve las 32
+   confirmadas).
+6. Decidir qué repo queda: el viejo `alejandroalfredoocampo-web/notebooks` (donde apunta este
+   checkout y despliega Vercel) o el nuevo `aocampo-cordobanotebooks/notebooks-com-ar`, sin
+   commits desde el 9-sep.
+
+---
+
+## 🚨 Estado al 2026-10-20: la base no existe en DNS, y lo que se puede hacer sin credenciales ya está hecho
+
+Medido el 20-oct, después de la reunión con Fede y Tino (`reuniones/2026-10-20-notas-y-tareas.md`):
+
+| Qué | Resultado |
+|---|---|
+| `notebooks-tan.vercel.app` (`/`, `/notebooks`, `/sitemap.xml`) | **500**, 7 a 9 s por respuesta |
+| `itisgcfxvryxyvolxjvs.supabase.co` | **NXDOMAIN** |
+| `notebooks.com.ar` / `www.notebooks.com.ar` | sin registros DNS (nunca se delegó) |
+| Workflows de GitHub | los cuatro **deshabilitados a mano**; la última corrida fue el 11-oct |
+| Secretos del repo | sólo `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (28-jul); faltan `SUPABASE_ANON_KEY`, `REVALIDATE_SECRET`, `RESEND_*` |
+| Último scrape (11-oct) | scrapeó 334 publicaciones bien y falló al escribir: `models: TypeError: fetch failed` (la base) |
+
+**Lo que esto dice.** Un proyecto de Supabase *pausado* sigue resolviendo DNS y contesta con una
+página de "project paused". NXDOMAIN durante 41 días es lo que pasa cuando el proyecto fue
+**borrado** (o la organización se cerró). Hay que confirmarlo en el panel; si es así, **los datos
+no están**: nunca hubo backup (está pendiente desde agosto) y lo único que queda es la semilla
+del repo (`website/data/`: 10 modelos, 30 publicaciones curadas, 12 tiendas) más lo que traiga
+el scrape.
+
+**Cuentas.** El sitio vive en el equipo de Vercel `aocampocordobanotebooks-2476s-projects`
+(proyectos `notebooks` y `notebooks-i87i`; el segundo falla en todos los deploys desde agosto) y
+el repo en GitHub en `alejandroalfredoocampo-web/notebooks`. La CLI de Vercel de esta máquina
+está logueada en **otra** cuenta (`alejandroocampo-2142`, equipo DDL) y la de Supabase no tiene
+sesión, así que desde acá no se puede ver ni tocar nada de eso.
+
+### Ya hecho el 20-oct (sin credenciales)
+
+- `main` local tiene mergeadas `paridad-2026-10-01` (que contiene la del 15-sep y la del
+  24-sep) y `arreglo/cutover-secrets-y-paridad`. Sin conflictos. **No está pusheado.** Con eso
+  entran `vigilar.yml` y `avisar-fallas.yml`, el freno del open redirect en `/salir`, la
+  paginación de VTEX/Woo, la atribución del click y el script de secretos.
+- Las 18 migraciones aplican en orden sobre un Postgres limpio (`npm run probar:migraciones`,
+  49 pruebas) y la suite rápida da verde. O sea: el código está listo para una base nueva.
+
+### Lo que sólo puede hacer una persona, en orden
+
+1. **Supabase** → entrar al panel y mirar si `itisgcfxvryxyvolxjvs` existe. Si está pausado,
+   reanudarlo y listo: el resto de esta lista se reduce a los pasos 4 y 6. Si no existe, crear
+   un proyecto nuevo y anotar URL, anon key y service_role.
+2. **Base nueva, si hizo falta**: correr en el SQL Editor las migraciones `0001` a `0015`, `0017`
+   y `0018` en orden. La `0016` va **después** del deploy (le quita a `anon` los inserts; con
+   código viejo se dejan de registrar los clicks).
+3. **Semilla**: `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scrapers/seed-supabase.mjs`
+   y después `npm run seed:blog`.
+4. **Vercel** (cuenta `aocampocordobanotebooks`) → proyecto `notebooks` → Environment Variables:
+   todo lo de `.env.example` con los valores nuevos. Las `NEXT_PUBLIC_*` se hornean en el build,
+   así que después hay que redesplegar. Considerar borrar `notebooks-i87i`, que falla siempre.
+5. **Push de `main`** (`git push origin main`): dispara el deploy. Antes, con la base arriba,
+   `npm run chequear:destinos` tiene que salir limpio.
+6. **GitHub** → `bash website/scripts/cargar-secrets-github.sh` (lee `.env.local`, pide el resto)
+   y **rehabilitar los cuatro workflows** (Actions → cada uno → Enable workflow). Los dos nuevos
+   (`vigilar`, `avisar-fallas`) se habilitan solos al entrar a `main`.
+7. Correr `0016`. Disparar `Scrape diario` a mano y mirar el log: tiene que escribir sin
+   `fetch failed`.
+8. **DNS de notebooks.com.ar** (Fede tiene el acceso al NIC): apuntar a Vercel y agregar el
+   dominio al proyecto. Es la tarea 0.2 de la reunión.
+
+---
+
 ## 🚨 Estado al 2026-09-24: quince días caído, y el vigía está en una rama
 
 Vuelto a medir el 24-sep: **sin cambios**. `notebooks-tan.vercel.app` sigue en 500 y
