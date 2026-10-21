@@ -17,17 +17,26 @@
  *   - musimundo (SPA), backup (robots prohíbe /Home/*): a confirmar.
  */
 import { makeWooScraper } from "./adapters/woocommerce.mjs";
+import { makeMedusaScraper } from "./adapters/medusa.mjs";
 import { makeVtexScraper } from "./adapters/vtex.mjs";
 import { makeQloudScraper } from "./adapters/qloud.mjs";
 import { makeVenexScraper } from "./adapters/venex.mjs";
 
 export const SOURCES = [
-  // --- WooCommerce ---------------------------------------------------------
-  makeWooScraper({
+  // --- Medusa --------------------------------------------------------------
+  // Córdoba Notebooks dejó WooCommerce en agosto de 2026. La publishable key es la misma que
+  // viaja en el navegador de la tienda (pública por diseño, sólo lectura); se puede pisar con
+  // MEDUSA_PUBLISHABLE_KEY_CORDOBANOTEBOOKS. Región y categoría medidas el 21-oct-2026.
+  makeMedusaScraper({
     storeId: "cordobanotebooks",
     base: "https://cordobanotebooks.com.ar",
-    category: "notebooks",
+    apiBase: "https://api.cordobanotebooks.com.ar",
+    publishableKey: "pk_91532a2515b3caa240f669ca67242aeaa5e59c851b4256c04698b46082d933b4",
+    regionId: "reg_01KZ6DG7Q12N06D3Y2G8QVSQEA",
+    categoryHandle: "notebooks",
   }),
+
+  // --- WooCommerce ---------------------------------------------------------
   makeWooScraper({
     storeId: "maxtecno",
     base: "https://maxtecno.com.ar",

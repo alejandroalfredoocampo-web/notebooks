@@ -42,6 +42,7 @@ overlay (en `npm run dev` se ve al instante).
 | Adaptador | Archivo | Estrategia |
 |---|---|---|
 | WooCommerce | `adapters/woocommerce.mjs` | Store API pública (JSON): `/wp-json/wc/store/v1/products` |
+| Medusa v2 | `adapters/medusa.mjs` | Store API (JSON): `/store/products` con `x-publishable-api-key`; el total viene en `count` |
 | VTEX | `adapters/vtex.mjs` | Catalog API pública (JSON): `/api/catalog_system/pub/products/search` |
 
 ## Fuentes configuradas (`sources.mjs`)
