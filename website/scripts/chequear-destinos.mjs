@@ -50,9 +50,13 @@ if (eStores) {
   process.exit(1);
 }
 
-const listings = await todasLasFilas((desde, hasta) =>
+const { data: listings, error: eListings } = await todasLasFilas((desde, hasta) =>
   sb.from("listings").select("id,store_id,url", { count: "exact" }).order("id").range(desde, hasta),
 );
+if (eListings) {
+  console.error("No se pudo leer listings:", eListings.message);
+  process.exit(1);
+}
 
 const porId = new Map(stores.map((s) => [s.id, s]));
 const malos = [];
